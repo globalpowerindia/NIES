@@ -67,28 +67,63 @@ export interface Config {
   };
   blocks: {};
   collections: {
-    users: User;
+    categories: Category;
+    brands: Brand;
+    'spec-definitions': SpecDefinition;
+    products: Product;
+    'product-variants': ProductVariant;
+    reviews: Review;
+    inventory: Inventory;
+    'stock-movements': StockMovement;
     media: Media;
+    datasheets: Datasheet;
+    orders: Order;
+    'newsletter-subscribers': NewsletterSubscriber;
+    users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
-  collectionsJoins: {};
+  collectionsJoins: {
+    products: {
+      variants: 'product-variants';
+    };
+    inventory: {
+      movements: 'stock-movements';
+    };
+  };
   collectionsSelect: {
-    users: UsersSelect<false> | UsersSelect<true>;
+    categories: CategoriesSelect<false> | CategoriesSelect<true>;
+    brands: BrandsSelect<false> | BrandsSelect<true>;
+    'spec-definitions': SpecDefinitionsSelect<false> | SpecDefinitionsSelect<true>;
+    products: ProductsSelect<false> | ProductsSelect<true>;
+    'product-variants': ProductVariantsSelect<false> | ProductVariantsSelect<true>;
+    reviews: ReviewsSelect<false> | ReviewsSelect<true>;
+    inventory: InventorySelect<false> | InventorySelect<true>;
+    'stock-movements': StockMovementsSelect<false> | StockMovementsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    datasheets: DatasheetsSelect<false> | DatasheetsSelect<true>;
+    orders: OrdersSelect<false> | OrdersSelect<true>;
+    'newsletter-subscribers': NewsletterSubscribersSelect<false> | NewsletterSubscribersSelect<true>;
+    users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
   };
   db: {
-    defaultIDType: string;
+    defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    'home-page': HomePage;
+    'site-settings': SiteSetting;
+  };
+  globalsSelect: {
+    'home-page': HomePageSelect<false> | HomePageSelect<true>;
+    'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
+  };
   locale: null;
   widgets: {
     collections: CollectionsWidget;
@@ -119,10 +154,548 @@ export interface UserAuthOperations {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categories".
+ */
+export interface Category {
+  id: number;
+  name: string;
+  /**
+   * Generated from name when left blank. Changing it breaks existing links.
+   */
+  slug: string;
+  description?: string | null;
+  /**
+   * Square-ish tile image for category grids and filters.
+   */
+  image?: (number | null) | Media;
+  /**
+   * Wide banner at the top of the category page (1620 × 300).
+   */
+  bannerImage?: (number | null) | Media;
+  /**
+   * Leave blank for a top-level category.
+   */
+  parent?: (number | null) | Category;
+  isActive?: boolean | null;
+  sortOrder?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media".
+ */
+export interface Media {
+  id: number;
+  /**
+   * Describes the image for screen readers and search engines.
+   */
+  alt: string;
+  prefix?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+  sizes?: {
+    thumbnail?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    card?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    hero?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "brands".
+ */
+export interface Brand {
+  id: number;
+  name: string;
+  /**
+   * Generated from name when left blank. Changing it breaks existing links.
+   */
+  slug: string;
+  logo?: (number | null) | Media;
+  about?: string | null;
+  isActive?: boolean | null;
+  sortOrder?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * The registry of comparable attributes. Drives product spec tables, the compare view and catalog filters.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "spec-definitions".
+ */
+export interface SpecDefinition {
+  id: number;
+  /**
+   * Stable machine name, e.g. voltage, noLoadRpm, chuckSize.
+   */
+  key: string;
+  label: string;
+  /**
+   * V, W, RPM, mm, kg. Leave blank for unitless values.
+   */
+  unit?: string | null;
+  type: 'TEXT' | 'NUMBER' | 'BOOLEAN';
+  /**
+   * Heading this spec appears under, e.g. Motor, Physical.
+   */
+  group?: string | null;
+  /**
+   * Restrict this spec to one category. Leave blank to offer it everywhere.
+   */
+  category?: (number | null) | Category;
+  isFilter?: boolean | null;
+  /**
+   * The short "Technical Specifications" list next to Add to Cart. Keep it to about five.
+   */
+  isSummary?: boolean | null;
+  isCompare?: boolean | null;
+  sortOrder?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products".
+ */
+export interface Product {
+  id: number;
+  name: string;
+  /**
+   * Generated from name when left blank. Changing it breaks existing links.
+   */
+  slug: string;
+  /**
+   * Only Active products appear in the storefront.
+   */
+  status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+  sortOrder?: number | null;
+  /**
+   * Stored x100. Maintained from approved reviews.
+   */
+  ratingAvg?: number | null;
+  ratingCount?: number | null;
+  subtitle?: string | null;
+  modelNumber?: string | null;
+  /**
+   * Tag shown on the product card. Also feeds the homepage carousels.
+   */
+  badges?: ('NEW' | 'BEST_SELLER')[] | null;
+  /**
+   * The first image is the card and main image. Drag to reorder.
+   */
+  images?: (number | Media)[] | null;
+  /**
+   * One or two lines for search results and sharing previews.
+   */
+  shortDesc?: string | null;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  keyFeatures?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  warrantyInfo?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * PDF shown under "User Manual" on the product page.
+   */
+  userManual?: (number | null) | Datasheet;
+  category: number | Category;
+  brand?: (number | null) | Brand;
+  /**
+   * Required on Indian e-commerce listings (Legal Metrology rules).
+   */
+  countryOfOrigin?: string | null;
+  /**
+   * For "Similar Products to Compare". Leave empty to use other products from the same category.
+   */
+  similarProducts?: (number | Product)[] | null;
+  /**
+   * The "Free with purchase" box next to the price.
+   */
+  freeAccessories?:
+    | {
+        name: string;
+        quantity?: string | null;
+        image?: (number | null) | Media;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Artwork with its text included.
+   */
+  brochureBanner?: (number | null) | Media;
+  /**
+   * Behind the "Download Brochure" button.
+   */
+  datasheet?: (number | null) | Datasheet;
+  applications?: {
+    title?: string | null;
+    items?:
+      | {
+          label: string;
+          image: number | Media;
+          id?: string | null;
+        }[]
+      | null;
+  };
+  /**
+   * Full-width artwork at the bottom of the page, text included.
+   */
+  promoImages?: (number | Media)[] | null;
+  /**
+   * Fill the value matching the definition type. Numbers are stored x100, so 12.5 mm is 1250.
+   */
+  specValues?:
+    | {
+        definition: number | SpecDefinition;
+        valueText?: string | null;
+        /**
+         * Scaled x100 so ranges can be filtered.
+         */
+        valueNum?: number | null;
+        valueBool?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  variants?: {
+    docs?: (number | ProductVariant)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  /**
+   * HSN code for the GST invoice. Power tools are usually 8467.
+   */
+  hsnCode: string;
+  /**
+   * Basis points. 1800 is 18%. Allowed: 0, 500, 1200, 1800, 2800.
+   */
+  gstRateBps: number;
+  warrantyMonths?: number | null;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "datasheets".
+ */
+export interface Datasheet {
+  id: number;
+  title: string;
+  prefix?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "product-variants".
+ */
+export interface ProductVariant {
+  id: number;
+  product: number | Product;
+  /**
+   * Stock keeping unit. Must be unique across the catalog.
+   */
+  sku: string;
+  /**
+   * How this variant is labelled, e.g. "Cordless · 4Ah · Kit".
+   */
+  name: string;
+  powerSource?: ('CORDED' | 'CORDLESS') | null;
+  /**
+   * Scaled x10, so 4.0Ah is 40.
+   */
+  batteryAh?: number | null;
+  packType?: ('BARE_TOOL' | 'KIT') | null;
+  /**
+   * Paise, GST inclusive. ₹1,250.00 is 125000.
+   */
+  mrpPaise: number;
+  /**
+   * Paise, GST inclusive. ₹1,250.00 is 125000.
+   */
+  sellingPricePaise: number;
+  weightGrams?: number | null;
+  barcode?: string | null;
+  /**
+   * Optional. Falls back to the product images when empty.
+   */
+  images?: (number | Media)[] | null;
+  /**
+   * Preselected on the product page.
+   */
+  isDefault?: boolean | null;
+  isActive?: boolean | null;
+  sortOrder?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Only approved reviews appear on the storefront and count towards the rating.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "reviews".
+ */
+export interface Review {
+  id: number;
+  product: number | Product;
+  authorName: string;
+  rating: number;
+  verifiedPurchase?: boolean | null;
+  title?: string | null;
+  body?: string | null;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "inventory".
+ */
+export interface Inventory {
+  id: number;
+  variant: number | ProductVariant;
+  product?: (number | null) | Product;
+  sku?: string | null;
+  /**
+   * Units physically in the warehouse.
+   */
+  onHand?: number | null;
+  /**
+   * Held for orders awaiting payment.
+   */
+  reserved?: number | null;
+  /**
+   * What customers can buy.
+   */
+  available?: number | null;
+  stockStatus?: ('IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK') | null;
+  /**
+   * Flag as low stock at or below this many available.
+   */
+  lowStockThreshold?: number | null;
+  /**
+   * Keep selling when out of stock (ships later).
+   */
+  allowBackorder?: boolean | null;
+  movements?: {
+    docs?: (number | StockMovement)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "stock-movements".
+ */
+export interface StockMovement {
+  id: number;
+  variant: number | ProductVariant;
+  type: 'RECEIVED' | 'RETURNED' | 'ADJUST_UP' | 'ADJUST_DOWN' | 'DAMAGED' | 'RESERVED' | 'RELEASED' | 'SOLD';
+  /**
+   * Always positive. The type decides add or remove.
+   */
+  quantity: number;
+  note?: string | null;
+  order?: (number | null) | Order;
+  inventory?: (number | null) | Inventory;
+  onHandAfter?: number | null;
+  reservedAfter?: number | null;
+  recordedBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "orders".
+ */
+export interface Order {
+  id: number;
+  /**
+   * PT-<FY>-<sequence>, gapless per financial year.
+   */
+  orderNumber: string;
+  /**
+   * Issued only on payment capture — the GST series must not have gaps.
+   */
+  invoiceNumber?: string | null;
+  status: 'PENDING_PAYMENT' | 'CONFIRMED' | 'PACKED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'RETURNED';
+  placedAt: string;
+  customerName: string;
+  customerEmail?: string | null;
+  customerPhone?: string | null;
+  /**
+   * Present for B2B invoices.
+   */
+  customerGstin?: string | null;
+  shipLine1: string;
+  shipLine2?: string | null;
+  shipLandmark?: string | null;
+  shipCity: string;
+  shipPincode: string;
+  /**
+   * GST state code. 32 = Kerala, and decides CGST/SGST vs IGST.
+   */
+  shipStateCode: string;
+  shipStateName: string;
+  /**
+   * Snapshot taken at order time — survives later product edits.
+   */
+  items?:
+    | {
+        productName: string;
+        sku: string;
+        quantity: number;
+        hsnCode: string;
+        gstRateBps: number;
+        /**
+         * Paise, GST inclusive. ₹1,250.00 is 125000.
+         */
+        unitPricePaise: number;
+        /**
+         * Paise, GST inclusive. ₹1,250.00 is 125000.
+         */
+        lineNetPaise: number;
+        /**
+         * Paise, GST inclusive. ₹1,250.00 is 125000.
+         */
+        lineTaxablePaise: number;
+        /**
+         * Paise, GST inclusive. ₹1,250.00 is 125000.
+         */
+        lineTaxPaise: number;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Paise, GST inclusive. ₹1,250.00 is 125000.
+   */
+  subtotalPaise: number;
+  /**
+   * Paise, GST inclusive. ₹1,250.00 is 125000.
+   */
+  discountPaise?: number | null;
+  /**
+   * Paise, GST inclusive. ₹1,250.00 is 125000.
+   */
+  shippingPaise?: number | null;
+  /**
+   * Paise, GST inclusive. ₹1,250.00 is 125000.
+   */
+  taxablePaise: number;
+  /**
+   * Paise, GST inclusive. ₹1,250.00 is 125000.
+   */
+  cgstPaise?: number | null;
+  /**
+   * Paise, GST inclusive. ₹1,250.00 is 125000.
+   */
+  sgstPaise?: number | null;
+  /**
+   * Paise, GST inclusive. ₹1,250.00 is 125000.
+   */
+  igstPaise?: number | null;
+  /**
+   * Paise, GST inclusive. ₹1,250.00 is 125000.
+   */
+  grandTotalPaise: number;
+  trackingCarrier?: string | null;
+  trackingNumber?: string | null;
+  shippedAt?: string | null;
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
 export interface User {
-  id: string;
+  id: number;
+  name: string;
+  role: 'SUPER_ADMIN' | 'MANAGER' | 'STAFF';
+  isActive?: boolean | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -144,29 +717,22 @@ export interface User {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media".
+ * via the `definition` "newsletter-subscribers".
  */
-export interface Media {
-  id: string;
-  alt: string;
+export interface NewsletterSubscriber {
+  id: number;
+  email: string;
+  status: 'SUBSCRIBED' | 'UNSUBSCRIBED';
+  source?: string | null;
   updatedAt: string;
   createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
-  id: string;
+  id: number;
   key: string;
   data:
     | {
@@ -183,20 +749,64 @@ export interface PayloadKv {
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
-  id: string;
+  id: number;
   document?:
     | ({
-        relationTo: 'users';
-        value: string | User;
+        relationTo: 'categories';
+        value: number | Category;
+      } | null)
+    | ({
+        relationTo: 'brands';
+        value: number | Brand;
+      } | null)
+    | ({
+        relationTo: 'spec-definitions';
+        value: number | SpecDefinition;
+      } | null)
+    | ({
+        relationTo: 'products';
+        value: number | Product;
+      } | null)
+    | ({
+        relationTo: 'product-variants';
+        value: number | ProductVariant;
+      } | null)
+    | ({
+        relationTo: 'reviews';
+        value: number | Review;
+      } | null)
+    | ({
+        relationTo: 'inventory';
+        value: number | Inventory;
+      } | null)
+    | ({
+        relationTo: 'stock-movements';
+        value: number | StockMovement;
       } | null)
     | ({
         relationTo: 'media';
-        value: string | Media;
+        value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'datasheets';
+        value: number | Datasheet;
+      } | null)
+    | ({
+        relationTo: 'orders';
+        value: number | Order;
+      } | null)
+    | ({
+        relationTo: 'newsletter-subscribers';
+        value: number | NewsletterSubscriber;
+      } | null)
+    | ({
+        relationTo: 'users';
+        value: number | User;
       } | null);
   globalSlug?: string | null;
   user: {
     relationTo: 'users';
-    value: string | User;
+    value: number | User;
   };
   updatedAt: string;
   createdAt: string;
@@ -206,10 +816,10 @@ export interface PayloadLockedDocument {
  * via the `definition` "payload-preferences".
  */
 export interface PayloadPreference {
-  id: string;
+  id: number;
   user: {
     relationTo: 'users';
-    value: string | User;
+    value: number | User;
   };
   key?: string | null;
   value?:
@@ -229,7 +839,7 @@ export interface PayloadPreference {
  * via the `definition` "payload-migrations".
  */
 export interface PayloadMigration {
-  id: string;
+  id: number;
   name?: string | null;
   batch?: number | null;
   updatedAt: string;
@@ -237,9 +847,329 @@ export interface PayloadMigration {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categories_select".
+ */
+export interface CategoriesSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  description?: T;
+  image?: T;
+  bannerImage?: T;
+  parent?: T;
+  isActive?: T;
+  sortOrder?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "brands_select".
+ */
+export interface BrandsSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  logo?: T;
+  about?: T;
+  isActive?: T;
+  sortOrder?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "spec-definitions_select".
+ */
+export interface SpecDefinitionsSelect<T extends boolean = true> {
+  key?: T;
+  label?: T;
+  unit?: T;
+  type?: T;
+  group?: T;
+  category?: T;
+  isFilter?: T;
+  isSummary?: T;
+  isCompare?: T;
+  sortOrder?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products_select".
+ */
+export interface ProductsSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  status?: T;
+  sortOrder?: T;
+  ratingAvg?: T;
+  ratingCount?: T;
+  subtitle?: T;
+  modelNumber?: T;
+  badges?: T;
+  images?: T;
+  shortDesc?: T;
+  description?: T;
+  keyFeatures?: T;
+  warrantyInfo?: T;
+  userManual?: T;
+  category?: T;
+  brand?: T;
+  countryOfOrigin?: T;
+  similarProducts?: T;
+  freeAccessories?:
+    | T
+    | {
+        name?: T;
+        quantity?: T;
+        image?: T;
+        id?: T;
+      };
+  brochureBanner?: T;
+  datasheet?: T;
+  applications?:
+    | T
+    | {
+        title?: T;
+        items?:
+          | T
+          | {
+              label?: T;
+              image?: T;
+              id?: T;
+            };
+      };
+  promoImages?: T;
+  specValues?:
+    | T
+    | {
+        definition?: T;
+        valueText?: T;
+        valueNum?: T;
+        valueBool?: T;
+        id?: T;
+      };
+  variants?: T;
+  hsnCode?: T;
+  gstRateBps?: T;
+  warrantyMonths?: T;
+  metaTitle?: T;
+  metaDescription?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "product-variants_select".
+ */
+export interface ProductVariantsSelect<T extends boolean = true> {
+  product?: T;
+  sku?: T;
+  name?: T;
+  powerSource?: T;
+  batteryAh?: T;
+  packType?: T;
+  mrpPaise?: T;
+  sellingPricePaise?: T;
+  weightGrams?: T;
+  barcode?: T;
+  images?: T;
+  isDefault?: T;
+  isActive?: T;
+  sortOrder?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "reviews_select".
+ */
+export interface ReviewsSelect<T extends boolean = true> {
+  product?: T;
+  authorName?: T;
+  rating?: T;
+  verifiedPurchase?: T;
+  title?: T;
+  body?: T;
+  status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "inventory_select".
+ */
+export interface InventorySelect<T extends boolean = true> {
+  variant?: T;
+  product?: T;
+  sku?: T;
+  onHand?: T;
+  reserved?: T;
+  available?: T;
+  stockStatus?: T;
+  lowStockThreshold?: T;
+  allowBackorder?: T;
+  movements?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "stock-movements_select".
+ */
+export interface StockMovementsSelect<T extends boolean = true> {
+  variant?: T;
+  type?: T;
+  quantity?: T;
+  note?: T;
+  order?: T;
+  inventory?: T;
+  onHandAfter?: T;
+  reservedAfter?: T;
+  recordedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media_select".
+ */
+export interface MediaSelect<T extends boolean = true> {
+  alt?: T;
+  prefix?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+  sizes?:
+    | T
+    | {
+        thumbnail?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        card?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        hero?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+      };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "datasheets_select".
+ */
+export interface DatasheetsSelect<T extends boolean = true> {
+  title?: T;
+  prefix?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "orders_select".
+ */
+export interface OrdersSelect<T extends boolean = true> {
+  orderNumber?: T;
+  invoiceNumber?: T;
+  status?: T;
+  placedAt?: T;
+  customerName?: T;
+  customerEmail?: T;
+  customerPhone?: T;
+  customerGstin?: T;
+  shipLine1?: T;
+  shipLine2?: T;
+  shipLandmark?: T;
+  shipCity?: T;
+  shipPincode?: T;
+  shipStateCode?: T;
+  shipStateName?: T;
+  items?:
+    | T
+    | {
+        productName?: T;
+        sku?: T;
+        quantity?: T;
+        hsnCode?: T;
+        gstRateBps?: T;
+        unitPricePaise?: T;
+        lineNetPaise?: T;
+        lineTaxablePaise?: T;
+        lineTaxPaise?: T;
+        id?: T;
+      };
+  subtotalPaise?: T;
+  discountPaise?: T;
+  shippingPaise?: T;
+  taxablePaise?: T;
+  cgstPaise?: T;
+  sgstPaise?: T;
+  igstPaise?: T;
+  grandTotalPaise?: T;
+  trackingCarrier?: T;
+  trackingNumber?: T;
+  shippedAt?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "newsletter-subscribers_select".
+ */
+export interface NewsletterSubscribersSelect<T extends boolean = true> {
+  email?: T;
+  status?: T;
+  source?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
+  name?: T;
+  role?: T;
+  isActive?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -256,24 +1186,6 @@ export interface UsersSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media_select".
- */
-export interface MediaSelect<T extends boolean = true> {
-  alt?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  url?: T;
-  thumbnailURL?: T;
-  filename?: T;
-  mimeType?: T;
-  filesize?: T;
-  width?: T;
-  height?: T;
-  focalX?: T;
-  focalY?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -314,6 +1226,793 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * Every section of the homepage, top to bottom. Drag to reorder, hide a section without deleting it, and save a draft before publishing.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "home-page".
+ */
+export interface HomePage {
+  id: number;
+  sections?:
+    | (
+        | HeroCarouselBlock
+        | BannerRowBlock
+        | WideBannerBlock
+        | ProductCarouselBlock
+        | CategoryGridBlock
+        | CollectionShowcaseBlock
+        | CatalogueBannerBlock
+        | ValuePropsBlock
+        | AppPromoBlock
+        | TrustedBrandsBlock
+        | NewsletterBlock
+      )[]
+    | null;
+  _status?: ('draft' | 'published') | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HeroCarouselBlock".
+ */
+export interface HeroCarouselBlock {
+  /**
+   * Keeps the section and its content, but takes it off the live homepage.
+   */
+  hidden?: boolean | null;
+  slides?:
+    | {
+        /**
+         * Desktop artwork, with any headline text already in it.
+         */
+        image: number | Media;
+        /**
+         * Optional. Portrait crop for phones, so baked-in text stays readable.
+         */
+        mobileImage?: (number | null) | Media;
+        link?: {
+          type?: ('category' | 'product' | 'custom' | 'none') | null;
+          category?: (number | null) | Category;
+          product?: (number | null) | Product;
+          url?: string | null;
+        };
+        /**
+         * Leave empty when the artwork already has its text and button.
+         */
+        overlay?: {
+          /**
+           * Press Enter to break the line where the design does.
+           */
+          heading?: string | null;
+          subheading?: string | null;
+          buttonLabel?: string | null;
+          buttonStyle?: ('red' | 'blue' | 'outline') | null;
+          position?: ('left' | 'right') | null;
+          textTone?: ('light' | 'dark') | null;
+          /**
+           * Helps light text stay readable on busy photos.
+           */
+          shade?: boolean | null;
+        };
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'heroCarousel';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "BannerRowBlock".
+ */
+export interface BannerRowBlock {
+  /**
+   * Keeps the section and its content, but takes it off the live homepage.
+   */
+  hidden?: boolean | null;
+  /**
+   * One banner fills the row; two sit side by side (799 × 400 artwork each).
+   */
+  banners?:
+    | {
+        /**
+         * Desktop artwork, with any headline text already in it.
+         */
+        image: number | Media;
+        /**
+         * Optional. Portrait crop for phones, so baked-in text stays readable.
+         */
+        mobileImage?: (number | null) | Media;
+        link?: {
+          type?: ('category' | 'product' | 'custom' | 'none') | null;
+          category?: (number | null) | Category;
+          product?: (number | null) | Product;
+          url?: string | null;
+        };
+        /**
+         * Leave empty when the artwork already has its text and button.
+         */
+        overlay?: {
+          /**
+           * Press Enter to break the line where the design does.
+           */
+          heading?: string | null;
+          subheading?: string | null;
+          buttonLabel?: string | null;
+          buttonStyle?: ('red' | 'blue' | 'outline') | null;
+          position?: ('left' | 'right') | null;
+          textTone?: ('light' | 'dark') | null;
+          /**
+           * Helps light text stay readable on busy photos.
+           */
+          shade?: boolean | null;
+        };
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'bannerRow';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "WideBannerBlock".
+ */
+export interface WideBannerBlock {
+  /**
+   * Keeps the section and its content, but takes it off the live homepage.
+   */
+  hidden?: boolean | null;
+  shape?: ('feature' | 'strip') | null;
+  /**
+   * Desktop artwork, with any headline text already in it.
+   */
+  image: number | Media;
+  /**
+   * Optional. Portrait crop for phones, so baked-in text stays readable.
+   */
+  mobileImage?: (number | null) | Media;
+  link?: {
+    type?: ('category' | 'product' | 'custom' | 'none') | null;
+    category?: (number | null) | Category;
+    product?: (number | null) | Product;
+    url?: string | null;
+  };
+  /**
+   * Leave empty when the artwork already has its text and button.
+   */
+  overlay?: {
+    /**
+     * Press Enter to break the line where the design does.
+     */
+    heading?: string | null;
+    subheading?: string | null;
+    buttonLabel?: string | null;
+    buttonStyle?: ('red' | 'blue' | 'outline') | null;
+    position?: ('left' | 'right') | null;
+    textTone?: ('light' | 'dark') | null;
+    /**
+     * Helps light text stay readable on busy photos.
+     */
+    shade?: boolean | null;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'wideBanner';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ProductCarouselBlock".
+ */
+export interface ProductCarouselBlock {
+  /**
+   * Keeps the section and its content, but takes it off the live homepage.
+   */
+  hidden?: boolean | null;
+  eyebrow?: string | null;
+  /**
+   * Leave empty for a section without a heading.
+   */
+  title?: string | null;
+  description?: string | null;
+  source: 'new' | 'bestSeller' | 'offers' | 'category' | 'manual';
+  limit?: number | null;
+  category?: (number | null) | Category;
+  /**
+   * Shown in this order. Drag to reorder.
+   */
+  products?: (number | Product)[] | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'productCarousel';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CategoryGridBlock".
+ */
+export interface CategoryGridBlock {
+  /**
+   * Keeps the section and its content, but takes it off the live homepage.
+   */
+  hidden?: boolean | null;
+  eyebrow?: string | null;
+  /**
+   * Leave empty for a section without a heading.
+   */
+  title?: string | null;
+  description?: string | null;
+  tiles?:
+    | {
+        category: number | Category;
+        /**
+         * Falls back to the category image.
+         */
+        image?: (number | null) | Media;
+        /**
+         * Defaults to the category name.
+         */
+        title?: string | null;
+        linkLabel?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'categoryGrid';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CollectionShowcaseBlock".
+ */
+export interface CollectionShowcaseBlock {
+  /**
+   * Keeps the section and its content, but takes it off the live homepage.
+   */
+  hidden?: boolean | null;
+  eyebrow?: string | null;
+  /**
+   * Leave empty for a section without a heading.
+   */
+  title?: string | null;
+  description?: string | null;
+  featureImage: number | Media;
+  products?: (number | Product)[] | null;
+  buttonLabel?: string | null;
+  buttonLink?: {
+    type?: ('category' | 'product' | 'custom' | 'none') | null;
+    category?: (number | null) | Category;
+    product?: (number | null) | Product;
+    url?: string | null;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'collectionShowcase';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CatalogueBannerBlock".
+ */
+export interface CatalogueBannerBlock {
+  /**
+   * Keeps the section and its content, but takes it off the live homepage.
+   */
+  hidden?: boolean | null;
+  title: string;
+  description?: string | null;
+  buttonLabel?: string | null;
+  /**
+   * The PDF customers download.
+   */
+  file?: (number | null) | Datasheet;
+  buttonLink?: {
+    type?: ('category' | 'product' | 'custom' | 'none') | null;
+    category?: (number | null) | Category;
+    product?: (number | null) | Product;
+    url?: string | null;
+  };
+  image: number | Media;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'catalogueBanner';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ValuePropsBlock".
+ */
+export interface ValuePropsBlock {
+  /**
+   * Keeps the section and its content, but takes it off the live homepage.
+   */
+  hidden?: boolean | null;
+  eyebrow?: string | null;
+  /**
+   * Leave empty for a section without a heading.
+   */
+  title?: string | null;
+  description?: string | null;
+  items?:
+    | {
+        icon?: (number | null) | Media;
+        title: string;
+        text?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'valueProps';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "AppPromoBlock".
+ */
+export interface AppPromoBlock {
+  /**
+   * Keeps the section and its content, but takes it off the live homepage.
+   */
+  hidden?: boolean | null;
+  title?: string | null;
+  description?: string | null;
+  /**
+   * App screen shown on the phone in the hand (portrait, about 550 × 685).
+   */
+  screenshot?: (number | null) | Media;
+  /**
+   * Leave empty to hide the Google Play badge.
+   */
+  googlePlayUrl?: string | null;
+  /**
+   * Leave empty to hide the App Store badge.
+   */
+  appStoreUrl?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'appPromo';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TrustedBrandsBlock".
+ */
+export interface TrustedBrandsBlock {
+  /**
+   * Keeps the section and its content, but takes it off the live homepage.
+   */
+  hidden?: boolean | null;
+  title: string;
+  description?: string | null;
+  /**
+   * Leave empty to show every active brand that has a logo.
+   */
+  brands?: (number | Brand)[] | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'trustedBrands';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "NewsletterBlock".
+ */
+export interface NewsletterBlock {
+  /**
+   * Keeps the section and its content, but takes it off the live homepage.
+   */
+  hidden?: boolean | null;
+  title: string;
+  description?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'newsletter';
+}
+/**
+ * Shown on every storefront page.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings".
+ */
+export interface SiteSetting {
+  id: number;
+  siteName: string;
+  logo?: (number | null) | Media;
+  /**
+   * Rotates in the blue bar at the very top.
+   */
+  offers?:
+    | {
+        text: string;
+        id?: string | null;
+      }[]
+    | null;
+  utilityLinks?:
+    | {
+        label: string;
+        icon?: ('rupee' | 'book' | 'phone') | null;
+        /**
+         * A PDF to download. Overrides the link.
+         */
+        file?: (number | null) | Datasheet;
+        link?: {
+          type?: ('category' | 'product' | 'custom' | 'none') | null;
+          category?: (number | null) | Category;
+          product?: (number | null) | Product;
+          url?: string | null;
+        };
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * The grey category bar, in this order. Drag to reorder.
+   */
+  navCategories?: (number | Category)[] | null;
+  footerColumns?:
+    | {
+        heading: string;
+        links?:
+          | {
+              label: string;
+              link?: {
+                type?: ('category' | 'product' | 'custom' | 'none') | null;
+                category?: (number | null) | Category;
+                product?: (number | null) | Product;
+                url?: string | null;
+              };
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  socialLinks?:
+    | {
+        platform: 'facebook' | 'instagram' | 'whatsapp' | 'youtube';
+        url: string;
+        id?: string | null;
+      }[]
+    | null;
+  tollFreeNumber?: string | null;
+  /**
+   * For the floating chat button. Digits with country code, e.g. 917034127770.
+   */
+  whatsappNumber?: string | null;
+  /**
+   * Logos in the footer strip (ISO, MSME, GeM…).
+   */
+  certifications?: (number | Media)[] | null;
+  paymentMethodsImage?: (number | null) | Media;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "home-page_select".
+ */
+export interface HomePageSelect<T extends boolean = true> {
+  sections?:
+    | T
+    | {
+        heroCarousel?: T | HeroCarouselBlockSelect<T>;
+        bannerRow?: T | BannerRowBlockSelect<T>;
+        wideBanner?: T | WideBannerBlockSelect<T>;
+        productCarousel?: T | ProductCarouselBlockSelect<T>;
+        categoryGrid?: T | CategoryGridBlockSelect<T>;
+        collectionShowcase?: T | CollectionShowcaseBlockSelect<T>;
+        catalogueBanner?: T | CatalogueBannerBlockSelect<T>;
+        valueProps?: T | ValuePropsBlockSelect<T>;
+        appPromo?: T | AppPromoBlockSelect<T>;
+        trustedBrands?: T | TrustedBrandsBlockSelect<T>;
+        newsletter?: T | NewsletterBlockSelect<T>;
+      };
+  _status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HeroCarouselBlock_select".
+ */
+export interface HeroCarouselBlockSelect<T extends boolean = true> {
+  hidden?: T;
+  slides?:
+    | T
+    | {
+        image?: T;
+        mobileImage?: T;
+        link?:
+          | T
+          | {
+              type?: T;
+              category?: T;
+              product?: T;
+              url?: T;
+            };
+        overlay?:
+          | T
+          | {
+              heading?: T;
+              subheading?: T;
+              buttonLabel?: T;
+              buttonStyle?: T;
+              position?: T;
+              textTone?: T;
+              shade?: T;
+            };
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "BannerRowBlock_select".
+ */
+export interface BannerRowBlockSelect<T extends boolean = true> {
+  hidden?: T;
+  banners?:
+    | T
+    | {
+        image?: T;
+        mobileImage?: T;
+        link?:
+          | T
+          | {
+              type?: T;
+              category?: T;
+              product?: T;
+              url?: T;
+            };
+        overlay?:
+          | T
+          | {
+              heading?: T;
+              subheading?: T;
+              buttonLabel?: T;
+              buttonStyle?: T;
+              position?: T;
+              textTone?: T;
+              shade?: T;
+            };
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "WideBannerBlock_select".
+ */
+export interface WideBannerBlockSelect<T extends boolean = true> {
+  hidden?: T;
+  shape?: T;
+  image?: T;
+  mobileImage?: T;
+  link?:
+    | T
+    | {
+        type?: T;
+        category?: T;
+        product?: T;
+        url?: T;
+      };
+  overlay?:
+    | T
+    | {
+        heading?: T;
+        subheading?: T;
+        buttonLabel?: T;
+        buttonStyle?: T;
+        position?: T;
+        textTone?: T;
+        shade?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ProductCarouselBlock_select".
+ */
+export interface ProductCarouselBlockSelect<T extends boolean = true> {
+  hidden?: T;
+  eyebrow?: T;
+  title?: T;
+  description?: T;
+  source?: T;
+  limit?: T;
+  category?: T;
+  products?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CategoryGridBlock_select".
+ */
+export interface CategoryGridBlockSelect<T extends boolean = true> {
+  hidden?: T;
+  eyebrow?: T;
+  title?: T;
+  description?: T;
+  tiles?:
+    | T
+    | {
+        category?: T;
+        image?: T;
+        title?: T;
+        linkLabel?: T;
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CollectionShowcaseBlock_select".
+ */
+export interface CollectionShowcaseBlockSelect<T extends boolean = true> {
+  hidden?: T;
+  eyebrow?: T;
+  title?: T;
+  description?: T;
+  featureImage?: T;
+  products?: T;
+  buttonLabel?: T;
+  buttonLink?:
+    | T
+    | {
+        type?: T;
+        category?: T;
+        product?: T;
+        url?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CatalogueBannerBlock_select".
+ */
+export interface CatalogueBannerBlockSelect<T extends boolean = true> {
+  hidden?: T;
+  title?: T;
+  description?: T;
+  buttonLabel?: T;
+  file?: T;
+  buttonLink?:
+    | T
+    | {
+        type?: T;
+        category?: T;
+        product?: T;
+        url?: T;
+      };
+  image?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ValuePropsBlock_select".
+ */
+export interface ValuePropsBlockSelect<T extends boolean = true> {
+  hidden?: T;
+  eyebrow?: T;
+  title?: T;
+  description?: T;
+  items?:
+    | T
+    | {
+        icon?: T;
+        title?: T;
+        text?: T;
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "AppPromoBlock_select".
+ */
+export interface AppPromoBlockSelect<T extends boolean = true> {
+  hidden?: T;
+  title?: T;
+  description?: T;
+  screenshot?: T;
+  googlePlayUrl?: T;
+  appStoreUrl?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TrustedBrandsBlock_select".
+ */
+export interface TrustedBrandsBlockSelect<T extends boolean = true> {
+  hidden?: T;
+  title?: T;
+  description?: T;
+  brands?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "NewsletterBlock_select".
+ */
+export interface NewsletterBlockSelect<T extends boolean = true> {
+  hidden?: T;
+  title?: T;
+  description?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings_select".
+ */
+export interface SiteSettingsSelect<T extends boolean = true> {
+  siteName?: T;
+  logo?: T;
+  offers?:
+    | T
+    | {
+        text?: T;
+        id?: T;
+      };
+  utilityLinks?:
+    | T
+    | {
+        label?: T;
+        icon?: T;
+        file?: T;
+        link?:
+          | T
+          | {
+              type?: T;
+              category?: T;
+              product?: T;
+              url?: T;
+            };
+        id?: T;
+      };
+  navCategories?: T;
+  footerColumns?:
+    | T
+    | {
+        heading?: T;
+        links?:
+          | T
+          | {
+              label?: T;
+              link?:
+                | T
+                | {
+                    type?: T;
+                    category?: T;
+                    product?: T;
+                    url?: T;
+                  };
+              id?: T;
+            };
+        id?: T;
+      };
+  socialLinks?:
+    | T
+    | {
+        platform?: T;
+        url?: T;
+        id?: T;
+      };
+  tollFreeNumber?: T;
+  whatsappNumber?: T;
+  certifications?: T;
+  paymentMethodsImage?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
