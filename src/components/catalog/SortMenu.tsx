@@ -8,7 +8,16 @@ import { cn } from '@/lib/utils'
 
 import { useListingUrl } from './useListingUrl'
 
-export const SortMenu = ({ value }: { value: SortKey }) => {
+/** `defaultSort` is the key that needs no `?sort=`, so its URL stays clean. */
+export const SortMenu = ({
+  value,
+  options = (Object.keys(SORTS) as SortKey[]).filter((key) => key !== 'relevance'),
+  defaultSort = 'popularity',
+}: {
+  value: SortKey
+  options?: SortKey[]
+  defaultSort?: SortKey
+}) => {
   const { update } = useListingUrl()
   const [open, setOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)
@@ -51,14 +60,14 @@ export const SortMenu = ({ value }: { value: SortKey }) => {
           aria-label="Sort products"
           className="absolute right-0 z-20 mt-2 min-w-56 overflow-hidden rounded-xl border-[0.5px] border-brand-blue-200 bg-light-100 py-2 shadow-lg"
         >
-          {(Object.keys(SORTS) as SortKey[]).map((key) => (
+          {options.map((key) => (
             <li key={key} role="option" aria-selected={key === value}>
               <button
                 type="button"
                 onClick={() => {
                   setOpen(false)
                   update((params) => {
-                    if (key === 'popularity') params.delete('sort')
+                    if (key === defaultSort) params.delete('sort')
                     else params.set('sort', key)
                   })
                 }}

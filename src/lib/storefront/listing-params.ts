@@ -1,6 +1,8 @@
 /** Listing URL parsing. Imported by client components, so it must stay free of server code. */
 
 export const SORTS = {
+  /** Search only: the order `searchProducts` returned. Offered nowhere else. */
+  relevance: 'Relevance',
   popularity: 'Popularity',
   newest: 'Newest',
   'price-asc': 'Price: Low to High',
@@ -38,8 +40,8 @@ const wholeNumber = (value: string | string[] | undefined): number | undefined =
   return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : undefined
 }
 
-export const parseListingParams = (raw: RawParams): ListingParams => {
-  const sort = typeof raw.sort === 'string' && raw.sort in SORTS ? (raw.sort as SortKey) : 'popularity'
+export const parseListingParams = (raw: RawParams, defaultSort: SortKey = 'popularity'): ListingParams => {
+  const sort = typeof raw.sort === 'string' && raw.sort in SORTS ? (raw.sort as SortKey) : defaultSort
   const specs: Record<string, string[]> = {}
   for (const [key, value] of Object.entries(raw)) {
     if (key.startsWith('spec.')) {

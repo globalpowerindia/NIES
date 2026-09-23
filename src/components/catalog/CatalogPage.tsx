@@ -1,10 +1,11 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import type { ReactNode } from 'react'
 
 import { ProductCard } from '@/components/product/ProductCard'
 import { getListing } from '@/lib/storefront/catalog'
 import type { MediaInfo } from '@/lib/storefront/content'
-import { parseListingParams, withParam, type RawParams } from '@/lib/storefront/listing-params'
+import { parseListingParams, withParam, type RawParams, type SortKey } from '@/lib/storefront/listing-params'
 import { getPayloadClient } from '@/lib/storefront/queries'
 
 import { Breadcrumbs, type Crumb } from './Breadcrumbs'
@@ -23,15 +24,38 @@ type Props = {
   resolveSub: ((slugs: string[]) => number[]) | null
   categoryFilter: CategoryFilter | null
   raw: RawParams
+  /** Search passes its ranked matches; an empty array means "nothing matched". */
+  productIds?: number[] | null
+  defaultSort?: SortKey
+  sortOptions?: SortKey[]
+  /** Replaces the "no products match these filters" copy when the page has its own. */
+  empty?: { heading: string; hint: string } | null
+  /** Rendered above the grid — search uses it for the "showing results for" note. */
+  notice?: ReactNode
 }
 
-export const CatalogPage = async ({ basePath, title, banner, breadcrumbs, scopeIds, resolveSub, categoryFilter, raw }: Props) => {
-  const params = parseListingParams(raw)
+export const CatalogPage = async ({
+  basePath,
+  title,
+  banner,
+  breadcrumbs,
+  scopeIds,
+  resolveSub,
+  categoryFilter,
+  raw,
+  productIds = null,
+  defaultSort = 'popularity',
+  sortOptions,
+  empty = null,
+  notice = null,
+}: Props) => {
+  const params = parseListingParams(raw, defaultSort)
   const narrowed = resolveSub && params.sub.length ? resolveSub(params.sub) : null
   const payload = await getPayloadClient()
   const listing = await getListing(payload, {
     categoryIds: narrowed?.length ? narrowed : scopeIds,
     params,
+    productIds,
   })
   const filtersActive =
     params.sub.length > 0 ||
@@ -83,8 +107,10 @@ export const CatalogPage = async ({ basePath, title, banner, breadcrumbs, scopeI
                 Results for <span className="font-semibold text-dark-500">{title}</span>
                 <span className="ml-2 text-body3 font-normal text-dark-300">({listing.total})</span>
               </p>
-              <SortMenu value={params.sort} />
+              <SortMenu value={params.sort} options={sortOptions} defaultSort={defaultSort} />
             </div>
+
+            {notice}
 
             {listing.cards.length > 0 ? (
               <ul className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
@@ -96,8 +122,12 @@ export const CatalogPage = async ({ basePath, title, banner, breadcrumbs, scopeI
               </ul>
             ) : (
               <div className="flex flex-col items-center gap-4 rounded-xl bg-light-100 px-6 py-20 text-center">
-                <p className="text-h6 font-medium text-dark-500">No products match these filters</p>
-                <p className="text-body2 text-dark-300">Try removing a filter or widening the price range.</p>
+                <p className="text-h6 font-medium text-dark-500">
+                  {empty?.heading ?? 'No products match these filters'}
+                </p>
+                <p className="text-body2 text-dark-300">
+                  {empty?.hint ?? 'Try removing a filter or widening the price range.'}
+                </p>
                 {filtersActive && (
                   <Link
                     href={basePath}

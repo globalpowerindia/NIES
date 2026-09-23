@@ -65,6 +65,14 @@ export type Listing = {
   }
 }
 
+const EMPTY_LISTING: Listing = {
+  cards: [],
+  total: 0,
+  page: 1,
+  pageCount: 1,
+  facets: { brands: [], specs: [], price: { min: 0, max: 0 } },
+}
+
 type ListingRow = Pick<Product, 'id' | 'sortOrder' | 'ratingAvg' | 'ratingCount' | 'createdAt' | 'specValues'> & {
   brand?: number | null
   category?: number | null
@@ -84,11 +92,17 @@ const specText = (entry: NonNullable<Product['specValues']>[number]): string | n
  */
 export const getListing = async (
   payload: Payload,
-  options: { categoryIds: number[] | null; params: ListingParams },
+  options: { categoryIds: number[] | null; params: ListingParams; productIds?: number[] | null },
 ): Promise<Listing> => {
-  const { categoryIds, params } = options
+  const { categoryIds, params, productIds = null } = options
   const scope: Where[] = [{ status: { equals: 'ACTIVE' } }]
   if (categoryIds) scope.push({ category: { in: categoryIds } })
+  // Search hands us the matching ids already ranked; an empty array means the
+  // query matched nothing, which is not the same as "no id filter".
+  if (productIds) {
+    if (productIds.length === 0) return EMPTY_LISTING
+    scope.push({ id: { in: productIds } })
+  }
 
   const { docs } = await payload.find({
     collection: 'products',
@@ -201,7 +215,11 @@ export const getListing = async (
 
   const priceOf = (row: ListingRow) => pricing.get(row.id)!.variant.sellingPricePaise
   const bySortOrder = (a: ListingRow, b: ListingRow) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0)
+  // `productIds` arrives ranked; relevance just keeps that order.
+  const rankOf = new Map(productIds?.map((id, position) => [id, position]))
   const comparators: Record<SortKey, (a: ListingRow, b: ListingRow) => number> = {
+    relevance: (a, b) =>
+      (rankOf.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (rankOf.get(b.id) ?? Number.MAX_SAFE_INTEGER),
     popularity: (a, b) => Number(b.ratingCount ?? 0) - Number(a.ratingCount ?? 0) || bySortOrder(a, b),
     newest: (a, b) => b.createdAt.localeCompare(a.createdAt),
     'price-asc': (a, b) => priceOf(a) - priceOf(b),
