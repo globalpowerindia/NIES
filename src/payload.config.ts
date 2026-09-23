@@ -8,6 +8,8 @@ import sharp from 'sharp'
 
 import { Brands } from './collections/Brands'
 import { Categories } from './collections/Categories'
+import { AuthIdentities } from './collections/AuthIdentities'
+import { Customers } from './collections/Customers'
 import { Datasheets } from './collections/Datasheets'
 import { Inventory } from './collections/Inventory'
 import { Media } from './collections/Media'
@@ -16,6 +18,7 @@ import { Orders } from './collections/Orders'
 import { Products } from './collections/Products'
 import { ProductVariants } from './collections/ProductVariants'
 import { Reviews } from './collections/Reviews'
+import { SearchSynonyms } from './collections/SearchSynonyms'
 import { SpecDefinitions } from './collections/SpecDefinitions'
 import { StockMovements } from './collections/StockMovements'
 import { Users } from './collections/Users'
@@ -23,6 +26,7 @@ import { HomePage } from './globals/HomePage'
 import { SiteSettings } from './globals/SiteSettings'
 import { env, r2 } from './lib/env'
 import { enforceIntegerMoney } from './lib/schema-constraints'
+import { addSearchVector } from './lib/search-schema'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -58,6 +62,9 @@ export default buildConfig({
     Datasheets,
     Orders,
     NewsletterSubscribers,
+    SearchSynonyms,
+    Customers,
+    AuthIdentities,
     Users,
   ],
   globals: [HomePage, SiteSettings],
@@ -70,7 +77,7 @@ export default buildConfig({
     pool: {
       connectionString: env.DATABASE_URL,
     },
-    afterSchemaInit: [enforceIntegerMoney],
+    afterSchemaInit: [enforceIntegerMoney, addSearchVector],
   }),
   sharp,
   plugins: [

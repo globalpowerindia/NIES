@@ -3,6 +3,7 @@ import type { CollectionConfig } from 'payload'
 import { anyone, isManager, isSuperAdmin } from '@/access/roles'
 import { slugFrom } from '@/fields/slug'
 import { revalidateStorefront } from '@/lib/revalidate'
+import { refreshOnCategoryChange } from '@/lib/search-refresh'
 
 export const Categories: CollectionConfig = {
   slug: 'categories',
@@ -18,7 +19,7 @@ export const Categories: CollectionConfig = {
     update: isManager,
     delete: isSuperAdmin,
   },
-  hooks: { afterChange: [revalidateStorefront] },
+  hooks: { afterChange: [revalidateStorefront, refreshOnCategoryChange] },
   fields: [
     { name: 'name', type: 'text', required: true },
     slugFrom('name'),

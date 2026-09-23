@@ -4,6 +4,7 @@ import { anyone, isManager, isSuperAdmin } from '@/access/roles'
 import { paiseField } from '@/fields/paise'
 import { ensureInventory } from '@/lib/inventory'
 import { revalidateStorefront } from '@/lib/revalidate'
+import { refreshOnVariantChange } from '@/lib/search-refresh'
 
 export const ProductVariants: CollectionConfig = {
   slug: 'product-variants',
@@ -43,6 +44,7 @@ export const ProductVariants: CollectionConfig = {
         return doc
       },
       revalidateStorefront,
+      refreshOnVariantChange,
     ],
   },
   fields: [

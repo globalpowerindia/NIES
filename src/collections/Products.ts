@@ -1,9 +1,10 @@
-import type { CollectionConfig, NumberFieldSingleValidation } from 'payload'
+import type { CollectionConfig, Field, NumberFieldSingleValidation } from 'payload'
 
 import { anyone, isManager, isSuperAdmin } from '@/access/roles'
 import { slugFrom } from '@/fields/slug'
 import { DEFAULT_GST_RATE_BPS, GST_RATES_BPS } from '@/lib/money'
 import { revalidateStorefront } from '@/lib/revalidate'
+import { fillSearchDocument } from '@/lib/search-document'
 
 const validateGstRate: NumberFieldSingleValidation = (value) =>
   typeof value === 'number' && (GST_RATES_BPS as readonly number[]).includes(value)
@@ -24,8 +25,13 @@ export const Products: CollectionConfig = {
     update: isManager,
     delete: isSuperAdmin,
   },
-  hooks: { afterChange: [revalidateStorefront] },
+  hooks: { afterChange: [revalidateStorefront], beforeChange: [fillSearchDocument] },
   fields: [
+    // Denormalised search text, by full-text weight. Hidden: written by
+    // `fillSearchDocument`, never by hand. See src/lib/search-document.ts.
+    ...(['searchA', 'searchB', 'searchC'] as const).map(
+      (name): Field => ({ name, type: 'textarea', admin: { hidden: true } }),
+    ),
     { name: 'name', type: 'text', required: true, index: true },
     slugFrom('name'),
     {

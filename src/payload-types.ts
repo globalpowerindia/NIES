@@ -79,6 +79,9 @@ export interface Config {
     datasheets: Datasheet;
     orders: Order;
     'newsletter-subscribers': NewsletterSubscriber;
+    'search-synonyms': SearchSynonym;
+    customers: Customer;
+    'auth-identities': AuthIdentity;
     users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -91,6 +94,9 @@ export interface Config {
     };
     inventory: {
       movements: 'stock-movements';
+    };
+    customers: {
+      identities: 'auth-identities';
     };
   };
   collectionsSelect: {
@@ -106,6 +112,9 @@ export interface Config {
     datasheets: DatasheetsSelect<false> | DatasheetsSelect<true>;
     orders: OrdersSelect<false> | OrdersSelect<true>;
     'newsletter-subscribers': NewsletterSubscribersSelect<false> | NewsletterSubscribersSelect<true>;
+    'search-synonyms': SearchSynonymsSelect<false> | SearchSynonymsSelect<true>;
+    customers: CustomersSelect<false> | CustomersSelect<true>;
+    'auth-identities': AuthIdentitiesSelect<false> | AuthIdentitiesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -290,6 +299,9 @@ export interface SpecDefinition {
  */
 export interface Product {
   id: number;
+  searchA?: string | null;
+  searchB?: string | null;
+  searchC?: string | null;
   name: string;
   /**
    * Generated from name when left blank. Changing it breaks existing links.
@@ -728,6 +740,77 @@ export interface NewsletterSubscriber {
   createdAt: string;
 }
 /**
+ * Words that mean the same thing to a shopper. Searching any one of them finds all of them.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "search-synonyms".
+ */
+export interface SearchSynonym {
+  id: number;
+  /**
+   * Comma-separated, and treated as equals in every direction: a search for any one of these also finds the others. Multi-word phrases are fine.
+   */
+  terms: string;
+  isActive?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Shoppers. Staff accounts live under Users.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customers".
+ */
+export interface Customer {
+  id: number;
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+  /**
+   * E.164, e.g. +919876543210.
+   */
+  phone?: string | null;
+  /**
+   * Set only by clicking a verification link. Gates account linking.
+   */
+  emailVerifiedAt?: string | null;
+  /**
+   * Set only by a successful OTP.
+   */
+  phoneVerifiedAt?: string | null;
+  status: 'ACTIVE' | 'BLOCKED';
+  identities?: {
+    docs?: (number | AuthIdentity)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  acceptsMarketing?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * How each customer signs in. Created by the login flows, not by hand.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "auth-identities".
+ */
+export interface AuthIdentity {
+  id: number;
+  provider: 'PASSWORD' | 'PHONE_OTP' | 'GOOGLE';
+  /**
+   * Email, E.164 phone, or Google subject id.
+   */
+  providerAccountId: string;
+  customer: number | Customer;
+  /**
+   * bcrypt, PASSWORD provider only.
+   */
+  passwordHash?: string | null;
+  lastUsedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -798,6 +881,18 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'newsletter-subscribers';
         value: number | NewsletterSubscriber;
+      } | null)
+    | ({
+        relationTo: 'search-synonyms';
+        value: number | SearchSynonym;
+      } | null)
+    | ({
+        relationTo: 'customers';
+        value: number | Customer;
+      } | null)
+    | ({
+        relationTo: 'auth-identities';
+        value: number | AuthIdentity;
       } | null)
     | ({
         relationTo: 'users';
@@ -898,6 +993,9 @@ export interface SpecDefinitionsSelect<T extends boolean = true> {
  * via the `definition` "products_select".
  */
 export interface ProductsSelect<T extends boolean = true> {
+  searchA?: T;
+  searchB?: T;
+  searchC?: T;
   name?: T;
   slug?: T;
   status?: T;
@@ -1159,6 +1257,46 @@ export interface NewsletterSubscribersSelect<T extends boolean = true> {
   email?: T;
   status?: T;
   source?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "search-synonyms_select".
+ */
+export interface SearchSynonymsSelect<T extends boolean = true> {
+  terms?: T;
+  isActive?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customers_select".
+ */
+export interface CustomersSelect<T extends boolean = true> {
+  firstName?: T;
+  lastName?: T;
+  email?: T;
+  phone?: T;
+  emailVerifiedAt?: T;
+  phoneVerifiedAt?: T;
+  status?: T;
+  identities?: T;
+  acceptsMarketing?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "auth-identities_select".
+ */
+export interface AuthIdentitiesSelect<T extends boolean = true> {
+  provider?: T;
+  providerAccountId?: T;
+  customer?: T;
+  passwordHash?: T;
+  lastUsedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1646,6 +1784,22 @@ export interface SiteSetting {
    * The grey category bar, in this order. Drag to reorder.
    */
   navCategories?: (number | Category)[] | null;
+  /**
+   * Shown under the search box before anything is typed, beside the shopper’s own recent searches. Curated, not calculated.
+   */
+  topMovingProducts?:
+    | {
+        label: string;
+        image: number | Media;
+        link?: {
+          type?: ('category' | 'product' | 'custom' | 'none') | null;
+          category?: (number | null) | Category;
+          product?: (number | null) | Product;
+          url?: string | null;
+        };
+        id?: string | null;
+      }[]
+    | null;
   footerColumns?:
     | {
         heading: string;
@@ -1979,6 +2133,21 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         id?: T;
       };
   navCategories?: T;
+  topMovingProducts?:
+    | T
+    | {
+        label?: T;
+        image?: T;
+        link?:
+          | T
+          | {
+              type?: T;
+              category?: T;
+              product?: T;
+              url?: T;
+            };
+        id?: T;
+      };
   footerColumns?:
     | T
     | {
