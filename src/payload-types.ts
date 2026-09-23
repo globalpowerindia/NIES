@@ -82,6 +82,7 @@ export interface Config {
     'search-synonyms': SearchSynonym;
     customers: Customer;
     'auth-identities': AuthIdentity;
+    'auth-tokens': AuthToken;
     users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -115,6 +116,7 @@ export interface Config {
     'search-synonyms': SearchSynonymsSelect<false> | SearchSynonymsSelect<true>;
     customers: CustomersSelect<false> | CustomersSelect<true>;
     'auth-identities': AuthIdentitiesSelect<false> | AuthIdentitiesSelect<true>;
+    'auth-tokens': AuthTokensSelect<false> | AuthTokensSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -812,6 +814,24 @@ export interface AuthIdentity {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "auth-tokens".
+ */
+export interface AuthToken {
+  id: number;
+  purpose: 'EMAIL_VERIFY' | 'PASSWORD_RESET';
+  tokenHash: string;
+  customer: number | Customer;
+  /**
+   * The address this link was sent to, frozen at issue time.
+   */
+  email: string;
+  expiresAt: string;
+  consumedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -893,6 +913,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'auth-identities';
         value: number | AuthIdentity;
+      } | null)
+    | ({
+        relationTo: 'auth-tokens';
+        value: number | AuthToken;
       } | null)
     | ({
         relationTo: 'users';
@@ -1297,6 +1321,20 @@ export interface AuthIdentitiesSelect<T extends boolean = true> {
   customer?: T;
   passwordHash?: T;
   lastUsedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "auth-tokens_select".
+ */
+export interface AuthTokensSelect<T extends boolean = true> {
+  purpose?: T;
+  tokenHash?: T;
+  customer?: T;
+  email?: T;
+  expiresAt?: T;
+  consumedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

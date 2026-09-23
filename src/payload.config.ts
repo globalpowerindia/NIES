@@ -9,6 +9,7 @@ import sharp from 'sharp'
 import { Brands } from './collections/Brands'
 import { Categories } from './collections/Categories'
 import { AuthIdentities } from './collections/AuthIdentities'
+import { AuthTokens } from './collections/AuthTokens'
 import { Customers } from './collections/Customers'
 import { Datasheets } from './collections/Datasheets'
 import { Inventory } from './collections/Inventory'
@@ -25,6 +26,7 @@ import { Users } from './collections/Users'
 import { HomePage } from './globals/HomePage'
 import { SiteSettings } from './globals/SiteSettings'
 import { env, r2 } from './lib/env'
+import { consoleEmailAdapter } from './lib/email-console'
 import { enforceIntegerMoney } from './lib/schema-constraints'
 import { addSearchVector } from './lib/search-schema'
 
@@ -65,6 +67,7 @@ export default buildConfig({
     SearchSynonyms,
     Customers,
     AuthIdentities,
+    AuthTokens,
     Users,
   ],
   globals: [HomePage, SiteSettings],
@@ -77,8 +80,16 @@ export default buildConfig({
     pool: {
       connectionString: env.DATABASE_URL,
     },
+    // Every Payload boot otherwise introspects and diffs the whole schema.
+    // Under test that runs once per file against a remote database: it took
+    // the suite to 33 minutes and Neon started resetting connections
+    // mid-introspection. Tests run against the schema dev has already pushed.
+    push: process.env.NODE_ENV !== 'test',
     afterSchemaInit: [enforceIntegerMoney, addSearchVector],
   }),
+  // Until a real provider is configured (Module 9), print emails so the
+  // verification and reset links are usable locally.
+  email: consoleEmailAdapter,
   sharp,
   plugins: [
     s3Storage({
