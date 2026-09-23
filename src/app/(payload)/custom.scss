@@ -1,0 +1,183 @@
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans+Flex:wght@400;500;600&display=swap');
+
+/**
+ * Global Power admin theme.
+ *
+ * Payload wraps its own styles in `@layer payload-default`, and unlayered CSS
+ * beats layered CSS, so these plain rules win without specificity hacks.
+ *
+ * `--theme-elevation-*` is derived from `--color-base-*`, and dark mode remaps
+ * the same ramp — so redefining one blue-tinted neutral ramp brands both themes.
+ */
+
+:root {
+  --gp-blue-100: #eaebf2;
+  --gp-blue-200: #d4d8ee;
+  --gp-blue-300: #5b70f7;
+  --gp-blue-400: #4d5896;
+  --gp-blue-500: #293681;
+  --gp-blue-600: #1d265a;
+
+  --gp-red-100: #fff5f4;
+  --gp-red-200: #ffe3e0;
+  --gp-red-400: #df4642;
+  --gp-red-500: #ce2d2a;
+
+  /* Neutrals carry a slight indigo bias so greys read as chosen, not inherited. */
+  --color-base-0: #ffffff;
+  --color-base-50: #fafafb;
+  --color-base-100: #f4f5f8;
+  --color-base-150: #eceef3;
+  --color-base-200: #e3e6ee;
+  --color-base-250: #d8dce7;
+  --color-base-300: #c9cedd;
+  --color-base-350: #b6bcd0;
+  --color-base-400: #a1a8c1;
+  --color-base-450: #8d95b1;
+  --color-base-500: #7a82a0;
+  --color-base-550: #69708c;
+  --color-base-600: #595f78;
+  --color-base-650: #4a5065;
+  --color-base-700: #3d4254;
+  --color-base-750: #313545;
+  --color-base-800: #262937;
+  --color-base-850: #1d1f2b;
+  --color-base-900: #15171f;
+  --color-base-950: #0e0f15;
+  --color-base-1000: #07080b;
+
+  /* Destructive states use the brand red rather than a generic one. */
+  --color-error-100: #fff5f4;
+  --color-error-150: #ffeceb;
+  --color-error-200: #ffe3e0;
+  --color-error-250: #ffd2ce;
+  --color-error-400: #df4642;
+  --color-error-500: #ce2d2a;
+  --color-error-600: #ab2523;
+  --color-error-700: #871d1b;
+  --color-error-800: #631513;
+
+  --font-body: 'Google Sans Flex', 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  --style-radius-s: 4px;
+  --style-radius-m: 8px;
+  --style-radius-l: 12px;
+
+  --nav-width: 260px;
+}
+
+/* Primary actions carry the brand blue. These are the same local custom
+   properties Payload's own button sets, so nothing is being out-specified. */
+.btn--style-primary {
+  --bg-color: var(--gp-blue-500);
+  --hover-bg: var(--gp-blue-600);
+  --color: #fefefe;
+  --hover-color: #fefefe;
+}
+
+html[data-theme='dark'] .btn--style-primary {
+  --bg-color: var(--gp-blue-400);
+  --hover-bg: var(--gp-blue-500);
+}
+
+/* Links and focus rings pick up the brand rather than raw greys. */
+a:not([class]),
+.nav__link:hover,
+.doc-tab__link:hover {
+  color: var(--gp-blue-500);
+}
+
+html[data-theme='dark'] a:not([class]) {
+  color: var(--gp-blue-300);
+}
+
+:root {
+  --accessibility-outline: 2px solid var(--gp-blue-500);
+}
+
+html[data-theme='dark'] {
+  --accessibility-outline: 2px solid var(--gp-blue-300);
+}
+
+/* The nav gets a subtle brand ground so the admin reads as a product,
+   not a default install. */
+.nav {
+  background: var(--theme-elevation-50);
+  border-right: 1px solid var(--theme-border-color);
+}
+
+.nav__link--active {
+  color: var(--gp-blue-500);
+  font-weight: 500;
+}
+
+html[data-theme='dark'] .nav__link--active {
+  color: var(--gp-blue-300);
+}
+
+/* Login screen: centre the brand rather than leaving Payload's default spacing. */
+.login__brand {
+  margin-bottom: calc(var(--base) * 1.2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Stock level screen: the "record a stock change" panel. */
+.stock-adjuster {
+  margin: 0 0 calc(var(--base) * 1.5);
+  padding: calc(var(--base) * 0.8) var(--base) calc(var(--base) * 0.6);
+  border: 1px solid var(--theme-border-color);
+  border-radius: 8px;
+  background: var(--theme-elevation-50);
+
+  legend {
+    padding: 0 6px;
+    font-weight: 600;
+  }
+
+  &__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: calc(var(--base) * 0.6);
+  }
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+    color: var(--theme-elevation-600);
+  }
+
+  select,
+  input {
+    height: 40px;
+    padding: 0 10px;
+    border: 1px solid var(--theme-border-color);
+    border-radius: 4px;
+    background: var(--theme-input-bg);
+    color: var(--theme-text);
+    font: inherit;
+  }
+
+  &__qty input {
+    width: 110px;
+  }
+
+  &__note {
+    flex: 1 1 220px;
+  }
+
+  &__hint {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: var(--theme-elevation-500);
+  }
+}
