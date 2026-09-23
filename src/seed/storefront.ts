@@ -538,6 +538,24 @@ const run = async () => {
         { label: 'Download App', icon: 'phone', link: custom('/app') },
       ],
       navCategories: TOP_CATEGORIES.map((name) => categoryIds.get(name)!),
+      // (search synonyms are seeded separately, below)
+      // The tiles under the search box. Linked to searches rather than
+      // categories so staff can feature anything without a category existing
+      // for it; every one of these is editable in Header & Footer → Search.
+      topMovingProducts: await Promise.all(
+        [
+          { label: 'HCC Power Tools', file: 'hcc-power-tools.png' },
+          { label: 'Gold Drills', file: 'gold-drills.png' },
+          { label: 'Economic Vacuums', file: 'economic-vacuums.png' },
+          { label: 'Bush Cutters', file: 'bush-cutters.png' },
+          { label: 'Domestic Pressure Washer', file: 'domestic-pressure-washer.png' },
+          { label: 'Gold Angle Polisher', file: 'gold-angle-polisher.png' },
+        ].map(async ({ label, file }) => ({
+          label,
+          image: await media(`search/${file}`, label),
+          link: custom(`/search?q=${encodeURIComponent(label)}`),
+        })),
+      ),
       footerColumns: [
         {
           heading: 'Information',
@@ -584,6 +602,34 @@ const run = async () => {
     ...quiet,
   })
   log('header & footer saved')
+
+  // A starting set of synonyms. Staff extend this from the searches that come
+  // back empty; each group is bidirectional.
+  const synonyms = [
+    'cordless, battery, battery powered',
+    'grinder, angle grinder',
+    'pressure washer, jet washer, high pressure cleaner',
+    'vacuum, vacuum cleaner, hoover',
+    'welding machine, welder, inverter welder',
+    'drill machine, drill',
+    // Trade words for things that are in the catalogue today.
+    'demolition hammer, breaker, jackhammer',
+    'rotary hammer, hammer drill',
+    'marble cutter, tile cutter, stone cutter',
+    'polisher, buffer, sander polisher',
+  ]
+  for (const terms of synonyms) {
+    const existing = await payload.find({
+      collection: 'search-synonyms',
+      where: { terms: { equals: terms } },
+      limit: 1,
+      depth: 0,
+    })
+    if (existing.docs.length === 0) {
+      await payload.create({ collection: 'search-synonyms', data: { terms }, ...quiet })
+    }
+  }
+  log(`${synonyms.length} search synonyms`)
 
   process.exit(0)
 }

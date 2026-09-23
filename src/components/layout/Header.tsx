@@ -1,9 +1,11 @@
-import { BookOpen, Heart, IndianRupee, Search, ShoppingCart, Smartphone, User } from 'lucide-react'
+import { BookOpen, Heart, IndianRupee, ShoppingCart, Smartphone, User } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 
 import { CategoryNav } from '@/components/layout/CategoryNav'
+import { HeaderSearch } from '@/components/layout/HeaderSearch'
 import { OffersTicker } from '@/components/layout/OffersTicker'
+import type { TopMovingTile } from '@/components/layout/SearchPanel'
 
 const ICONS = { rupee: IndianRupee, book: BookOpen, phone: Smartphone } as const
 
@@ -13,6 +15,7 @@ export type HeaderProps = {
   offers: string[]
   utilityLinks: { label: string; href: string; icon: keyof typeof ICONS; download: boolean }[]
   categories: { label: string; href: string }[]
+  searchTiles: TopMovingTile[]
   cartCount?: number
 }
 
@@ -22,6 +25,7 @@ export const Header = ({
   offers,
   utilityLinks,
   categories,
+  searchTiles,
   cartCount = 0,
 }: HeaderProps) => (
   <header>
@@ -61,25 +65,7 @@ export const Header = ({
           />
         </Link>
 
-        <form
-          action="/search"
-          className="order-3 flex h-[58px] w-full max-w-[873px] items-center justify-between rounded-xl border-[0.5px] border-dark-200 bg-brand-blue-100 py-3 pr-2.5 pl-4 md:order-none md:flex-1"
-        >
-          <input
-            type="search"
-            name="q"
-            placeholder="Search Power Tools, Hand Tools..."
-            aria-label="Search products"
-            className="min-w-0 flex-1 bg-transparent text-body1 text-dark-500 outline-none placeholder:text-dark-400"
-          />
-          <button
-            type="submit"
-            aria-label="Search"
-            className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-blue-500 text-light-100 transition-colors hover:bg-brand-blue-600"
-          >
-            <Search className="size-5" />
-          </button>
-        </form>
+        <HeaderSearch tiles={searchTiles} />
 
         <div className="flex shrink-0 items-center gap-5 lg:gap-7">
           <Link href="/cart" className="relative text-dark-500 hover:text-brand-blue-500">

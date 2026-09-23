@@ -85,6 +85,31 @@ export const SiteSettings: GlobalConfig = {
           ],
         },
         {
+          label: 'Search',
+          fields: [
+            {
+              name: 'topMovingProducts',
+              type: 'array',
+              maxRows: 8,
+              labels: { singular: 'Tile', plural: 'Tiles' },
+              admin: {
+                description:
+                  'Shown under the search box before anything is typed, beside the shopper’s own recent searches. Curated, not calculated.',
+              },
+              fields: [
+                {
+                  type: 'row',
+                  fields: [
+                    { name: 'label', type: 'text', required: true, admin: { width: '50%' } },
+                    { name: 'image', type: 'upload', relationTo: 'media', required: true, admin: { width: '50%' } },
+                  ],
+                },
+                linkField(),
+              ],
+            },
+          ],
+        },
+        {
           label: 'Footer',
           fields: [
             {

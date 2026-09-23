@@ -34,6 +34,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       : [],
   )
 
+  const searchTiles = (settings.topMovingProducts ?? []).flatMap((tile) => {
+    const image = mediaOf(tile.image)
+    const href = hrefOf(tile.link)
+    return image && href ? [{ label: tile.label, href, image }] : []
+  })
+
   const columns = (settings.footerColumns ?? []).map((column) => ({
     heading: column.heading,
     links: (column.links ?? []).flatMap((link) => {
@@ -65,6 +71,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           offers={(settings.offers ?? []).map((offer) => offer.text)}
           utilityLinks={utilityLinks}
           categories={categories}
+          searchTiles={searchTiles}
           cartCount={0}
         />
         <div className="flex-1">{children}</div>
