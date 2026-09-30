@@ -1,20 +1,6 @@
 import { z } from 'zod'
 
-/**
- * What the auth endpoints accept. Kept apart from the handlers so the same
- * rules can back the forms later without drifting.
- */
-
-/**
- * Length beats composition rules: a 12-character passphrase is stronger than
- * "Pa$$w0rd" and far likelier to be remembered rather than reused. The cap is
- * bcrypt's, which silently truncates beyond 72 bytes — better to reject than
- * to quietly ignore the tail of someone's password.
- */
-export const passwordSchema = z
-  .string()
-  .min(10, 'Use at least 10 characters.')
-  .max(72, 'Use at most 72 characters.')
+/** What the auth endpoints accept. Kept apart from the handlers so every route reads the same rules. */
 
 export const emailSchema = z
   .string()
@@ -29,25 +15,33 @@ export const phoneSchema = z
   .trim()
   .regex(/^(?:\+?91)?[0\s-]*([6-9]\d{9})$/, 'Enter a valid 10-digit Indian mobile number.')
 
-export const registerSchema = z.object({
-  email: emailSchema,
-  password: passwordSchema,
-  firstName: z.string().trim().max(60).optional(),
+const codeSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{6}$/, 'Enter the 6-digit code.')
+
+/**
+ * `link` is the Google follow-up step: the phone is being added to an account
+ * that is waiting to finish signing in, rather than used to sign in itself.
+ */
+const purposeSchema = z.enum(['signin', 'link']).default('signin')
+
+export const otpRequestSchema = z.discriminatedUnion('channel', [
+  z.object({ channel: z.literal('sms'), destination: phoneSchema, purpose: purposeSchema }),
+  z.object({ channel: z.literal('email'), destination: emailSchema, purpose: z.literal('signin').default('signin') }),
+])
+
+export const otpVerifySchema = z.discriminatedUnion('channel', [
+  z.object({ channel: z.literal('sms'), destination: phoneSchema, code: codeSchema, purpose: purposeSchema }),
+  z.object({
+    channel: z.literal('email'),
+    destination: emailSchema,
+    code: codeSchema,
+    purpose: z.literal('signin').default('signin'),
+  }),
+])
+
+export const profileSchema = z.object({
+  firstName: z.string({ error: 'Enter your first name.' }).trim().min(1, 'Enter your first name.').max(60),
   lastName: z.string().trim().max(60).optional(),
-  acceptsMarketing: z.boolean().optional(),
 })
-
-export const loginSchema = z.object({
-  email: emailSchema,
-  password: z.string().min(1, 'Enter your password.').max(72),
-})
-
-export const forgotPasswordSchema = z.object({ email: emailSchema })
-
-export const resetPasswordSchema = z.object({
-  token: z.string().min(1),
-  password: passwordSchema,
-})
-
-export type RegisterInput = z.infer<typeof registerSchema>
-export type LoginInput = z.infer<typeof loginSchema>

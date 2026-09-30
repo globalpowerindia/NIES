@@ -44,11 +44,10 @@ export const Customers: CollectionConfig = {
     {
       type: 'row',
       fields: [
-        // Not `unique`. Two customers may hold the same email string while
-        // only one has verified it — an unverified address is a claim, not
-        // ownership. Making it unique let an attacker squat an unverified
-        // password account on someone's email and lock them out of Google
-        // sign-in forever. `resolveIdentity` enforces one *verified* owner.
+        // Not `unique`. Uniqueness here would let whoever wrote an address
+        // first — say staff keying in a phone order — lock its real owner out
+        // of signing in with it. `resolveIdentity` enforces one *verified*
+        // owner instead, releasing the address from anyone who never proved it.
         {
           name: 'email',
           type: 'email',
@@ -75,13 +74,13 @@ export const Customers: CollectionConfig = {
           admin: {
             width: '50%',
             readOnly: true,
-            description: 'Set only by clicking a verification link. Gates account linking.',
+            description: 'Set only when the customer proves this address: an emailed code, or Google. Gates account linking.',
           },
         },
         {
           name: 'phoneVerifiedAt',
           type: 'date',
-          admin: { width: '50%', readOnly: true, description: 'Set only by a successful OTP.' },
+          admin: { width: '50%', readOnly: true, description: 'Set only by a correct SMS code. Gates account linking.' },
         },
       ],
     },

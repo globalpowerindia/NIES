@@ -82,7 +82,7 @@ export interface Config {
     'search-synonyms': SearchSynonym;
     customers: Customer;
     'auth-identities': AuthIdentity;
-    'auth-tokens': AuthToken;
+    'otp-challenges': OtpChallenge;
     users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -116,7 +116,7 @@ export interface Config {
     'search-synonyms': SearchSynonymsSelect<false> | SearchSynonymsSelect<true>;
     customers: CustomersSelect<false> | CustomersSelect<true>;
     'auth-identities': AuthIdentitiesSelect<false> | AuthIdentitiesSelect<true>;
-    'auth-tokens': AuthTokensSelect<false> | AuthTokensSelect<true>;
+    'otp-challenges': OtpChallengesSelect<false> | OtpChallengesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -773,11 +773,11 @@ export interface Customer {
    */
   phone?: string | null;
   /**
-   * Set only by clicking a verification link. Gates account linking.
+   * Set only when the customer proves this address: an emailed code, or Google. Gates account linking.
    */
   emailVerifiedAt?: string | null;
   /**
-   * Set only by a successful OTP.
+   * Set only by a correct SMS code. Gates account linking.
    */
   phoneVerifiedAt?: string | null;
   status: 'ACTIVE' | 'BLOCKED';
@@ -798,35 +798,35 @@ export interface Customer {
  */
 export interface AuthIdentity {
   id: number;
-  provider: 'PASSWORD' | 'PHONE_OTP' | 'GOOGLE';
+  provider: 'PHONE_OTP' | 'EMAIL_OTP' | 'GOOGLE';
   /**
-   * Email, E.164 phone, or Google subject id.
+   * E.164 phone, email, or Google subject id.
    */
   providerAccountId: string;
   customer: number | Customer;
-  /**
-   * bcrypt, PASSWORD provider only.
-   */
-  passwordHash?: string | null;
   lastUsedAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "auth-tokens".
+ * via the `definition` "otp-challenges".
  */
-export interface AuthToken {
+export interface OtpChallenge {
   id: number;
-  purpose: 'EMAIL_VERIFY' | 'PASSWORD_RESET';
-  tokenHash: string;
-  customer: number | Customer;
+  channel: 'SMS' | 'EMAIL';
   /**
-   * The address this link was sent to, frozen at issue time.
+   * E.164 phone or lower-cased email the code went to.
    */
-  email: string;
+  destination: string;
+  codeHash: string;
+  attempts: number;
   expiresAt: string;
   consumedAt?: string | null;
+  /**
+   * Keyed hash of the requesting IP, for the per-IP send limit.
+   */
+  ipHash?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -915,8 +915,8 @@ export interface PayloadLockedDocument {
         value: number | AuthIdentity;
       } | null)
     | ({
-        relationTo: 'auth-tokens';
-        value: number | AuthToken;
+        relationTo: 'otp-challenges';
+        value: number | OtpChallenge;
       } | null)
     | ({
         relationTo: 'users';
@@ -1319,22 +1319,22 @@ export interface AuthIdentitiesSelect<T extends boolean = true> {
   provider?: T;
   providerAccountId?: T;
   customer?: T;
-  passwordHash?: T;
   lastUsedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "auth-tokens_select".
+ * via the `definition` "otp-challenges_select".
  */
-export interface AuthTokensSelect<T extends boolean = true> {
-  purpose?: T;
-  tokenHash?: T;
-  customer?: T;
-  email?: T;
+export interface OtpChallengesSelect<T extends boolean = true> {
+  channel?: T;
+  destination?: T;
+  codeHash?: T;
+  attempts?: T;
   expiresAt?: T;
   consumedAt?: T;
+  ipHash?: T;
   updatedAt?: T;
   createdAt?: T;
 }

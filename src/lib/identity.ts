@@ -4,7 +4,7 @@ import type { AuthProvider } from '@/collections/AuthIdentities'
 import type { Customer } from '@/payload-types'
 
 /**
- * Every login path — password, OTP, Google — funnels through `resolveIdentity`.
+ * Every login path — mobile OTP, email OTP, Google — funnels through `resolveIdentity`.
  * It answers one question: which customer is this, and may this login method
  * be attached to them?
  *
@@ -12,23 +12,26 @@ import type { Customer } from '@/payload-types'
  *
  *   **Never link an unverified channel to an existing customer.**
  *
- * Skipping it is the classic pre-hijack account takeover. An attacker
- * registers a password account on victim@example.com and never verifies it.
- * The victim later clicks "Sign in with Google" on their real address. If we
- * linked on the email alone, Google would drop the victim straight into the
- * attacker's account — cart, saved addresses, order history and all.
+ * Skipping it is the classic pre-hijack account takeover: someone plants an
+ * unproven claim on victim@example.com, and when the victim later signs in on
+ * their real address, linking on the string alone drops them straight into
+ * the attacker's account — cart, saved addresses, order history and all.
  *
  * So linking is allowed only when BOTH sides are verified:
  *  - Google links on `email_verified` from the ID token, to a customer whose
  *    `emailVerifiedAt` is set.
- *  - OTP links on a phone the customer has verified.
- *  - Password signup NEVER links. It creates its own customer and sends a
- *    verification link; the accounts merge only once that link is clicked.
+ *  - An emailed code proves the email, and links the same way.
+ *  - A texted code proves the phone, and links to a customer whose
+ *    `phoneVerifiedAt` is set.
+ *
+ * Every method proves its channel at sign-in, so in practice all customers are
+ * verified on at least one; the rule still guards the one exception, a Google
+ * account whose email Google itself has not verified.
  */
 
 export type IdentityInput = {
   provider: AuthProvider
-  /** Email, E.164 phone, or Google `sub`. */
+  /** E.164 phone, email, or Google `sub`. */
   providerAccountId: string
   /** The email this login proves, if it proves one at all. */
   verifiedEmail?: string | null
@@ -36,8 +39,6 @@ export type IdentityInput = {
   verifiedPhone?: string | null
   /** Used only when creating a brand-new customer. */
   profile?: { firstName?: string | null; lastName?: string | null }
-  /** PASSWORD only. */
-  passwordHash?: string
 }
 
 export type IdentityResult =
@@ -150,7 +151,7 @@ const releaseUnverifiedPhone = async (payload: Payload, phone: string): Promise<
 
 export const resolveIdentity = async (payload: Payload, input: IdentityInput): Promise<IdentityResult> => {
   const accountId =
-    input.provider === 'PASSWORD'
+    input.provider === 'EMAIL_OTP'
       ? normaliseEmail(input.providerAccountId)
       : input.provider === 'PHONE_OTP'
         ? normalisePhone(input.providerAccountId)
@@ -180,7 +181,6 @@ export const resolveIdentity = async (payload: Payload, input: IdentityInput): P
         provider: input.provider,
         providerAccountId: accountId,
         customer: target.id,
-        passwordHash: input.passwordHash,
         lastUsedAt: new Date().toISOString(),
       },
       overrideAccess: true,
@@ -198,14 +198,9 @@ export const resolveIdentity = async (payload: Payload, input: IdentityInput): P
   const customer = await payload.create({
     collection: 'customers',
     data: {
-      email: input.verifiedEmail
-        ? normaliseEmail(input.verifiedEmail)
-        : input.provider === 'PASSWORD'
-          ? accountId
-          : undefined,
+      email: input.verifiedEmail ? normaliseEmail(input.verifiedEmail) : undefined,
       phone: input.verifiedPhone ? normalisePhone(input.verifiedPhone) : undefined,
-      // Only a channel this login actually proved counts as verified. A
-      // password signup proves nothing yet.
+      // Only a channel this login actually proved counts as verified.
       emailVerifiedAt: input.verifiedEmail ? new Date().toISOString() : undefined,
       phoneVerifiedAt: input.verifiedPhone ? new Date().toISOString() : undefined,
       firstName: input.profile?.firstName ?? undefined,
@@ -221,11 +216,86 @@ export const resolveIdentity = async (payload: Payload, input: IdentityInput): P
       provider: input.provider,
       providerAccountId: accountId,
       customer: customer.id,
-      passwordHash: input.passwordHash,
       lastUsedAt: new Date().toISOString(),
     },
     overrideAccess: true,
   })
 
   return { outcome: 'CREATED', customer }
+}
+
+export type AttachPhoneResult =
+  | { outcome: 'ATTACHED' | 'MOVED'; customer: Customer }
+  | { outcome: 'CONFLICT' }
+
+/**
+ * Adds a just-verified phone to a customer who signed in some other way —
+ * Google users confirm a mobile number before their first session.
+ *
+ * If the phone already belongs to another customer, the person in front of us
+ * has now proved they own BOTH accounts: the Google one (at the callback) and
+ * the phone one (just now). The common case is someone who signed up by SMS
+ * and later tapped "Continue with Google", which the linking rule above
+ * correctly treated as a stranger. Their Google login then moves onto the
+ * phone account and the empty shell is removed.
+ *
+ * The move happens only when the shell holds nothing but Google logins, which
+ * is the only way it can exist without a verified phone: a Google-only
+ * customer never gets a session until this step succeeds, so it cannot have
+ * placed an order. Anything else is reported as a conflict rather than merged.
+ */
+export const attachPhone = async (
+  payload: Payload,
+  customerId: number,
+  rawPhone: string,
+): Promise<AttachPhoneResult> => {
+  const phone = normalisePhone(rawPhone)
+  const owner = await findIdentity(payload, 'PHONE_OTP', phone)
+  const ownerId = owner ? (typeof owner.customer === 'object' ? owner.customer.id : owner.customer) : null
+
+  if (ownerId === customerId) {
+    const customer = await payload.findByID({ collection: 'customers', id: customerId, overrideAccess: true })
+    return { outcome: 'ATTACHED', customer }
+  }
+
+  if (ownerId !== null) {
+    const { docs: shellLogins } = await payload.find({
+      collection: 'auth-identities',
+      where: { customer: { equals: customerId } },
+      pagination: false,
+      overrideAccess: true,
+    })
+    if (shellLogins.some((identity) => identity.provider !== 'GOOGLE')) return { outcome: 'CONFLICT' }
+
+    const target = await payload.findByID({ collection: 'customers', id: ownerId, overrideAccess: true })
+    for (const identity of shellLogins) {
+      await payload.update({
+        collection: 'auth-identities',
+        id: identity.id,
+        data: { customer: ownerId },
+        overrideAccess: true,
+      })
+    }
+    await payload.delete({ collection: 'customers', id: customerId, overrideAccess: true })
+    return { outcome: 'MOVED', customer: target }
+  }
+
+  await releaseUnverifiedPhone(payload, phone)
+  const customer = await payload.update({
+    collection: 'customers',
+    id: customerId,
+    data: { phone, phoneVerifiedAt: new Date().toISOString() },
+    overrideAccess: true,
+  })
+  await payload.create({
+    collection: 'auth-identities',
+    data: {
+      provider: 'PHONE_OTP',
+      providerAccountId: phone,
+      customer: customerId,
+      lastUsedAt: new Date().toISOString(),
+    },
+    overrideAccess: true,
+  })
+  return { outcome: 'ATTACHED', customer }
 }

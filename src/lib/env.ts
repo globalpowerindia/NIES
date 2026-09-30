@@ -8,6 +8,8 @@ const envSchema = z.object({
   R2_ACCESS_KEY_ID: z.string().min(1).optional(),
   R2_SECRET_ACCESS_KEY: z.string().min(1).optional(),
   R2_PUBLIC_URL: z.string().min(1).optional(),
+  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
 })
 
 const parsed = envSchema.safeParse(process.env)
@@ -30,4 +32,10 @@ export const r2 =
         secretAccessKey: env.R2_SECRET_ACCESS_KEY,
         publicUrl: env.R2_PUBLIC_URL,
       }
+    : null
+
+/** Google sign-in is offered only once both halves of the OAuth client are set. */
+export const googleOAuth =
+  env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
+    ? { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET }
     : null

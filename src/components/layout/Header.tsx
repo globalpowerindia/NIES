@@ -1,7 +1,8 @@
-import { BookOpen, Heart, IndianRupee, ShoppingCart, Smartphone, User } from 'lucide-react'
+import { BookOpen, Heart, IndianRupee, ShoppingCart, Smartphone } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 
+import { AccountLink } from '@/components/layout/AccountLink'
 import { CategoryNav } from '@/components/layout/CategoryNav'
 import { HeaderSearch } from '@/components/layout/HeaderSearch'
 import { OffersTicker } from '@/components/layout/OffersTicker'
@@ -81,13 +82,7 @@ export const Header = ({
             <Heart className="size-8 lg:size-10" strokeWidth={1.5} />
             <span className="sr-only">Wishlist</span>
           </Link>
-          <Link
-            href="/login"
-            className="flex items-center gap-2 text-dark-500 hover:text-brand-blue-500"
-          >
-            <User className="size-8 lg:size-10" strokeWidth={1.5} />
-            <span className="hidden text-body2 whitespace-nowrap lg:inline">Login/Signup</span>
-          </Link>
+          <AccountLink />
         </div>
       </div>
     </div>

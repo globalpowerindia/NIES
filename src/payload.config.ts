@@ -9,7 +9,7 @@ import sharp from 'sharp'
 import { Brands } from './collections/Brands'
 import { Categories } from './collections/Categories'
 import { AuthIdentities } from './collections/AuthIdentities'
-import { AuthTokens } from './collections/AuthTokens'
+import { OtpChallenges } from './collections/OtpChallenges'
 import { Customers } from './collections/Customers'
 import { Datasheets } from './collections/Datasheets'
 import { Inventory } from './collections/Inventory'
@@ -67,7 +67,7 @@ export default buildConfig({
     SearchSynonyms,
     Customers,
     AuthIdentities,
-    AuthTokens,
+    OtpChallenges,
     Users,
   ],
   globals: [HomePage, SiteSettings],

@@ -4,13 +4,13 @@ import type { EmailAdapter } from 'payload'
  * A development email adapter that prints the message, including any links.
  *
  * Payload's behaviour with no adapter at all is to log only the recipient and
- * subject — the body never appears anywhere. That makes email verification and
- * password reset impossible to complete locally, because the one-shot token
- * exists solely inside the email. This adapter exists so those flows can be
- * exercised before a real provider is wired up in Module 9.
+ * subject — the body never appears anywhere. That makes email sign-in
+ * impossible to complete locally, because the code exists solely inside the
+ * email. This adapter exists so that flow can be exercised before a real
+ * provider is wired up in Module 9.
  *
- * It is never used in production: `payload.config.ts` only falls back to it
- * when no real provider is configured.
+ * Email sign-in refuses to run in production while this is the adapter (see
+ * `emailDeliveryAvailable`), so codes never land in production logs.
  */
 export const consoleEmailAdapter: EmailAdapter<{ logged: true }> = ({ payload }) => ({
   name: 'console',
@@ -24,6 +24,7 @@ export const consoleEmailAdapter: EmailAdapter<{ logged: true }> = ({ payload })
         '──────── email (dev, not sent) ────────',
         `To:      ${String(message.to)}`,
         `Subject: ${message.subject ?? ''}`,
+        ...(message.text ? ['', String(message.text)] : []),
         ...(links.length ? ['Links:', ...links.map((link) => `  ${link}`)] : []),
         '───────────────────────────────────────',
       ].join('\n'),
