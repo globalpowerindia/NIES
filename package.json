@@ -19,6 +19,7 @@
     "test:unit": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts src",
     "search:check": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env src/seed/search-check.ts",
     "search:reindex": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env src/seed/reindex-search.ts",
+    "import:catalogue": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env src/seed/import-catalogue.ts",
     "seed:orders": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env src/seed/orders.ts",
     "seed:storefront": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env src/seed/storefront.ts"
   },

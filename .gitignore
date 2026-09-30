@@ -63,3 +63,7 @@ node_modules/
 
 # internal planning notes
 /docs/
+
+# Client catalogue workbooks and extracted import data stay out of git
+*.xlsx
+/import/

@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { anyone, isManager, isSuperAdmin } from '@/access/roles'
+import { paiseField } from '@/fields/paise'
 import { slugFrom } from '@/fields/slug'
 import { revalidateStorefront } from '@/lib/revalidate'
 import { refreshOnCategoryChange } from '@/lib/search-refresh'
@@ -45,6 +46,31 @@ export const Categories: CollectionConfig = {
         description: 'Leave blank for a top-level category.',
       },
       filterOptions: ({ id }) => (id ? { id: { not_equals: id } } : true),
+    },
+    {
+      type: 'collapsible',
+      label: 'Delivery charge',
+      admin: {
+        description:
+          'Per-item delivery charge for this product series, by where the order ships. Leave blank on parent categories.',
+      },
+      fields: [
+        {
+          type: 'row',
+          fields: [
+            paiseField({
+              name: 'deliveryKeralaPaise',
+              label: 'In Kerala',
+              admin: { width: '50%' },
+            }),
+            paiseField({
+              name: 'deliveryOutOfStatePaise',
+              label: 'Outside Kerala',
+              admin: { width: '50%' },
+            }),
+          ],
+        },
+      ],
     },
     {
       name: 'isActive',

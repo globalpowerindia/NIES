@@ -35,6 +35,23 @@ import { addSearchVector } from './lib/search-schema'
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
+/**
+ * Product images and datasheets are public, so browsers fetch them straight
+ * from R2's public URL instead of streaming every file through our server.
+ * Without a public URL they fall back to Payload's /api/<collection>/file route.
+ */
+const r2PublicUrl = r2?.publicUrl?.replace(/\/$/, '')
+const r2Files = {
+  // An explicit (empty) prefix keeps the `prefix` column the plugin adds while
+  // R2 is off; without it, switching R2 on would make schema push drop it.
+  prefix: '',
+  ...(r2PublicUrl && {
+    disablePayloadAccessControl: true as const,
+    generateFileURL: ({ filename, prefix }: { filename: string; prefix?: string }) =>
+      `${r2PublicUrl}/${prefix ? `${prefix}/` : ''}${filename}`,
+  }),
+}
+
 export default buildConfig({
   admin: {
     user: Users.slug,
@@ -99,7 +116,7 @@ export default buildConfig({
     s3Storage({
       enabled: Boolean(r2),
       alwaysInsertFields: true,
-      collections: { media: true, datasheets: true },
+      collections: { media: r2Files, datasheets: r2Files },
       bucket: r2?.bucket ?? '',
       config: {
         region: 'auto',

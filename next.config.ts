@@ -6,8 +6,14 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(__filename)
 
+// Uploaded images are served from R2's public URL once it is configured.
+const r2Host = process.env.R2_PUBLIC_URL ? new URL(process.env.R2_PUBLIC_URL) : null
+
 const nextConfig: NextConfig = {
   images: {
+    remotePatterns: r2Host
+      ? [{ protocol: r2Host.protocol.replace(':', '') as 'https', hostname: r2Host.hostname }]
+      : [],
     localPatterns: [
       { pathname: '/api/media/file/**' },
       { pathname: '/banners/**' },

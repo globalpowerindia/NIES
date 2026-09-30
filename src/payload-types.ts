@@ -191,6 +191,14 @@ export interface Category {
    * Leave blank for a top-level category.
    */
   parent?: (number | null) | Category;
+  /**
+   * Paise, GST inclusive. ₹1,250.00 is 125000.
+   */
+  deliveryKeralaPaise?: number | null;
+  /**
+   * Paise, GST inclusive. ₹1,250.00 is 125000.
+   */
+  deliveryOutOfStatePaise?: number | null;
   isActive?: boolean | null;
   sortOrder?: number | null;
   updatedAt: string;
@@ -1068,6 +1076,8 @@ export interface CategoriesSelect<T extends boolean = true> {
   image?: T;
   bannerImage?: T;
   parent?: T;
+  deliveryKeralaPaise?: T;
+  deliveryOutOfStatePaise?: T;
   isActive?: T;
   sortOrder?: T;
   updatedAt?: T;
