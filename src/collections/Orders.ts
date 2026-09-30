@@ -9,6 +9,7 @@ export const ORDER_STATUSES = [
   'CONFIRMED',
   'PACKED',
   'SHIPPED',
+  'OUT_FOR_DELIVERY',
   'DELIVERED',
   'CANCELLED',
   'RETURNED',
@@ -21,6 +22,7 @@ export const ORDER_STATUS_OPTIONS = [
   { label: 'Confirmed', value: 'CONFIRMED' },
   { label: 'Packed', value: 'PACKED' },
   { label: 'Shipped', value: 'SHIPPED' },
+  { label: 'Out for delivery', value: 'OUT_FOR_DELIVERY' },
   { label: 'Delivered', value: 'DELIVERED' },
   { label: 'Cancelled', value: 'CANCELLED' },
   { label: 'Returned', value: 'RETURNED' },
@@ -92,6 +94,15 @@ export const Orders: CollectionConfig = {
         {
           label: 'Customer',
           fields: [
+            {
+              name: 'customer',
+              type: 'relationship',
+              relationTo: 'customers',
+              index: true,
+              admin: {
+                description: 'The signed-in customer who placed it; empty for guest orders.',
+              },
+            },
             { name: 'customerName', type: 'text', required: true },
             {
               type: 'row',
@@ -142,8 +153,17 @@ export const Orders: CollectionConfig = {
               name: 'items',
               type: 'array',
               labels: { singular: 'Item', plural: 'Items' },
-              admin: { description: 'Snapshot taken at order time — survives later product edits.' },
+              admin: {
+                description: 'Snapshot taken at order time — survives later product edits.',
+              },
               fields: [
+                {
+                  // Only for the picture and link on My Orders; name, price and
+                  // tax below are the snapshot and never read through this.
+                  name: 'product',
+                  type: 'relationship',
+                  relationTo: 'products',
+                },
                 {
                   type: 'row',
                   fields: [
@@ -180,9 +200,24 @@ export const Orders: CollectionConfig = {
                 {
                   type: 'row',
                   fields: [
-                    paiseField({ name: 'lineNetPaise', label: 'Line net', required: true, admin: { width: '33%' } }),
-                    paiseField({ name: 'lineTaxablePaise', label: 'Taxable', required: true, admin: { width: '33%' } }),
-                    paiseField({ name: 'lineTaxPaise', label: 'Tax', required: true, admin: { width: '34%' } }),
+                    paiseField({
+                      name: 'lineNetPaise',
+                      label: 'Line net',
+                      required: true,
+                      admin: { width: '33%' },
+                    }),
+                    paiseField({
+                      name: 'lineTaxablePaise',
+                      label: 'Taxable',
+                      required: true,
+                      admin: { width: '33%' },
+                    }),
+                    paiseField({
+                      name: 'lineTaxPaise',
+                      label: 'Tax',
+                      required: true,
+                      admin: { width: '34%' },
+                    }),
                   ],
                 },
               ],
@@ -195,18 +230,53 @@ export const Orders: CollectionConfig = {
             {
               type: 'row',
               fields: [
-                paiseField({ name: 'subtotalPaise', label: 'Subtotal', required: true, admin: { width: '33%' } }),
-                paiseField({ name: 'discountPaise', label: 'Discount', defaultValue: 0, admin: { width: '33%' } }),
-                paiseField({ name: 'shippingPaise', label: 'Shipping', defaultValue: 0, admin: { width: '34%' } }),
+                paiseField({
+                  name: 'subtotalPaise',
+                  label: 'Subtotal',
+                  required: true,
+                  admin: { width: '33%' },
+                }),
+                paiseField({
+                  name: 'discountPaise',
+                  label: 'Discount',
+                  defaultValue: 0,
+                  admin: { width: '33%' },
+                }),
+                paiseField({
+                  name: 'shippingPaise',
+                  label: 'Shipping',
+                  defaultValue: 0,
+                  admin: { width: '34%' },
+                }),
               ],
             },
             {
               type: 'row',
               fields: [
-                paiseField({ name: 'taxablePaise', label: 'Taxable value', required: true, admin: { width: '25%' } }),
-                paiseField({ name: 'cgstPaise', label: 'CGST', defaultValue: 0, admin: { width: '25%' } }),
-                paiseField({ name: 'sgstPaise', label: 'SGST', defaultValue: 0, admin: { width: '25%' } }),
-                paiseField({ name: 'igstPaise', label: 'IGST', defaultValue: 0, admin: { width: '25%' } }),
+                paiseField({
+                  name: 'taxablePaise',
+                  label: 'Taxable value',
+                  required: true,
+                  admin: { width: '25%' },
+                }),
+                paiseField({
+                  name: 'cgstPaise',
+                  label: 'CGST',
+                  defaultValue: 0,
+                  admin: { width: '25%' },
+                }),
+                paiseField({
+                  name: 'sgstPaise',
+                  label: 'SGST',
+                  defaultValue: 0,
+                  admin: { width: '25%' },
+                }),
+                paiseField({
+                  name: 'igstPaise',
+                  label: 'IGST',
+                  defaultValue: 0,
+                  admin: { width: '25%' },
+                }),
               ],
             },
             paiseField({ name: 'grandTotalPaise', label: 'Grand total', required: true }),
@@ -222,7 +292,11 @@ export const Orders: CollectionConfig = {
                 { name: 'trackingNumber', type: 'text', admin: { width: '50%' } },
               ],
             },
-            { name: 'shippedAt', type: 'date', admin: { date: { pickerAppearance: 'dayAndTime' } } },
+            {
+              name: 'shippedAt',
+              type: 'date',
+              admin: { date: { pickerAppearance: 'dayAndTime' } },
+            },
             { name: 'notes', type: 'textarea' },
           ],
         },

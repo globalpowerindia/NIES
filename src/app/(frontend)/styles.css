@@ -7,6 +7,7 @@
 
   --color-brand-red-100: #fff5f4;
   --color-brand-red-200: #ffe3e0;
+  --color-brand-red-300: #c2827c;
   --color-brand-red-400: #df4642;
   --color-brand-red-500: #ce2d2a;
 
@@ -81,6 +82,10 @@
   --text-label2: 14px;
   --text-label2--line-height: 20px;
   --text-label2--letter-spacing: -0.16px;
+
+  --text-label3: 12px;
+  --text-label3--line-height: 16px;
+  --text-label3--letter-spacing: -0.12px;
 
   --text-caption1: 10px;
   --text-caption1--line-height: 12px;

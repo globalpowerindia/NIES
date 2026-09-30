@@ -1,12 +1,14 @@
-import { Heart, ShoppingCart, Star } from 'lucide-react'
+import { ShoppingCart, Star } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 
 import { Button } from '@/components/ui/Button'
+import { WishlistHeart } from '@/components/wishlist/WishlistHeart'
 import { formatCurrency } from '@/lib/money'
 import { cn } from '@/lib/utils'
 
 export type ProductCardProps = {
+  productId: number
   href: string
   imageUrl: string
   imageAlt: string
@@ -26,6 +28,7 @@ const discountPercent = (pricePaise: number, mrpPaise?: number): number | null =
 }
 
 export const ProductCard = ({
+  productId,
   href,
   imageUrl,
   imageAlt,
@@ -60,13 +63,7 @@ export const ProductCard = ({
           ) : (
             <span />
           )}
-          <button
-            type="button"
-            aria-label={`Add ${label} to wishlist`}
-            className="text-dark-500 transition-colors hover:text-brand-red-500"
-          >
-            <Heart className="size-7" strokeWidth={1.5} />
-          </button>
+          <WishlistHeart productId={productId} label={label} iconClassName="size-7" />
         </div>
 
         <Link href={href} className="relative block aspect-square w-full">

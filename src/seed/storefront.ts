@@ -582,7 +582,7 @@ const run = async () => {
         {
           heading: 'My Account',
           links: [
-            { label: 'My Profile', link: custom('/account/profile') },
+            { label: 'My Profile', link: custom('/account') },
             { label: 'Order History', link: custom('/account/orders') },
             { label: 'Wishlist', link: custom('/account/wishlist') },
           ],

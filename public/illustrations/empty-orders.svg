@@ -1,0 +1,29 @@
+<svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="My_Orders">
+<g id="Frame 705">
+<g id="Frame 701">
+<path d="M-608 -149C-608 -153.418 -604.418 -157 -600 -157H700C704.418 -157 708 -153.418 708 -149V339C708 343.418 704.418 347 700 347H-600C-604.418 347 -608 343.418 -608 339V-149Z" fill="#FEFEFE"/>
+<g id="Frame 707">
+<g id="icons/box" clip-path="url(#clip0_1_18)">
+<g id="Group">
+<path id="Vector" d="M50.0002 29.209L46.0938 54.9494L50.0002 99.9992L88.8266 87.1289V42.0793L50.0002 29.209Z" fill="#C48958"/>
+<path id="Vector_2" d="M11.1738 42.0793V87.1289L50.0002 99.9992V29.209L11.1738 42.0793Z" fill="#E3A76F"/>
+<g id="Group_2">
+<path id="Vector_3" d="M47.0703 0H52.9297V19.5652H47.0703V0Z" fill="#FFDA44"/>
+<path id="Vector_4" d="M19.5156 8.95312L24.5897 6.0235L34.3721 22.9666L29.298 25.8962L19.5156 8.95312Z" fill="#FFDA44"/>
+<path id="Vector_5" d="M65.627 22.9688L75.4094 6.02563L80.4835 8.95525L70.7011 25.8984L65.627 22.9688Z" fill="#FFDA44"/>
+</g>
+<path id="Vector_6" d="M38.8264 72.6986L50 54.9502L11.1736 42.0801L0 59.8285L38.8264 72.6986Z" fill="#F2D1A5"/>
+<path id="Vector_7" d="M61.1736 72.6986L50 54.9502L88.8264 42.0801L100 59.8285L61.1736 72.6986Z" fill="#E3A76F"/>
+</g>
+</g>
+</g>
+</g>
+</g>
+</g>
+<defs>
+<clipPath id="clip0_1_18">
+<rect width="100" height="100" fill="white"/>
+</clipPath>
+</defs>
+</svg>

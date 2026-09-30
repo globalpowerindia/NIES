@@ -8,7 +8,7 @@ const VIEWS: Record<string, string[]> = {
   unpaid: ['PENDING_PAYMENT'],
   needsPacking: ['CONFIRMED'],
   readyToShip: ['PACKED'],
-  inTransit: ['SHIPPED'],
+  inTransit: ['SHIPPED', 'OUT_FOR_DELIVERY'],
 }
 
 const STATUS: Record<string, { label: string; tone: Tone }> = {
@@ -16,6 +16,7 @@ const STATUS: Record<string, { label: string; tone: Tone }> = {
   CONFIRMED: { label: 'Confirmed', tone: 'brand' },
   PACKED: { label: 'Packed', tone: 'accent' },
   SHIPPED: { label: 'Shipped', tone: 'success' },
+  OUT_FOR_DELIVERY: { label: 'Out for delivery', tone: 'success' },
   DELIVERED: { label: 'Delivered', tone: 'success' },
   CANCELLED: { label: 'Cancelled', tone: 'danger' },
   RETURNED: { label: 'Returned', tone: 'danger' },
@@ -34,7 +35,10 @@ export const OrdersList = async ({ payload, searchParams }: ListViewServerProps)
     payload.count({ collection: 'orders', where: { status: { equals: 'PENDING_PAYMENT' } } }),
     payload.count({ collection: 'orders', where: { status: { equals: 'CONFIRMED' } } }),
     payload.count({ collection: 'orders', where: { status: { equals: 'PACKED' } } }),
-    payload.count({ collection: 'orders', where: { status: { equals: 'SHIPPED' } } }),
+    payload.count({
+      collection: 'orders',
+      where: { status: { in: ['SHIPPED', 'OUT_FOR_DELIVERY'] } },
+    }),
   ])
 
   const rows: ListRow[] = result.docs.map((order) => {
@@ -54,7 +58,10 @@ export const OrdersList = async ({ payload, searchParams }: ListViewServerProps)
         {
           t: 'text',
           v: order.shipCity,
-          sub: order.shipStateCode === '32' ? 'Kerala · CGST+SGST' : `State ${order.shipStateCode} · IGST`,
+          sub:
+            order.shipStateCode === '32'
+              ? 'Kerala · CGST+SGST'
+              : `State ${order.shipStateCode} · IGST`,
         },
         { t: 'num', v: items },
         { t: 'money', v: order.grandTotalPaise },
@@ -98,8 +105,18 @@ export const OrdersList = async ({ payload, searchParams }: ListViewServerProps)
       ]}
       rows={rows}
       bulkActions={[
-        { key: 'packed', label: 'Mark packed', endpoint: '/api/orders/bulk-status', payload: { status: 'PACKED' } },
-        { key: 'shipped', label: 'Mark shipped', endpoint: '/api/orders/bulk-status', payload: { status: 'SHIPPED' } },
+        {
+          key: 'packed',
+          label: 'Mark packed',
+          endpoint: '/api/orders/bulk-status',
+          payload: { status: 'PACKED' },
+        },
+        {
+          key: 'shipped',
+          label: 'Mark shipped',
+          endpoint: '/api/orders/bulk-status',
+          payload: { status: 'SHIPPED' },
+        },
       ]}
       emptyMessage="No orders match this view."
     />

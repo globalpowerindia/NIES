@@ -54,13 +54,19 @@ export const AccountLink = () => {
   }
 
   if (!me) {
-    const href = AUTH_PAGES.test(pathname) || pathname === '/' ? '/login' : `/login?next=${encodeURIComponent(pathname)}`
+    const href =
+      AUTH_PAGES.test(pathname) || pathname === '/'
+        ? '/login'
+        : `/login?next=${encodeURIComponent(pathname)}`
     return (
       <Link href={href} className="flex items-center gap-2 text-dark-500 hover:text-brand-blue-500">
         <User className="size-8 lg:size-10" strokeWidth={1.5} />
         {/* Kept invisible until we know, so a signed-in customer never sees "Login" flash. */}
         <span
-          className={cn('hidden text-body2 whitespace-nowrap lg:inline', me === undefined && 'invisible')}
+          className={cn(
+            'hidden text-body2 whitespace-nowrap lg:inline',
+            me === undefined && 'invisible',
+          )}
         >
           Login/Signup
         </span>
@@ -93,15 +99,26 @@ export const AccountLink = () => {
           className="absolute right-0 z-50 mt-3 w-64 rounded-xl border border-neutral-300 bg-light-100 p-2 shadow-lg"
         >
           <div className="border-b border-neutral-300 px-3 pt-2 pb-3">
-            <p className="truncate text-body2 font-medium text-dark-500">{me.firstName || 'Signed in'}</p>
+            <p className="truncate text-body2 font-medium text-dark-500">
+              {me.firstName || 'Signed in'}
+            </p>
             {contact && <p className="truncate text-body3 text-dark-300">{contact}</p>}
           </div>
+          <Link
+            href="/account"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-body3 text-dark-500 hover:bg-neutral-200"
+          >
+            <User className="size-4" strokeWidth={1.75} aria-hidden />
+            My Profile
+          </Link>
           <button
             type="button"
             role="menuitem"
             onClick={signOut}
             disabled={signingOut}
-            className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-body3 text-dark-500 hover:bg-neutral-200 disabled:opacity-60"
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-body3 text-dark-500 hover:bg-neutral-200 disabled:opacity-60"
           >
             <LogOut className="size-4" strokeWidth={1.75} aria-hidden />
             {signingOut ? 'Signing out…' : 'Sign out'}

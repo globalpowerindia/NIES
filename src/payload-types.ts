@@ -81,6 +81,8 @@ export interface Config {
     'newsletter-subscribers': NewsletterSubscriber;
     'search-synonyms': SearchSynonym;
     customers: Customer;
+    addresses: Address;
+    'wishlist-items': WishlistItem;
     'auth-identities': AuthIdentity;
     'otp-challenges': OtpChallenge;
     users: User;
@@ -115,6 +117,8 @@ export interface Config {
     'newsletter-subscribers': NewsletterSubscribersSelect<false> | NewsletterSubscribersSelect<true>;
     'search-synonyms': SearchSynonymsSelect<false> | SearchSynonymsSelect<true>;
     customers: CustomersSelect<false> | CustomersSelect<true>;
+    addresses: AddressesSelect<false> | AddressesSelect<true>;
+    'wishlist-items': WishlistItemsSelect<false> | WishlistItemsSelect<true>;
     'auth-identities': AuthIdentitiesSelect<false> | AuthIdentitiesSelect<true>;
     'otp-challenges': OtpChallengesSelect<false> | OtpChallengesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
@@ -614,8 +618,20 @@ export interface Order {
    * Issued only on payment capture — the GST series must not have gaps.
    */
   invoiceNumber?: string | null;
-  status: 'PENDING_PAYMENT' | 'CONFIRMED' | 'PACKED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'RETURNED';
+  status:
+    | 'PENDING_PAYMENT'
+    | 'CONFIRMED'
+    | 'PACKED'
+    | 'SHIPPED'
+    | 'OUT_FOR_DELIVERY'
+    | 'DELIVERED'
+    | 'CANCELLED'
+    | 'RETURNED';
   placedAt: string;
+  /**
+   * The signed-in customer who placed it; empty for guest orders.
+   */
+  customer?: (number | null) | Customer;
   customerName: string;
   customerEmail?: string | null;
   customerPhone?: string | null;
@@ -638,6 +654,7 @@ export interface Order {
    */
   items?:
     | {
+        product?: (number | null) | Product;
         productName: string;
         sku: string;
         quantity: number;
@@ -702,6 +719,57 @@ export interface Order {
   createdAt: string;
 }
 /**
+ * Shoppers. Staff accounts live under Users.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customers".
+ */
+export interface Customer {
+  id: number;
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+  /**
+   * E.164, e.g. +919876543210.
+   */
+  phone?: string | null;
+  /**
+   * Set only when the customer proves this address: an emailed code, or Google. Gates account linking.
+   */
+  emailVerifiedAt?: string | null;
+  /**
+   * Set only by a correct SMS code. Gates account linking.
+   */
+  phoneVerifiedAt?: string | null;
+  status: 'ACTIVE' | 'BLOCKED';
+  identities?: {
+    docs?: (number | AuthIdentity)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  acceptsMarketing?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * How each customer signs in. Created by the login flows, not by hand.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "auth-identities".
+ */
+export interface AuthIdentity {
+  id: number;
+  provider: 'PHONE_OTP' | 'EMAIL_OTP' | 'GOOGLE';
+  /**
+   * E.164 phone, email, or Google subject id.
+   */
+  providerAccountId: string;
+  customer: number | Customer;
+  lastUsedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
@@ -758,53 +826,70 @@ export interface SearchSynonym {
   createdAt: string;
 }
 /**
- * Shoppers. Staff accounts live under Users.
- *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "customers".
+ * via the `definition` "addresses".
  */
-export interface Customer {
+export interface Address {
   id: number;
-  firstName?: string | null;
-  lastName?: string | null;
-  email?: string | null;
+  customer: number | Customer;
+  fullName: string;
   /**
-   * E.164, e.g. +919876543210.
+   * E.164, e.g. +919876543210
    */
-  phone?: string | null;
-  /**
-   * Set only when the customer proves this address: an emailed code, or Google. Gates account linking.
-   */
-  emailVerifiedAt?: string | null;
-  /**
-   * Set only by a correct SMS code. Gates account linking.
-   */
-  phoneVerifiedAt?: string | null;
-  status: 'ACTIVE' | 'BLOCKED';
-  identities?: {
-    docs?: (number | AuthIdentity)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  acceptsMarketing?: boolean | null;
+  phone: string;
+  line1: string;
+  line2: string;
+  city: string;
+  pincode: string;
+  stateCode:
+    | '35'
+    | '37'
+    | '12'
+    | '18'
+    | '10'
+    | '04'
+    | '22'
+    | '26'
+    | '07'
+    | '30'
+    | '24'
+    | '06'
+    | '02'
+    | '01'
+    | '20'
+    | '29'
+    | '32'
+    | '38'
+    | '31'
+    | '23'
+    | '27'
+    | '14'
+    | '17'
+    | '15'
+    | '13'
+    | '21'
+    | '34'
+    | '03'
+    | '08'
+    | '11'
+    | '33'
+    | '36'
+    | '16'
+    | '09'
+    | '05'
+    | '19';
+  type: 'HOME' | 'OFFICE' | 'OTHER';
   updatedAt: string;
   createdAt: string;
 }
 /**
- * How each customer signs in. Created by the login flows, not by hand.
- *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "auth-identities".
+ * via the `definition` "wishlist-items".
  */
-export interface AuthIdentity {
+export interface WishlistItem {
   id: number;
-  provider: 'PHONE_OTP' | 'EMAIL_OTP' | 'GOOGLE';
-  /**
-   * E.164 phone, email, or Google subject id.
-   */
-  providerAccountId: string;
   customer: number | Customer;
-  lastUsedAt?: string | null;
+  product: number | Product;
   updatedAt: string;
   createdAt: string;
 }
@@ -909,6 +994,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'customers';
         value: number | Customer;
+      } | null)
+    | ({
+        relationTo: 'addresses';
+        value: number | Address;
+      } | null)
+    | ({
+        relationTo: 'wishlist-items';
+        value: number | WishlistItem;
       } | null)
     | ({
         relationTo: 'auth-identities';
@@ -1233,6 +1326,7 @@ export interface OrdersSelect<T extends boolean = true> {
   invoiceNumber?: T;
   status?: T;
   placedAt?: T;
+  customer?: T;
   customerName?: T;
   customerEmail?: T;
   customerPhone?: T;
@@ -1247,6 +1341,7 @@ export interface OrdersSelect<T extends boolean = true> {
   items?:
     | T
     | {
+        product?: T;
         productName?: T;
         sku?: T;
         quantity?: T;
@@ -1308,6 +1403,33 @@ export interface CustomersSelect<T extends boolean = true> {
   status?: T;
   identities?: T;
   acceptsMarketing?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "addresses_select".
+ */
+export interface AddressesSelect<T extends boolean = true> {
+  customer?: T;
+  fullName?: T;
+  phone?: T;
+  line1?: T;
+  line2?: T;
+  city?: T;
+  pincode?: T;
+  stateCode?: T;
+  type?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "wishlist-items_select".
+ */
+export interface WishlistItemsSelect<T extends boolean = true> {
+  customer?: T;
+  product?: T;
   updatedAt?: T;
   createdAt?: T;
 }

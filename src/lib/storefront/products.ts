@@ -19,7 +19,10 @@ export type ProductPricing = { variant: ProductVariant; inStock: boolean }
  * Price and stock for many products in two queries, not one per product.
  * Products with no active variant are left out: without a price they can't be bought.
  */
-export const loadPricing = async (payload: Payload, ids: number[]): Promise<Map<number, ProductPricing>> => {
+export const loadPricing = async (
+  payload: Payload,
+  ids: number[],
+): Promise<Map<number, ProductPricing>> => {
   const pricing = new Map<number, ProductPricing>()
   if (ids.length === 0) return pricing
 
@@ -51,7 +54,8 @@ export const loadPricing = async (payload: Payload, ids: number[]): Promise<Map<
   for (const row of stock.docs) {
     const productId = relId(row.product)
     if (productId === undefined) continue
-    if (row.allowBackorder || Number(row.onHand ?? 0) - Number(row.reserved ?? 0) > 0) sellable.add(productId)
+    if (row.allowBackorder || Number(row.onHand ?? 0) - Number(row.reserved ?? 0) > 0)
+      sellable.add(productId)
   }
 
   for (const [productId, productVariants] of variantsByProduct) {
@@ -62,7 +66,10 @@ export const loadPricing = async (payload: Payload, ids: number[]): Promise<Map<
 }
 
 /** Builds cards for already-fetched products, keeping their order. */
-export const toProductCards = async (payload: Payload, products: Product[]): Promise<ProductCardProps[]> => {
+export const toProductCards = async (
+  payload: Payload,
+  products: Product[],
+): Promise<ProductCardProps[]> => {
   const pricing = await loadPricing(
     payload,
     products.map((product) => product.id),
@@ -75,6 +82,7 @@ export const toProductCards = async (payload: Payload, products: Product[]): Pro
     const category = typeof product.category === 'object' ? product.category?.name : undefined
     return [
       {
+        productId: product.id,
         href: `/products/${product.slug}`,
         imageUrl: image?.url ?? PLACEHOLDER_IMAGE,
         imageAlt: image?.alt || product.name,

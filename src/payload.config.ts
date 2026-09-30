@@ -10,6 +10,7 @@ import { Brands } from './collections/Brands'
 import { Categories } from './collections/Categories'
 import { AuthIdentities } from './collections/AuthIdentities'
 import { OtpChallenges } from './collections/OtpChallenges'
+import { Addresses } from './collections/Addresses'
 import { Customers } from './collections/Customers'
 import { Datasheets } from './collections/Datasheets'
 import { Inventory } from './collections/Inventory'
@@ -23,6 +24,7 @@ import { SearchSynonyms } from './collections/SearchSynonyms'
 import { SpecDefinitions } from './collections/SpecDefinitions'
 import { StockMovements } from './collections/StockMovements'
 import { Users } from './collections/Users'
+import { WishlistItems } from './collections/WishlistItems'
 import { HomePage } from './globals/HomePage'
 import { SiteSettings } from './globals/SiteSettings'
 import { env, r2 } from './lib/env'
@@ -66,6 +68,8 @@ export default buildConfig({
     NewsletterSubscribers,
     SearchSynonyms,
     Customers,
+    Addresses,
+    WishlistItems,
     AuthIdentities,
     OtpChallenges,
     Users,
