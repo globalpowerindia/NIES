@@ -1,10 +1,10 @@
 import path from 'path'
 import { getPayload, type Payload } from 'payload'
-import sharp from 'sharp'
 import { fileURLToPath } from 'url'
 
 import { toSlug } from '../fields/slug.js'
 import config from '../payload.config.js'
+import { BRANDS, trimmedLogo, trimmedLogoName } from './brand-logos.js'
 
 /**
  * Fills an empty database with the catalogue, stock, homepage and header /
@@ -46,19 +46,14 @@ const upload = async (payload: Payload, file: string, alt: string): Promise<numb
   return id
 }
 
-/**
- * Brand logo files carry wide transparent margins, which makes them render
- * tiny in the brand strip. Trim the empty edges (the artwork itself is
- * untouched) and upload under a distinct name so a re-run is idempotent.
- */
+/** Uploads a brand's trimmed logo under a distinct name, so a re-run is idempotent. */
 const uploadTrimmedLogo = async (
   payload: Payload,
   file: string,
   alt: string,
-  // Horizontal slice of the file to keep, as fractions of its width (the design's own crop).
   crop?: { from: number; to: number },
 ): Promise<number> => {
-  const name = `${path.basename(file, path.extname(file))}-logo${crop ? '-cropped' : ''}.png`
+  const name = trimmedLogoName(file, crop)
   const existing = await payload.find({
     collection: 'media',
     where: { filename: { equals: name } },
@@ -66,18 +61,7 @@ const uploadTrimmedLogo = async (
     depth: 0,
   })
   if (existing.docs[0]) return existing.docs[0].id
-  let image = sharp(path.join(PUBLIC, file))
-  if (crop) {
-    const { width = 0, height = 0 } = await image.metadata()
-    const left = Math.round(width * crop.from)
-    image = sharp(
-      await image
-        .extract({ left, top: 0, width: Math.round(width * crop.to) - left, height })
-        .png()
-        .toBuffer(),
-    )
-  }
-  const data = await image.trim().png().toBuffer()
+  const data = await trimmedLogo(path.join(PUBLIC, file), crop)
   const doc = await payload.create({
     collection: 'media',
     data: { alt },
@@ -95,15 +79,6 @@ const findOrCreate = async <T extends { id: number }>(
   return found ? { doc: found, created: false } : { doc: await create(), created: true }
 }
 
-const BRANDS: { name: string; logo: string; crop?: { from: number; to: number } }[] = [
-  { name: 'Global Power', logo: 'brands/global-power.png' },
-  { name: 'Intough', logo: 'brands/intough.png' },
-  { name: 'HCC', logo: 'brands/hcc.png', crop: { from: 0.057, to: 0.489 } },
-  { name: 'Eastman', logo: 'brands/eastman.png' },
-  { name: 'Dong Cheng', logo: 'brands/dongcheng.png' },
-  { name: 'Big Arrow', logo: 'brands/brand-6.png' },
-  { name: 'Unipro', logo: 'brands/brand-7.png' },
-]
 
 const TOP_CATEGORIES = [
   'Power Tools',

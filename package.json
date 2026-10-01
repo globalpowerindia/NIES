@@ -17,6 +17,7 @@
     "test:e2e": "cross-env NODE_OPTIONS=\"--no-deprecation --import=tsx/esm\" playwright test --config=playwright.config.ts",
     "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts tests/int",
     "test:unit": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts src",
+    "media:repair": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env src/seed/repair-media.ts",
     "search:check": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env src/seed/search-check.ts",
     "search:reindex": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env src/seed/reindex-search.ts",
     "import:catalogue": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env src/seed/import-catalogue.ts",
