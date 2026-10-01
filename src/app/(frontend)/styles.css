@@ -144,11 +144,22 @@
 }
 
 @utility container-page {
+  /* Side gutters grow with the screen; content still caps at the Figma 1620px. */
+  --page-gutter: 1rem;
   width: 100%;
-  /* Keep 1620px of content, plus the responsive 16px gutters. */
-  max-width: 1652px;
+  max-width: calc(1620px + 2 * var(--page-gutter));
   margin-inline: auto;
-  padding-inline: 1rem;
+  padding-inline: var(--page-gutter);
+
+  @media (width >= 40rem) {
+    --page-gutter: 1.5rem;
+  }
+  @media (width >= 64rem) {
+    --page-gutter: 2.5rem;
+  }
+  @media (width >= 80rem) {
+    --page-gutter: 4rem;
+  }
 }
 
 /*
