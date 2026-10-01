@@ -1,4 +1,4 @@
-import type { CollectionBeforeChangeHook, Payload, Where } from 'payload'
+import type { CollectionBeforeChangeHook, Payload, PayloadRequest, Where } from 'payload'
 
 /**
  * A Postgres generated column can only read its own row, so everything a
@@ -102,9 +102,15 @@ export const fillSearchDocument: CollectionBeforeChangeHook = async ({ data, req
  * Re-saves every product whose document depends on a record that just changed.
  * Catalogue-sized work (tens of rows), so it runs inline rather than queued.
  */
-export const refreshProductsWhere = async (payload: Payload, where: Where): Promise<void> => {
-  const { docs } = await payload.find({ collection: 'products', where, pagination: false, depth: 0 })
+/**
+ * Re-saves products so `fillSearchDocument` rebuilds their search text. Pass
+ * the hook's `req` so this runs inside the same transaction: from a separate
+ * one it would wait on the very rows that transaction has locked (saving a
+ * variant locks its product), and never finish.
+ */
+export const refreshProductsWhere = async (payload: Payload, where: Where, req?: PayloadRequest): Promise<void> => {
+  const { docs } = await payload.find({ collection: 'products', where, pagination: false, depth: 0, req })
   for (const { id } of docs) {
-    await payload.update({ collection: 'products', id, data: {}, context: { skipRevalidate: true } })
+    await payload.update({ collection: 'products', id, data: {}, req, context: { skipRevalidate: true } })
   }
 }

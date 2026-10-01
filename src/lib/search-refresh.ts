@@ -17,7 +17,7 @@ const changed = (a: unknown, b: unknown): boolean => a !== b
 export const refreshOnBrandChange: CollectionAfterChangeHook = async ({ doc, previousDoc, req, context }) => {
   if (context?.skipRevalidate) return doc
   if (previousDoc && !changed(doc.name, previousDoc.name)) return doc
-  await refreshProductsWhere(req.payload, { brand: { equals: doc.id } })
+  await refreshProductsWhere(req.payload, { brand: { equals: doc.id } }, req)
   return doc
 }
 
@@ -31,9 +31,10 @@ export const refreshOnCategoryChange: CollectionAfterChangeHook = async ({ doc, 
     where: { parent: { equals: doc.id } },
     pagination: false,
     depth: 0,
+    req,
   })
   const ids = [doc.id, ...descendants.docs.map((node) => node.id)]
-  await refreshProductsWhere(req.payload, { category: { in: ids } })
+  await refreshProductsWhere(req.payload, { category: { in: ids } }, req)
   return doc
 }
 
@@ -41,6 +42,6 @@ export const refreshOnVariantChange: CollectionAfterChangeHook = async ({ doc, p
   if (context?.skipRevalidate) return doc
   if (previousDoc && !changed(doc.sku, previousDoc.sku) && !changed(doc.name, previousDoc.name)) return doc
   const productId = typeof doc.product === 'object' ? doc.product?.id : doc.product
-  if (productId) await refreshProductsWhere(req.payload, { id: { equals: productId } })
+  if (productId) await refreshProductsWhere(req.payload, { id: { equals: productId } }, req)
   return doc
 }
