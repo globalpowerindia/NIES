@@ -1,10 +1,31 @@
-import type { CollectionConfig, Field, NumberFieldSingleValidation } from 'payload'
+import { APIError, type CollectionBeforeChangeHook, type CollectionConfig, type Field, type NumberFieldSingleValidation } from 'payload'
 
 import { anyone, isManager, isSuperAdmin } from '@/access/roles'
 import { slugFrom } from '@/fields/slug'
 import { DEFAULT_GST_RATE_BPS, GST_RATES_BPS } from '@/lib/money'
+import { isPriced, loadProductStock } from '@/lib/product-stock'
+import { youTubeId } from '@/lib/video'
 import { revalidateStorefront, revalidateStorefrontOnDelete } from '@/lib/revalidate'
 import { fillSearchDocument } from '@/lib/search-document'
+
+/**
+ * Staff can't switch a product to Active until it has a price: an active
+ * variant selling above ₹0. Scripts (no signed-in user) are left alone, so
+ * imports and seeds can stage products however they need.
+ */
+const requirePriceToActivate: CollectionBeforeChangeHook = async ({ data, originalDoc, req }) => {
+  if (!req.user || data.status !== 'ACTIVE' || originalDoc?.status === 'ACTIVE') return data
+  const stock = originalDoc?.id ? (await loadProductStock(req.payload, [originalDoc.id])).get(originalDoc.id) : undefined
+  if (!isPriced(stock)) {
+    throw new APIError(
+      'Add a price before making this product Active: open Price & stock and give a variant a selling price above ₹0.',
+      400,
+      undefined,
+      true,
+    )
+  }
+  return data
+}
 
 const validateGstRate: NumberFieldSingleValidation = (value) =>
   typeof value === 'number' && (GST_RATES_BPS as readonly number[]).includes(value)
@@ -28,7 +49,7 @@ export const Products: CollectionConfig = {
   hooks: {
     afterChange: [revalidateStorefront],
     afterDelete: [revalidateStorefrontOnDelete],
-    beforeChange: [fillSearchDocument],
+    beforeChange: [fillSearchDocument, requirePriceToActivate],
   },
   fields: [
     // Denormalised search text, by full-text weight. Hidden: written by
@@ -52,6 +73,14 @@ export const Products: CollectionConfig = {
       admin: {
         position: 'sidebar',
         description: 'Only Active products appear in the storefront.',
+      },
+    },
+    {
+      name: 'readiness',
+      type: 'ui',
+      admin: {
+        position: 'sidebar',
+        components: { Field: '/admin/components/product/ReadinessPanel#ReadinessPanel' },
       },
     },
     { name: 'sortOrder', type: 'number', defaultValue: 0, admin: { position: 'sidebar' } },
@@ -103,7 +132,68 @@ export const Products: CollectionConfig = {
               type: 'upload',
               relationTo: 'media',
               hasMany: true,
-              admin: { description: 'The first image is the card and main image. Drag to reorder.' },
+              filterOptions: { mimeType: { contains: 'image' } },
+              admin: {
+                description:
+                  'Add as many as you like: upload several at once or pick from the library. The first is the card and main image. Drag to reorder.',
+              },
+            },
+            {
+              name: 'videos',
+              type: 'array',
+              labels: { singular: 'Video', plural: 'Videos' },
+              admin: {
+                description: 'Shown in the product gallery after the images. A YouTube link needs no upload.',
+                initCollapsed: false,
+              },
+              fields: [
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'source',
+                      type: 'select',
+                      required: true,
+                      defaultValue: 'youtube',
+                      options: [
+                        { label: 'YouTube link', value: 'youtube' },
+                        { label: 'Uploaded file', value: 'upload' },
+                      ],
+                      admin: { width: '30%' },
+                    },
+                    {
+                      name: 'title',
+                      type: 'text',
+                      admin: { width: '70%', placeholder: 'GPG-6D drilling through concrete' },
+                    },
+                  ],
+                },
+                {
+                  name: 'url',
+                  type: 'text',
+                  label: 'YouTube link',
+                  admin: {
+                    condition: (_, sibling) => sibling?.source === 'youtube',
+                    placeholder: 'https://www.youtube.com/watch?v=…',
+                  },
+                  validate: (value: string | null | undefined, { siblingData }: { siblingData: { source?: string } }) =>
+                    siblingData?.source !== 'youtube' || youTubeId(value ?? '')
+                      ? true
+                      : 'Paste a YouTube video link (youtube.com/watch?v=… or youtu.be/…).',
+                },
+                {
+                  name: 'file',
+                  type: 'upload',
+                  relationTo: 'media',
+                  filterOptions: { mimeType: { contains: 'video' } },
+                  admin: {
+                    condition: (_, sibling) => sibling?.source === 'upload',
+                    description: 'MP4 or WebM. Keep clips short; long videos are better on YouTube.',
+                  },
+                  validate: (value: unknown, { siblingData }: { siblingData: { source?: string } }) =>
+                    siblingData?.source !== 'upload' || value ? true : 'Choose or upload a video file.',
+                },
+              ],
             },
             {
               name: 'shortDesc',
@@ -269,14 +359,14 @@ export const Products: CollectionConfig = {
           ],
         },
         {
-          label: 'Variants',
+          label: 'Price & stock',
+          description:
+            'What this product sells as: each variant’s SKU, price and stock. Stock changes are recorded as movements, so every unit has a reason and a name against it.',
           fields: [
             {
-              name: 'variants',
-              type: 'join',
-              collection: 'product-variants',
-              on: 'product',
-              admin: { defaultColumns: ['sku', 'name', 'sellingPricePaise', 'isActive'] },
+              name: 'priceAndStock',
+              type: 'ui',
+              admin: { components: { Field: '/admin/components/product/PriceStockEditor#PriceStockEditor' } },
             },
           ],
         },

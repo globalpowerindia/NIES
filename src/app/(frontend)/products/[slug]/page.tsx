@@ -65,7 +65,12 @@ export default async function ProductPage(props: PageProps<'/products/[slug]'>) 
 
         <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-[60px]">
           <div className="w-full lg:sticky lg:top-6 lg:w-[53%] lg:max-w-[854px]">
-            <ProductGallery productId={product.id} images={data.images} name={product.name} />
+            <ProductGallery
+              productId={product.id}
+              images={data.images}
+              videos={data.videos}
+              name={product.name}
+            />
           </div>
           <div className="min-w-0 flex-1">
             <ProductSummary data={data} basePath={basePath} />

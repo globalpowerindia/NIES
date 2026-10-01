@@ -14,7 +14,8 @@ export const Media: CollectionConfig = {
     delete: isManager,
   },
   upload: {
-    mimeTypes: ['image/*'],
+    // Product videos live here too; Payload only makes the resized copies below for images.
+    mimeTypes: ['image/*', 'video/mp4', 'video/webm', 'video/quicktime'],
     imageSizes: [
       { name: 'thumbnail', width: 400, height: 400, position: 'centre' },
       { name: 'card', width: 768 },
@@ -26,7 +27,9 @@ export const Media: CollectionConfig = {
       name: 'alt',
       type: 'text',
       required: true,
-      admin: { description: 'Describes the image for screen readers and search engines.' },
+      admin: {
+        description: 'Describes the image or video for screen readers and search engines.',
+      },
     },
   ],
 }

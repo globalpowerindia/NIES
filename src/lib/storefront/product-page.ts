@@ -6,6 +6,7 @@ import { CACHE_VERSION, STOREFRONT_CACHE } from '@/lib/revalidate'
 import { fileUrlOf, mediaOf, type MediaInfo } from '@/lib/storefront/content'
 import { loadPricing, PLACEHOLDER_IMAGE, relId } from '@/lib/storefront/products'
 import { getPayloadClient } from '@/lib/storefront/queries'
+import { youTubeId } from '@/lib/video'
 import type { Brand, Category, Product, ProductVariant, SpecDefinition } from '@/payload-types'
 
 type SpecEntry = NonNullable<Product['specValues']>[number]
@@ -45,6 +46,11 @@ export type VariantOption = {
   mrpPaise: number
   inStock: boolean
 }
+
+/** A product video for the gallery: a YouTube embed or an uploaded file. */
+export type GalleryVideo =
+  | { kind: 'youtube'; id: string; title: string }
+  | { kind: 'file'; url: string; mimeType: string; title: string }
 
 export type CompareColumn = {
   productId: number
@@ -169,6 +175,17 @@ const loadProductPage = async (slug: string, variantSku?: string) => {
     options,
     inStock: sellableVariants.has(selected.id),
     images: images.length ? images : [{ url: PLACEHOLDER_IMAGE, alt: product.name }],
+    videos: (product.videos ?? []).flatMap<GalleryVideo>((video) => {
+      const title = video.title || product.name
+      if (video.source === 'youtube') {
+        const id = youTubeId(video.url ?? '')
+        return id ? [{ kind: 'youtube', id, title }] : []
+      }
+      const file = video.file
+      return file && typeof file === 'object' && file.url
+        ? [{ kind: 'file', url: file.url, mimeType: file.mimeType ?? 'video/mp4', title }]
+        : []
+    }),
     brandName,
     category,
     parentCategory,

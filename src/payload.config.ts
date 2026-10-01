@@ -124,6 +124,9 @@ export default buildConfig({
     s3Storage({
       enabled: Boolean(r2),
       alwaysInsertFields: true,
+      // Large files (videos, big photos) can't pass through a Vercel function,
+      // so once R2's CORS allows it the browser uploads them directly.
+      clientUploads: env.R2_CLIENT_UPLOADS === 'true',
       collections: { media: r2Files, datasheets: r2Files },
       bucket: r2?.bucket ?? '',
       config: {

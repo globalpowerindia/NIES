@@ -96,9 +96,6 @@ export interface Config {
     'payload-migrations': PayloadMigration;
   };
   collectionsJoins: {
-    products: {
-      variants: 'product-variants';
-    };
     inventory: {
       movements: 'stock-movements';
     };
@@ -206,11 +203,11 @@ export interface Category {
    */
   parent?: (number | null) | Category;
   /**
-   * Paise, GST inclusive. ₹1,250.00 is 125000.
+   * In rupees, GST inclusive.
    */
   deliveryKeralaPaise?: number | null;
   /**
-   * Paise, GST inclusive. ₹1,250.00 is 125000.
+   * In rupees, GST inclusive.
    */
   deliveryOutOfStatePaise?: number | null;
   isActive?: boolean | null;
@@ -225,7 +222,7 @@ export interface Category {
 export interface Media {
   id: number;
   /**
-   * Describes the image for screen readers and search engines.
+   * Describes the image or video for screen readers and search engines.
    */
   alt: string;
   prefix?: string | null;
@@ -352,9 +349,24 @@ export interface Product {
    */
   badges?: ('NEW' | 'BEST_SELLER')[] | null;
   /**
-   * The first image is the card and main image. Drag to reorder.
+   * Add as many as you like: upload several at once or pick from the library. The first is the card and main image. Drag to reorder.
    */
   images?: (number | Media)[] | null;
+  /**
+   * Shown in the product gallery after the images. A YouTube link needs no upload.
+   */
+  videos?:
+    | {
+        source: 'youtube' | 'upload';
+        title?: string | null;
+        url?: string | null;
+        /**
+         * MP4 or WebM. Keep clips short; long videos are better on YouTube.
+         */
+        file?: (number | null) | Media;
+        id?: string | null;
+      }[]
+    | null;
   /**
    * One or two lines for search results and sharing previews.
    */
@@ -466,11 +478,6 @@ export interface Product {
         id?: string | null;
       }[]
     | null;
-  variants?: {
-    docs?: (number | ProductVariant)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
   /**
    * HSN code for the GST invoice. Power tools are usually 8467.
    */
@@ -527,13 +534,17 @@ export interface ProductVariant {
   batteryAh?: number | null;
   packType?: ('BARE_TOOL' | 'KIT') | null;
   /**
-   * Paise, GST inclusive. ₹1,250.00 is 125000.
+   * In rupees, GST inclusive.
    */
   mrpPaise: number;
   /**
-   * Paise, GST inclusive. ₹1,250.00 is 125000.
+   * In rupees, GST inclusive.
    */
   sellingPricePaise: number;
+  /**
+   * Units in the warehouse now. Recorded as "Stock received"; later changes go through Stock levels or the product’s Price & stock tab.
+   */
+  openingStock?: number | null;
   weightGrams?: number | null;
   barcode?: string | null;
   /**
@@ -683,54 +694,54 @@ export interface Order {
         hsnCode: string;
         gstRateBps: number;
         /**
-         * Paise, GST inclusive. ₹1,250.00 is 125000.
+         * In rupees, GST inclusive.
          */
         unitPricePaise: number;
         /**
-         * Paise, GST inclusive. ₹1,250.00 is 125000.
+         * In rupees, GST inclusive.
          */
         lineNetPaise: number;
         /**
-         * Paise, GST inclusive. ₹1,250.00 is 125000.
+         * In rupees, GST inclusive.
          */
         lineTaxablePaise: number;
         /**
-         * Paise, GST inclusive. ₹1,250.00 is 125000.
+         * In rupees, GST inclusive.
          */
         lineTaxPaise: number;
         id?: string | null;
       }[]
     | null;
   /**
-   * Paise, GST inclusive. ₹1,250.00 is 125000.
+   * In rupees, GST inclusive.
    */
   subtotalPaise: number;
   /**
-   * Paise, GST inclusive. ₹1,250.00 is 125000.
+   * In rupees, GST inclusive.
    */
   discountPaise?: number | null;
   /**
-   * Paise, GST inclusive. ₹1,250.00 is 125000.
+   * In rupees, GST inclusive.
    */
   shippingPaise?: number | null;
   /**
-   * Paise, GST inclusive. ₹1,250.00 is 125000.
+   * In rupees, GST inclusive.
    */
   taxablePaise: number;
   /**
-   * Paise, GST inclusive. ₹1,250.00 is 125000.
+   * In rupees, GST inclusive.
    */
   cgstPaise?: number | null;
   /**
-   * Paise, GST inclusive. ₹1,250.00 is 125000.
+   * In rupees, GST inclusive.
    */
   sgstPaise?: number | null;
   /**
-   * Paise, GST inclusive. ₹1,250.00 is 125000.
+   * In rupees, GST inclusive.
    */
   igstPaise?: number | null;
   /**
-   * Paise, GST inclusive. ₹1,250.00 is 125000.
+   * In rupees, GST inclusive.
    */
   grandTotalPaise: number;
   trackingCarrier?: string | null;
@@ -873,15 +884,15 @@ export interface Coupon {
    */
   percentBps?: number | null;
   /**
-   * Paise. ₹500 is 50000.
+   * In rupees.
    */
   amountPaise?: number | null;
   /**
-   * Paise. Leave empty for no minimum.
+   * Leave empty for no minimum.
    */
   minSubtotalPaise?: number | null;
   /**
-   * Paise. Caps a percentage code, e.g. 10% up to ₹1,000 (100000).
+   * Caps a percentage code, e.g. 10% up to ₹1,000.
    */
   maxDiscountPaise?: number | null;
   /**
@@ -918,7 +929,7 @@ export interface CouponRedemption {
   order: number | Order;
   customer?: (number | null) | Customer;
   /**
-   * Paise, GST inclusive. ₹1,250.00 is 125000.
+   * In rupees, GST inclusive.
    */
   discountPaise: number;
   updatedAt: string;
@@ -1281,6 +1292,15 @@ export interface ProductsSelect<T extends boolean = true> {
   modelNumber?: T;
   badges?: T;
   images?: T;
+  videos?:
+    | T
+    | {
+        source?: T;
+        title?: T;
+        url?: T;
+        file?: T;
+        id?: T;
+      };
   shortDesc?: T;
   description?: T;
   keyFeatures?: T;
@@ -1322,7 +1342,6 @@ export interface ProductsSelect<T extends boolean = true> {
         valueBool?: T;
         id?: T;
       };
-  variants?: T;
   hsnCode?: T;
   gstRateBps?: T;
   warrantyMonths?: T;
@@ -1344,6 +1363,7 @@ export interface ProductVariantsSelect<T extends boolean = true> {
   packType?: T;
   mrpPaise?: T;
   sellingPricePaise?: T;
+  openingStock?: T;
   weightGrams?: T;
   barcode?: T;
   images?: T;

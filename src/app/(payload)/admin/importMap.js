@@ -1,6 +1,8 @@
+import { RupeeField as RupeeField_70191aad101276b81860b90859950b58 } from '../../../admin/components/RupeeField'
 import { CategoriesList as CategoriesList_41a74c151ee09f8f0f305da304806a50 } from '../../../admin/views/CategoriesList'
 import { BrandsList as BrandsList_9458fa209d99e834ad0a290053c6892e } from '../../../admin/views/BrandsList'
 import { SpecDefinitionsList as SpecDefinitionsList_78dc4aaa723ae5a641ace38842d065be } from '../../../admin/views/SpecDefinitionsList'
+import { ReadinessPanel as ReadinessPanel_8724bb626f90a1e04b1623a350bcad94 } from '../../../admin/components/product/ReadinessPanel'
 import { RscEntryLexicalCell as RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
 import { RscEntryLexicalField as RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
 import { LexicalDiffComponent as LexicalDiffComponent_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
@@ -24,6 +26,7 @@ import { StrikethroughFeatureClient as StrikethroughFeatureClient_e70f5e05f09f93
 import { UnderlineFeatureClient as UnderlineFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { BoldFeatureClient as BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { ItalicFeatureClient as ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
+import { PriceStockEditor as PriceStockEditor_fcb31af25f8d909614c2c8f66d255f97 } from '../../../admin/components/product/PriceStockEditor'
 import { ProductsList as ProductsList_5a5a8109da4f540f14dc341b3d96b816 } from '../../../admin/views/ProductsList'
 import { VariantsList as VariantsList_4dc3bbc82c72b6ea4e556ad376225a60 } from '../../../admin/views/VariantsList'
 import { StockAdjuster as StockAdjuster_e6c07d7b46582096ac85c3aefa1bb399 } from '../../../admin/components/StockAdjuster'
@@ -39,9 +42,11 @@ import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } f
 
 /** @type import('payload').ImportMap */
 export const importMap = {
+  "/admin/components/RupeeField#RupeeField": RupeeField_70191aad101276b81860b90859950b58,
   "/admin/views/CategoriesList#CategoriesList": CategoriesList_41a74c151ee09f8f0f305da304806a50,
   "/admin/views/BrandsList#BrandsList": BrandsList_9458fa209d99e834ad0a290053c6892e,
   "/admin/views/SpecDefinitionsList#SpecDefinitionsList": SpecDefinitionsList_78dc4aaa723ae5a641ace38842d065be,
+  "/admin/components/product/ReadinessPanel#ReadinessPanel": ReadinessPanel_8724bb626f90a1e04b1623a350bcad94,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalCell": RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalField": RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e,
   "@payloadcms/richtext-lexical/rsc#LexicalDiffComponent": LexicalDiffComponent_44fe37237e0ebf4470c9990d8cb7b07e,
@@ -65,6 +70,7 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#UnderlineFeatureClient": UnderlineFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#BoldFeatureClient": BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#ItalicFeatureClient": ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
+  "/admin/components/product/PriceStockEditor#PriceStockEditor": PriceStockEditor_fcb31af25f8d909614c2c8f66d255f97,
   "/admin/views/ProductsList#ProductsList": ProductsList_5a5a8109da4f540f14dc341b3d96b816,
   "/admin/views/VariantsList#VariantsList": VariantsList_4dc3bbc82c72b6ea4e556ad376225a60,
   "/admin/components/StockAdjuster#StockAdjuster": StockAdjuster_e6c07d7b46582096ac85c3aefa1bb399,

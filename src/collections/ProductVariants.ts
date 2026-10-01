@@ -36,11 +36,43 @@ export const ProductVariants: CollectionConfig = {
         return data
       },
     ],
+    beforeChange: [
+      ({ data, operation, req }) => {
+        // `openingStock` is virtual; carry it to afterChange, where the variant has an id.
+        if (operation === 'create') req.context.openingStock = data.openingStock
+        return data
+      },
+    ],
     afterChange: [
       async ({ doc, operation, req }) => {
+        if (operation !== 'create') return doc
         // Every variant gets a stock row straight away, so it shows up in
         // Stock levels (as out of stock) before anyone receives goods.
-        if (operation === 'create') await ensureInventory(req, doc.id)
+        await ensureInventory(req, doc.id)
+        // Opening stock is recorded like any delivery, so the ledger accounts for every unit.
+        const opening = Number(req.context.openingStock ?? 0)
+        if (Number.isSafeInteger(opening) && opening > 0) {
+          await req.payload.create({
+            collection: 'stock-movements',
+            data: { variant: doc.id, type: 'RECEIVED', quantity: opening, note: 'Opening stock' },
+            req,
+          })
+        }
+        return doc
+      },
+      // One default per product: choosing one clears it on the others.
+      async ({ doc, req, context }) => {
+        if (!doc.isDefault || context.clearingDefault) return doc
+        const productId = typeof doc.product === 'object' ? doc.product?.id : doc.product
+        await req.payload.update({
+          collection: 'product-variants',
+          where: {
+            and: [{ product: { equals: productId } }, { id: { not_equals: doc.id } }, { isDefault: { equals: true } }],
+          },
+          data: { isDefault: false },
+          req,
+          context: { clearingDefault: true },
+        })
         return doc
       },
       revalidateStorefront,
@@ -114,6 +146,18 @@ export const ProductVariants: CollectionConfig = {
           admin: { width: '50%' },
         }),
       ],
+    },
+    {
+      name: 'openingStock',
+      type: 'number',
+      virtual: true,
+      min: 0,
+      admin: {
+        step: 1,
+        description:
+          'Units in the warehouse now. Recorded as "Stock received"; later changes go through Stock levels or the product’s Price & stock tab.',
+        condition: (data) => !data?.id,
+      },
     },
     {
       type: 'row',

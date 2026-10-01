@@ -181,3 +181,236 @@ html[data-theme='dark'] .nav__link--active {
     color: var(--theme-elevation-500);
   }
 }
+
+/* Shared look for the plain inputs inside custom admin panels. */
+%admin-input {
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--theme-border-color);
+  border-radius: 4px;
+  background: var(--theme-input-bg);
+  color: var(--theme-text);
+  font: inherit;
+  width: 100%;
+
+  &:focus {
+    outline: 2px solid var(--theme-success-500);
+    outline-offset: -1px;
+  }
+}
+
+/* Money fields: typed in rupees, saved as paise. */
+.rupee-field {
+  &__input {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    span {
+      color: var(--theme-elevation-500);
+    }
+
+    input {
+      @extend %admin-input;
+    }
+  }
+
+  &__invalid {
+    margin: 6px 0 0;
+    font-size: 12px;
+    color: var(--theme-error-500);
+  }
+}
+
+/* Product → Price & stock tab. */
+.price-stock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--base);
+
+  &__empty {
+    color: var(--theme-elevation-600);
+
+    &--error {
+      color: var(--theme-error-500);
+    }
+  }
+
+  &__variant {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--base) * 0.75);
+    padding: var(--base);
+    border: 1px solid var(--theme-border-color);
+    border-radius: 8px;
+    background: var(--theme-elevation-50);
+
+    h4 {
+      margin: 0;
+    }
+
+    &--off {
+      opacity: 0.7;
+    }
+
+    &--new {
+      border-style: dashed;
+    }
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: calc(var(--base) * 0.6);
+  }
+
+  &__wide {
+    grid-column: span 2;
+  }
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+    color: var(--theme-elevation-600);
+  }
+
+  input:not([type='checkbox']),
+  select {
+    @extend %admin-input;
+  }
+
+  &__flags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: calc(var(--base) * 1.2);
+  }
+
+  &__check {
+    flex-direction: row !important;
+    align-items: center;
+    gap: 8px !important;
+    color: var(--theme-text) !important;
+    font-size: 14px !important;
+  }
+
+  &__stock {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(var(--base) * 0.75);
+    padding-top: calc(var(--base) * 0.75);
+    border-top: 1px solid var(--theme-border-color);
+  }
+
+  &__counts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: calc(var(--base) * 1.2);
+    color: var(--theme-elevation-600);
+
+    strong {
+      color: var(--theme-text);
+      font-size: 18px;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: calc(var(--base) * 0.75);
+    font-size: 13px;
+  }
+
+  &__link {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--theme-success-500);
+    font: inherit;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  &__adjust {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: calc(var(--base) * 0.6);
+    padding: calc(var(--base) * 0.75);
+    border-radius: 6px;
+    background: var(--theme-elevation-100);
+  }
+
+  &__qty input {
+    width: 110px;
+  }
+
+  &__note {
+    flex: 1 1 220px;
+  }
+}
+
+/* Product sidebar: "Ready to sell?" checklist. */
+.readiness {
+  margin-bottom: var(--base);
+  padding: calc(var(--base) * 0.75);
+  border: 1px solid var(--theme-warning-500);
+  border-radius: 8px;
+  background: var(--theme-elevation-50);
+
+  &--ready {
+    border-color: var(--theme-success-500);
+  }
+
+  &--blocked {
+    border-color: var(--theme-error-500);
+  }
+
+  h4 {
+    margin: 0 0 8px;
+  }
+
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+  }
+
+  li {
+    display: flex;
+    gap: 8px;
+
+    span {
+      width: 14px;
+      font-weight: 700;
+    }
+
+    &.is-ok span {
+      color: var(--theme-success-500);
+    }
+
+    &.is-warning span {
+      color: var(--theme-warning-500);
+    }
+
+    &.is-blocking {
+      color: var(--theme-error-500);
+    }
+  }
+
+  &__note {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: var(--theme-elevation-600);
+  }
+}

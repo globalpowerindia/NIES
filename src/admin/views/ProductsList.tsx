@@ -3,6 +3,7 @@ import type { ListViewServerProps } from 'payload'
 import { DataList } from '@/admin/components/list/DataList'
 import { combineWhere, readListParams, searchWhere } from '@/admin/components/list/params'
 import type { ListRow, Tone } from '@/admin/components/list/types'
+import { isPriced, loadProductStock, type ProductStock } from '@/lib/product-stock'
 
 const VIEWS: Record<string, string> = {
   active: 'ACTIVE',
@@ -29,11 +30,31 @@ const thumbOf = (images: unknown): string | null => {
   return null
 }
 
+/** Views decided by price and stock rather than a stored field. */
+const STOCK_VIEWS: Record<string, (stock: ProductStock) => boolean> = {
+  noprice: (stock) => !isPriced(stock),
+  out: (stock) => isPriced(stock) && stock.level === 'OUT_OF_STOCK',
+  low: (stock) => isPriced(stock) && stock.level === 'LOW_STOCK',
+}
+
+const LEVEL: Record<ProductStock['level'], { label: string; tone: Tone }> = {
+  IN_STOCK: { label: 'In stock', tone: 'success' },
+  LOW_STOCK: { label: 'Low stock', tone: 'warning' },
+  OUT_OF_STOCK: { label: 'Out of stock', tone: 'danger' },
+}
+
 export const ProductsList = async ({ payload, searchParams }: ListViewServerProps) => {
   const { view, q, page, limit } = readListParams(searchParams)
 
+  // Price and stock for every product: one query, and what the stock views filter on.
+  const allStock = await loadProductStock(payload)
+  const idsWhere = (test: (stock: ProductStock) => boolean) => ({
+    id: { in: [...allStock].filter(([, stock]) => test(stock)).map(([id]) => id).concat(-1) },
+  })
+  const countOf = (test: (stock: ProductStock) => boolean) => [...allStock.values()].filter(test).length
+
   const where = combineWhere(
-    VIEWS[view] ? { status: { equals: VIEWS[view] } } : undefined,
+    VIEWS[view] ? { status: { equals: VIEWS[view] } } : STOCK_VIEWS[view] ? idsWhere(STOCK_VIEWS[view]) : undefined,
     searchWhere(q, ['name', 'slug', 'hsnCode']),
   )
 
@@ -47,7 +68,8 @@ export const ProductsList = async ({ payload, searchParams }: ListViewServerProp
 
   const rows: ListRow[] = result.docs.map((product) => {
     const status = STATUS[product.status] ?? STATUS.DRAFT
-    const specCount = (product.specValues ?? []).length
+    const stock = allStock.get(product.id)
+    const level = stock ? LEVEL[stock.level] : LEVEL.OUT_OF_STOCK
     return {
       id: String(product.id),
       href: `/admin/collections/products/${product.id}`,
@@ -61,7 +83,16 @@ export const ProductsList = async ({ payload, searchParams }: ListViewServerProp
         },
         { t: 'text', v: nameOf(product.brand) ?? '—' },
         { t: 'text', v: nameOf(product.category) ?? '—' },
-        { t: 'num', v: specCount, suffix: specCount === 1 ? 'spec' : 'specs' },
+        isPriced(stock) ? { t: 'money', v: stock!.pricePaise! } : { t: 'pill', v: 'No price', tone: 'danger' },
+        isPriced(stock)
+          ? {
+              t: 'pills',
+              items: [
+                { v: stock!.backorder && stock!.available <= 0 ? 'Backorder' : level.label, tone: level.tone },
+                { v: `${Math.max(0, stock!.available)} avail.`, tone: 'neutral' },
+              ],
+            }
+          : { t: 'empty' },
         { t: 'text', v: product.hsnCode, sub: `${(product.gstRateBps / 100).toFixed(0)}% GST` },
         { t: 'pill', v: status.label, tone: status.tone },
         { t: 'date', v: product.updatedAt },
@@ -92,12 +123,16 @@ export const ProductsList = async ({ payload, searchParams }: ListViewServerProp
         { key: 'active', label: 'Active', count: active.totalDocs },
         { key: 'draft', label: 'Draft', count: draft.totalDocs },
         { key: 'archived', label: 'Archived', count: archived.totalDocs },
+        { key: 'noprice', label: 'No price', count: countOf(STOCK_VIEWS.noprice) },
+        { key: 'out', label: 'Out of stock', count: countOf(STOCK_VIEWS.out) },
+        { key: 'low', label: 'Low stock', count: countOf(STOCK_VIEWS.low) },
       ]}
       columns={[
         { header: 'Product' },
         { header: 'Brand', width: 130 },
         { header: 'Category', width: 150 },
-        { header: 'Specs', align: 'right', width: 90 },
+        { header: 'Price', align: 'right', width: 110 },
+        { header: 'Stock', width: 190 },
         { header: 'Tax', width: 110 },
         { header: 'Status', width: 110 },
         { header: 'Updated', width: 140 },

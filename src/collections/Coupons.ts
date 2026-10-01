@@ -96,15 +96,15 @@ export const Coupons: CollectionConfig = {
           min: 0,
           admin: {
             width: '33%',
-            step: 1,
-            description: 'Paise. ₹500 is 50000.',
+            description: 'In rupees.',
             condition: (_, siblingData) => siblingData?.type === 'FLAT',
+            components: { Field: '/admin/components/RupeeField#RupeeField' },
           },
           validate: ((value, { siblingData }) => {
             if ((siblingData as { type?: string })?.type !== 'FLAT') return true
             return Number.isSafeInteger(value) && value! > 0
               ? true
-              : 'Enter the amount off in paise (₹500 is 50000).'
+              : 'Enter the amount off, e.g. 500.'
           }) satisfies NumberFieldSingleValidation,
         },
       ],
@@ -115,14 +115,14 @@ export const Coupons: CollectionConfig = {
         paiseField({
           name: 'minSubtotalPaise',
           label: 'Minimum order',
-          admin: { width: '50%', description: 'Paise. Leave empty for no minimum.' },
+          admin: { width: '50%', description: 'Leave empty for no minimum.' },
         }),
         paiseField({
           name: 'maxDiscountPaise',
           label: 'Largest discount',
           admin: {
             width: '50%',
-            description: 'Paise. Caps a percentage code, e.g. 10% up to ₹1,000 (100000).',
+            description: 'Caps a percentage code, e.g. 10% up to ₹1,000.',
           },
         }),
       ],

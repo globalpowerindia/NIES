@@ -35,8 +35,9 @@ export const paiseField = ({
   min: 0,
   validate: validatePaise,
   admin: {
-    step: 1,
-    description: 'Paise, GST inclusive. ₹1,250.00 is 125000.',
+    description: 'In rupees, GST inclusive.',
     ...admin,
+    // Entered in rupees, stored as paise.
+    components: { Field: '/admin/components/RupeeField#RupeeField', ...admin?.components },
   },
 })
