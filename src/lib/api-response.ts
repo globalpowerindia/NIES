@@ -7,8 +7,13 @@ export type ApiError = { error: string; fields?: Record<string, string> }
 
 export const ok = <T extends object>(data: T = {} as T): NextResponse => NextResponse.json({ ok: true, ...data })
 
-export const fail = (status: number, error: string, fields?: Record<string, string>): NextResponse =>
-  NextResponse.json({ ok: false, error, ...(fields ? { fields } : {}) }, { status })
+export const fail = (
+  status: number,
+  error: string,
+  fields?: Record<string, string>,
+  /** Anything else the caller needs to redraw, e.g. the cart after a refused change. */
+  extra?: object,
+): NextResponse => NextResponse.json({ ok: false, error, ...(fields ? { fields } : {}), ...extra }, { status })
 
 /** Turns a zod failure into per-field messages the form can render inline. */
 export const invalid = (error: ZodError): NextResponse =>

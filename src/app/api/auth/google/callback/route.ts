@@ -12,6 +12,7 @@ import {
 import { smsSender } from '@/lib/otp/sms'
 import { startPendingSignIn } from '@/lib/pending-signin'
 import { startSession } from '@/lib/session'
+import { afterSignIn } from '@/lib/storefront/after-sign-in'
 import { siteUrl } from '@/lib/site-url'
 import { getPayloadClient } from '@/lib/storefront/queries'
 
@@ -66,5 +67,6 @@ export const GET = async (request: Request): Promise<NextResponse> => {
   }
 
   await startSession(result.customer.id)
+  await afterSignIn(payload, result.customer)
   return NextResponse.redirect(`${siteUrl()}${flow.next}`)
 }

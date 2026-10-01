@@ -1,22 +1,21 @@
 'use client'
 
-import { Trash2 } from 'lucide-react'
+import { ShoppingCart, Trash2 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
+import { addToCart } from '@/components/cart/cart-store'
 import { toggleWishlist } from '@/components/wishlist/wishlist-store'
 import { formatCurrency } from '@/lib/money'
 import type { WishlistEntry } from '@/lib/storefront/account'
 
-/**
- * One saved product, from Figma node 1100:28128. "Move to Cart" from the design
- * joins it once the cart exists (Module 6).
- */
+/** One saved product, from Figma node 1100:28128. */
 export const WishlistRow = ({ item }: { item: WishlistEntry }) => {
   const router = useRouter()
   const [removing, setRemoving] = useState(false)
+  const [moving, setMoving] = useState(false)
   const discount =
     item.pricePaise !== null && item.mrpPaise && item.mrpPaise > item.pricePaise
       ? Math.round(((item.mrpPaise - item.pricePaise) / item.mrpPaise) * 100)
@@ -24,6 +23,15 @@ export const WishlistRow = ({ item }: { item: WishlistEntry }) => {
 
   const remove = async () => {
     setRemoving(true)
+    await toggleWishlist(item.productId)
+    router.refresh()
+  }
+
+  // Into the cart, then off the list; if the cart refuses, it stays saved.
+  const moveToCart = async () => {
+    setMoving(true)
+    const result = await addToCart({ productId: item.productId })
+    if (!result.ok) return setMoving(false)
     await toggleWishlist(item.productId)
     router.refresh()
   }
@@ -52,10 +60,21 @@ export const WishlistRow = ({ item }: { item: WishlistEntry }) => {
             {item.subtitle && <p className="text-label1 text-dark-300">{item.subtitle}</p>}
           </div>
           <div className="flex items-start gap-8">
+            {item.inStock && (
+              <button
+                type="button"
+                onClick={moveToCart}
+                disabled={moving || removing}
+                className="flex items-center gap-1 text-body1 font-medium text-brand-blue-300 transition-opacity hover:opacity-80 disabled:opacity-60"
+              >
+                <ShoppingCart className="size-6" strokeWidth={1.5} aria-hidden />
+                {moving ? 'Moving…' : 'Move to Cart'}
+              </button>
+            )}
             <button
               type="button"
               onClick={remove}
-              disabled={removing}
+              disabled={removing || moving}
               className="flex items-center gap-1 text-body1 font-medium text-brand-red-500 transition-opacity hover:opacity-80 disabled:opacity-60"
             >
               <Trash2 className="size-6" strokeWidth={1.5} aria-hidden />

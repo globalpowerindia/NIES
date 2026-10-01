@@ -78,6 +78,10 @@ export interface Config {
     media: Media;
     datasheets: Datasheet;
     orders: Order;
+    carts: Cart;
+    'cart-items': CartItem;
+    coupons: Coupon;
+    'coupon-redemptions': CouponRedemption;
     'newsletter-subscribers': NewsletterSubscriber;
     'search-synonyms': SearchSynonym;
     customers: Customer;
@@ -98,6 +102,12 @@ export interface Config {
     inventory: {
       movements: 'stock-movements';
     };
+    carts: {
+      items: 'cart-items';
+    };
+    coupons: {
+      redemptions: 'coupon-redemptions';
+    };
     customers: {
       identities: 'auth-identities';
     };
@@ -114,6 +124,10 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     datasheets: DatasheetsSelect<false> | DatasheetsSelect<true>;
     orders: OrdersSelect<false> | OrdersSelect<true>;
+    carts: CartsSelect<false> | CartsSelect<true>;
+    'cart-items': CartItemsSelect<false> | CartItemsSelect<true>;
+    coupons: CouponsSelect<false> | CouponsSelect<true>;
+    'coupon-redemptions': CouponRedemptionsSelect<false> | CouponRedemptionsSelect<true>;
     'newsletter-subscribers': NewsletterSubscribersSelect<false> | NewsletterSubscribersSelect<true>;
     'search-synonyms': SearchSynonymsSelect<false> | SearchSynonymsSelect<true>;
     customers: CustomersSelect<false> | CustomersSelect<true>;
@@ -806,6 +820,124 @@ export interface User {
   collection: 'users';
 }
 /**
+ * Shoppers’ carts. Carts untouched for a day are flagged as abandoned but stay usable.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "carts".
+ */
+export interface Cart {
+  id: number;
+  /**
+   * Empty for a guest cart.
+   */
+  customer?: (number | null) | Customer;
+  token?: string | null;
+  status: 'ACTIVE' | 'MERGED' | 'CONVERTED';
+  /**
+   * Checked again on every view, so an expired code stops applying on its own.
+   */
+  coupon?: (number | null) | Coupon;
+  lastActivityAt?: string | null;
+  /**
+   * Set by the hourly job; cleared when the shopper comes back.
+   */
+  abandonedAt?: string | null;
+  items?: {
+    docs?: (number | CartItem)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Discount codes shoppers enter in the cart. Switch a code off rather than deleting it.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "coupons".
+ */
+export interface Coupon {
+  id: number;
+  /**
+   * Saved in capitals without spaces. Shoppers can type it either way.
+   */
+  code: string;
+  isActive?: boolean | null;
+  /**
+   * For staff only, e.g. "Diwali 2026 newsletter".
+   */
+  description?: string | null;
+  type: 'PERCENT' | 'FLAT';
+  /**
+   * 1000 = 10%.
+   */
+  percentBps?: number | null;
+  /**
+   * Paise. ₹500 is 50000.
+   */
+  amountPaise?: number | null;
+  /**
+   * Paise. Leave empty for no minimum.
+   */
+  minSubtotalPaise?: number | null;
+  /**
+   * Paise. Caps a percentage code, e.g. 10% up to ₹1,000 (100000).
+   */
+  maxDiscountPaise?: number | null;
+  /**
+   * Empty: valid now.
+   */
+  startsAt?: string | null;
+  /**
+   * Empty: never expires.
+   */
+  endsAt?: string | null;
+  /**
+   * Across all shoppers. Empty: unlimited.
+   */
+  usageLimit?: number | null;
+  /**
+   * Empty: unlimited. When set, shoppers must sign in to use the code.
+   */
+  perCustomerLimit?: number | null;
+  redemptions?: {
+    docs?: (number | CouponRedemption)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "coupon-redemptions".
+ */
+export interface CouponRedemption {
+  id: number;
+  coupon: number | Coupon;
+  order: number | Order;
+  customer?: (number | null) | Customer;
+  /**
+   * Paise, GST inclusive. ₹1,250.00 is 125000.
+   */
+  discountPaise: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cart-items".
+ */
+export interface CartItem {
+  id: number;
+  cart: number | Cart;
+  variant: number | ProductVariant;
+  product: number | Product;
+  quantity: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "newsletter-subscribers".
  */
@@ -990,6 +1122,22 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'orders';
         value: number | Order;
+      } | null)
+    | ({
+        relationTo: 'carts';
+        value: number | Cart;
+      } | null)
+    | ({
+        relationTo: 'cart-items';
+        value: number | CartItem;
+      } | null)
+    | ({
+        relationTo: 'coupons';
+        value: number | Coupon;
+      } | null)
+    | ({
+        relationTo: 'coupon-redemptions';
+        value: number | CouponRedemption;
       } | null)
     | ({
         relationTo: 'newsletter-subscribers';
@@ -1375,6 +1523,66 @@ export interface OrdersSelect<T extends boolean = true> {
   trackingNumber?: T;
   shippedAt?: T;
   notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "carts_select".
+ */
+export interface CartsSelect<T extends boolean = true> {
+  customer?: T;
+  token?: T;
+  status?: T;
+  coupon?: T;
+  lastActivityAt?: T;
+  abandonedAt?: T;
+  items?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cart-items_select".
+ */
+export interface CartItemsSelect<T extends boolean = true> {
+  cart?: T;
+  variant?: T;
+  product?: T;
+  quantity?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "coupons_select".
+ */
+export interface CouponsSelect<T extends boolean = true> {
+  code?: T;
+  isActive?: T;
+  description?: T;
+  type?: T;
+  percentBps?: T;
+  amountPaise?: T;
+  minSubtotalPaise?: T;
+  maxDiscountPaise?: T;
+  startsAt?: T;
+  endsAt?: T;
+  usageLimit?: T;
+  perCustomerLimit?: T;
+  redemptions?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "coupon-redemptions_select".
+ */
+export interface CouponRedemptionsSelect<T extends boolean = true> {
+  coupon?: T;
+  order?: T;
+  customer?: T;
+  discountPaise?: T;
   updatedAt?: T;
   createdAt?: T;
 }

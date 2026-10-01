@@ -159,7 +159,7 @@ export const ProductSummary = ({ data, basePath }: { data: ProductPageData; base
       )}
 
       <Divider />
-      <BuyRow name={product.name} inStock={data.inStock} />
+      <BuyRow name={product.name} variantId={variant.id} inStock={data.inStock} />
       <Divider />
 
       <div className="flex flex-col">

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import React from 'react'
 
+import { CartToast } from '@/components/cart/CartToast'
 import { Footer } from '@/components/layout/Footer'
 import { Header } from '@/components/layout/Header'
 import { fileUrlOf, hrefOf, mediaOf, type MediaInfo } from '@/lib/storefront/content'
@@ -72,9 +73,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           utilityLinks={utilityLinks}
           categories={categories}
           searchTiles={searchTiles}
-          cartCount={0}
         />
         <div className="flex-1">{children}</div>
+        <CartToast />
         <Footer
           siteName={settings.siteName}
           logoUrl={logoUrl}

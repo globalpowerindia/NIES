@@ -2,7 +2,7 @@ import { ShoppingCart, Star } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 
-import { Button } from '@/components/ui/Button'
+import { AddToCartButton } from '@/components/cart/AddToCartButton'
 import { WishlistHeart } from '@/components/wishlist/WishlistHeart'
 import { formatCurrency } from '@/lib/money'
 import { cn } from '@/lib/utils'
@@ -81,14 +81,16 @@ export const ProductCard = ({
           )}
         </Link>
 
-        <div className="absolute inset-x-4 bottom-4 flex items-center gap-[7px] opacity-0 transition-opacity duration-200 group-hover:opacity-100 focus-within:opacity-100">
-          <Button variant="blue" className="w-[175px] flex-1">
-            Buy Now
-          </Button>
-          <Button variant="red" size="icon" aria-label={`Add ${label} to cart`}>
-            <ShoppingCart className="size-5" />
-          </Button>
-        </div>
+        {inStock && (
+          <div className="absolute inset-x-4 bottom-4 flex items-center gap-[7px] opacity-0 transition-opacity duration-200 group-hover:opacity-100 focus-within:opacity-100">
+            <AddToCartButton productId={productId} buyNow variant="blue" className="w-[175px] flex-1">
+              Buy Now
+            </AddToCartButton>
+            <AddToCartButton productId={productId} variant="red" size="icon" aria-label={`Add ${label} to cart`}>
+              <ShoppingCart className="size-5" />
+            </AddToCartButton>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-3 px-3">

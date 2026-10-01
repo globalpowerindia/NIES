@@ -91,6 +91,7 @@ export type WishlistEntry = {
   imageAlt: string
   pricePaise: number | null
   mrpPaise: number | null
+  inStock: boolean
 }
 
 export const getWishlist = async (
@@ -128,6 +129,7 @@ export const getWishlist = async (
       imageAlt: image?.alt || product.name,
       pricePaise: variant?.sellingPricePaise ?? null,
       mrpPaise: variant?.mrpPaise ?? null,
+      inStock: pricing.get(product.id)?.inStock ?? false,
     }
   })
 }

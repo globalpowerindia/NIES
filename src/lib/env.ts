@@ -10,6 +10,9 @@ const envSchema = z.object({
   R2_PUBLIC_URL: z.string().min(1).optional(),
   GOOGLE_CLIENT_ID: z.string().min(1).optional(),
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+  // Scheduled jobs answer only to `Authorization: Bearer <CRON_SECRET>`, which
+  // Vercel Cron sends. Unset, the job routes refuse every call.
+  CRON_SECRET: z.string().min(16).optional(),
 })
 
 const parsed = envSchema.safeParse(process.env)

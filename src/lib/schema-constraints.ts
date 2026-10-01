@@ -42,6 +42,29 @@ export const enforceIntegerMoney: PostgresSchemaHook = ({ extendTable, schema })
   })
 
   extendTable({
+    table: schema.tables.coupons,
+    extraConfig: () => ({
+      amountPaise: wholeNonNegative('amount_paise'),
+      minSubtotalPaise: wholeNonNegative('min_subtotal_paise'),
+      maxDiscountPaise: wholeNonNegative('max_discount_paise'),
+    }),
+  })
+
+  extendTable({
+    table: schema.tables.coupon_redemptions,
+    extraConfig: () => ({
+      discountPaise: wholeNonNegative('discount_paise'),
+    }),
+  })
+
+  extendTable({
+    table: schema.tables.cart_items,
+    extraConfig: () => ({
+      quantity: check('quantity_whole_positive', sql.raw('"quantity" >= 1 AND "quantity" = floor("quantity")')),
+    }),
+  })
+
+  extendTable({
     table: schema.tables.inventory,
     extraConfig: () => ({
       onHand: wholeNonNegative('on_hand'),

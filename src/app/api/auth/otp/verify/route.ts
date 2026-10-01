@@ -5,6 +5,7 @@ import { attachPhone, normaliseEmail, normalisePhone, resolveIdentity } from '@/
 import { checkChallenge } from '@/lib/otp/challenges'
 import { endPendingSignIn, readPendingSignIn } from '@/lib/pending-signin'
 import { startSession } from '@/lib/session'
+import { afterSignIn } from '@/lib/storefront/after-sign-in'
 import { getPayloadClient } from '@/lib/storefront/queries'
 import { otpVerifySchema } from '@/lib/validations/auth'
 import type { Customer } from '@/payload-types'
@@ -75,5 +76,6 @@ export const POST = async (request: Request): Promise<NextResponse> => {
   if (customer.status === 'BLOCKED') return fail(403, SUSPENDED)
 
   await startSession(customer.id)
+  await afterSignIn(payload, customer)
   return ok({ needsName: !customer.firstName, next: pending?.next })
 }

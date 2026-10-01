@@ -2,7 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
-import { Button } from '@/components/ui/Button'
+import { AddToCartButton } from '@/components/cart/AddToCartButton'
 import { formatCurrency } from '@/lib/money'
 import type { ProductPageData } from '@/lib/storefront/product-page'
 import { cn } from '@/lib/utils'
@@ -64,9 +64,15 @@ export const CompareTable = ({ compare }: { compare: Compare }) => {
                   )}
                   <p className="text-h6 font-semibold text-dark-500">{formatCurrency(column.pricePaise)}</p>
                 </div>
-                <Button variant="blue" className="h-[45px] w-full">
-                  Add to Cart
-                </Button>
+                <AddToCartButton
+                  productId={column.productId}
+                  disabled={!column.inStock}
+                  variant="blue"
+                  className="h-[45px] w-full"
+                  aria-label={`Add ${column.name} to cart`}
+                >
+                  {column.inStock ? 'Add to Cart' : 'Out Of Stock'}
+                </AddToCartButton>
               </div>
             ))}
 

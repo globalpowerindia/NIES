@@ -47,6 +47,8 @@ export type VariantOption = {
 }
 
 export type CompareColumn = {
+  productId: number
+  inStock: boolean
   href: string
   name: string
   image: string
@@ -254,6 +256,8 @@ const buildCompare = async (payload: Payload, product: Product, defs: Map<number
     const weight = formatWeight(priced.variant.weightGrams)
     return [
       {
+        productId: entry.id,
+        inStock: priced.inStock,
         href: `/products/${entry.slug}`,
         name: entry.name,
         image: mediaOf(entry.images?.[0])?.url ?? PLACEHOLDER_IMAGE,

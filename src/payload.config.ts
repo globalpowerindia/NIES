@@ -7,7 +7,11 @@ import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
 import { Brands } from './collections/Brands'
+import { CartItems } from './collections/CartItems'
+import { Carts } from './collections/Carts'
 import { Categories } from './collections/Categories'
+import { CouponRedemptions } from './collections/CouponRedemptions'
+import { Coupons } from './collections/Coupons'
 import { AuthIdentities } from './collections/AuthIdentities'
 import { OtpChallenges } from './collections/OtpChallenges'
 import { Addresses } from './collections/Addresses'
@@ -82,6 +86,10 @@ export default buildConfig({
     Media,
     Datasheets,
     Orders,
+    Carts,
+    CartItems,
+    Coupons,
+    CouponRedemptions,
     NewsletterSubscribers,
     SearchSynonyms,
     Customers,

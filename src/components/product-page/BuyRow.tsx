@@ -3,18 +3,14 @@
 import { Minus, Plus } from 'lucide-react'
 import { useState } from 'react'
 
-import { Button } from '@/components/ui/Button'
-
-const MAX_QTY = 20
+import { AddToCartButton } from '@/components/cart/AddToCartButton'
+import { MAX_LINE_QTY as MAX_QTY } from '@/lib/cart-rules'
 
 const stepper =
   'grid size-10 place-items-center rounded-full border-[0.5px] border-brand-blue-200 bg-brand-blue-100 text-dark-500 transition-colors hover:bg-brand-blue-200 disabled:opacity-40 sm:size-[50px]'
 
-/**
- * Quantity and the two purchase buttons. The cart arrives with the cart
- * module; until then the buttons render in their final place and state.
- */
-export const BuyRow = ({ name, inStock }: { name: string; inStock: boolean }) => {
+/** Quantity and the two purchase buttons, for the variant on show. */
+export const BuyRow = ({ name, variantId, inStock }: { name: string; variantId: number; inStock: boolean }) => {
   const [qty, setQty] = useState(1)
 
   return (
@@ -48,12 +44,26 @@ export const BuyRow = ({ name, inStock }: { name: string; inStock: boolean }) =>
 
       {inStock ? (
         <div className="flex flex-1 gap-2">
-          <Button variant="blue" size="tall" className="flex-1" aria-label={`Buy ${qty} × ${name} now`}>
+          <AddToCartButton
+            variantId={variantId}
+            quantity={qty}
+            buyNow
+            variant="blue"
+            size="tall"
+            className="flex-1"
+            aria-label={`Buy ${qty} × ${name} now`}
+          >
             Buy Now
-          </Button>
-          <Button size="tall" className="flex-1 bg-brand-red-500 hover:bg-brand-red-400" aria-label={`Add ${qty} × ${name} to cart`}>
+          </AddToCartButton>
+          <AddToCartButton
+            variantId={variantId}
+            quantity={qty}
+            size="tall"
+            className="flex-1 bg-brand-red-500 hover:bg-brand-red-400"
+            aria-label={`Add ${qty} × ${name} to cart`}
+          >
             Add to Cart
-          </Button>
+          </AddToCartButton>
         </div>
       ) : (
         <p className="flex h-13 flex-1 items-center justify-center rounded-xl bg-brand-red-100 text-body2 font-medium text-brand-red-500">
