@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm'
 import type { Payload, Where } from 'payload'
 
 import type { ProductCardProps } from '@/components/product/ProductCard'
@@ -106,6 +107,43 @@ const ACTIVE: Where = { status: { equals: 'ACTIVE' } }
 
 export type CarouselSource = 'new' | 'bestSeller' | 'offers' | 'category' | 'manual'
 
+/** Cards for these products, in this order, skipping any no longer active. */
+const cardsInOrder = async (payload: Payload, ids: number[]): Promise<ProductCardProps[]> => {
+  if (ids.length === 0) return []
+  const found = await payload.find({
+    collection: 'products',
+    where: { and: [ACTIVE, { id: { in: ids } }] },
+    limit: ids.length,
+    depth: 1,
+  })
+  const byId = new Map(found.docs.map((doc) => [doc.id, doc]))
+  const ordered = ids.map((id) => byId.get(id)).filter((doc): doc is Product => Boolean(doc))
+  return toProductCards(payload, ordered)
+}
+
+/**
+ * Active products whose card price is below MRP, best placed first. The card
+ * prices from the default variant (else the first by sort order, as
+ * `pickVariant`), so that is the variant that has to be discounted.
+ */
+const offerProductIds = async (payload: Payload, limit: number): Promise<number[]> => {
+  const result = await payload.db.drizzle.execute(sql`
+    SELECT p.id
+    FROM products p
+    JOIN LATERAL (
+      SELECT pv.selling_price_paise, pv.mrp_paise
+      FROM product_variants pv
+      WHERE pv.product_id = p.id AND pv.is_active IS TRUE
+      ORDER BY pv.is_default IS TRUE DESC, pv.sort_order ASC NULLS LAST, pv.id
+      LIMIT 1
+    ) v ON TRUE
+    WHERE p.status = 'ACTIVE' AND v.mrp_paise > v.selling_price_paise
+    ORDER BY p.sort_order ASC NULLS LAST, p.created_at DESC
+    LIMIT ${limit}
+  `)
+  return result.rows.map((row) => Number(row.id))
+}
+
 /** Resolves a homepage product carousel's rule into cards. */
 export const getCarouselCards = async (
   payload: Payload,
@@ -113,20 +151,12 @@ export const getCarouselCards = async (
 ): Promise<ProductCardProps[]> => {
   const { source, limit } = options
 
-  if (source === 'manual') {
-    const ids = options.productIds ?? []
-    if (ids.length === 0) return []
-    const found = await payload.find({
-      collection: 'products',
-      where: { and: [ACTIVE, { id: { in: ids } }] },
-      limit: ids.length,
-      depth: 1,
-    })
-    // Keep the order staff arranged, not the database's.
-    const byId = new Map(found.docs.map((doc) => [doc.id, doc]))
-    const ordered = ids.map((id) => byId.get(id)).filter((doc): doc is Product => Boolean(doc))
-    return toProductCards(payload, ordered)
-  }
+  // Keep the order staff arranged, not the database's.
+  if (source === 'manual') return cardsInOrder(payload, options.productIds ?? [])
+
+  // "On offer" depends on variant prices, so it is chosen in SQL; picking from
+  // a pool of newest products first could miss every discounted one.
+  if (source === 'offers') return cardsInOrder(payload, await offerProductIds(payload, limit))
 
   const filter: Where | undefined =
     source === 'new'
@@ -140,14 +170,9 @@ export const getCarouselCards = async (
   const found = await payload.find({
     collection: 'products',
     where: filter ? { and: [ACTIVE, filter] } : ACTIVE,
-    // "On offer" is decided by variant prices, so fetch a wider pool and trim after.
-    limit: source === 'offers' ? limit * 4 : limit,
+    limit,
     sort: ['sortOrder', '-createdAt'],
     depth: 1,
   })
-
-  const cards = await toProductCards(payload, found.docs)
-  return source === 'offers'
-    ? cards.filter((card) => card.mrpPaise && card.mrpPaise > card.pricePaise).slice(0, limit)
-    : cards
+  return toProductCards(payload, found.docs)
 }
