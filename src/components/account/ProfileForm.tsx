@@ -6,7 +6,8 @@ import { useState, type FormEvent } from 'react'
 import { AccountField, fieldInputClass } from '@/components/account/AccountField'
 import { FormAlert } from '@/components/auth/fields'
 import { useAuthSubmit } from '@/components/auth/useAuthSubmit'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 /**
  * The name fields of the profile page. They look like the design's plain
@@ -38,7 +39,7 @@ export const ProfileForm = ({ firstName, lastName }: { firstName: string; lastNa
     const error = profile.fields[name]
     return (
       <AccountField label={label} htmlFor={`profile-${name}`} error={error}>
-        <input
+        <Input
           id={`profile-${name}`}
           name={name}
           value={values[name]}

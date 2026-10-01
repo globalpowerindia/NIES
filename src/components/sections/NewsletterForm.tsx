@@ -3,6 +3,7 @@
 import { useActionState } from 'react'
 
 import { subscribeToNewsletter, type NewsletterState } from '@/app/(frontend)/actions/newsletter'
+import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 
 const initial: NewsletterState = { status: 'idle', message: '' }
@@ -13,7 +14,7 @@ export const NewsletterForm = () => {
   return (
     <div className="flex w-full max-w-[529px] flex-col gap-2">
       <form action={action} className="flex w-full items-stretch">
-        <input
+        <Input
           type="email"
           name="email"
           required

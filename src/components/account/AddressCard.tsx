@@ -6,6 +6,17 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 import type { AddressType } from '@/collections/Addresses'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 
 const TYPE: Record<AddressType, { label: string; icon: typeof House }> = {
   HOME: { label: 'Home', icon: House },
@@ -24,7 +35,7 @@ export type AddressCardData = {
 const actionClass =
   'flex items-center gap-1 text-body1 font-medium transition-opacity hover:opacity-80'
 
-/** One saved address, from Figma node 1131:14257. Remove asks once before it deletes. */
+/** One saved address, from Figma node 1131:14257. Remove asks in a dialog before it deletes. */
 export const AddressCard = ({ address }: { address: AddressCardData }) => {
   const router = useRouter()
   const [confirming, setConfirming] = useState(false)
@@ -43,6 +54,7 @@ export const AddressCard = ({ address }: { address: AddressCardData }) => {
       return
     }
     setRemoving(false)
+    setConfirming(false)
     setError('We could not remove this address. Please try again.')
   }
 
@@ -73,49 +85,47 @@ export const AddressCard = ({ address }: { address: AddressCardData }) => {
       </div>
 
       <div className="flex shrink-0 flex-col items-start gap-3 sm:items-end">
-        {confirming ? (
-          <div
-            className="flex flex-wrap items-center gap-4"
-            role="group"
-            aria-label="Confirm removal"
+        <div className="flex items-start gap-8">
+          <Link
+            href={`/account/addresses/${address.id}`}
+            className={`${actionClass} text-brand-blue-300`}
           >
-            <span className="text-body2 text-dark-400">Remove this address?</span>
-            <button
-              type="button"
-              onClick={remove}
-              disabled={removing}
-              className={`${actionClass} text-brand-red-500 disabled:opacity-60`}
-            >
-              {removing ? 'Removing…' : 'Yes, remove'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setConfirming(false)}
-              disabled={removing}
-              className={`${actionClass} text-dark-400`}
-            >
-              Keep
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-start gap-8">
-            <Link
-              href={`/account/addresses/${address.id}`}
-              className={`${actionClass} text-brand-blue-300`}
-            >
-              <SquarePen className="size-6" strokeWidth={1.5} aria-hidden />
-              Edit
-            </Link>
-            <button
-              type="button"
-              onClick={() => setConfirming(true)}
-              className={`${actionClass} text-brand-red-500`}
-            >
+            <SquarePen className="size-6" strokeWidth={1.5} aria-hidden />
+            Edit
+          </Link>
+          <AlertDialog open={confirming} onOpenChange={(open) => !removing && setConfirming(open)}>
+            <AlertDialogTrigger className={`${actionClass} text-brand-red-500`}>
               <Trash2 className="size-6" strokeWidth={1.5} aria-hidden />
               Remove
-            </button>
-          </div>
-        )}
+            </AlertDialogTrigger>
+            <AlertDialogContent className="gap-6 rounded-xl bg-light-100 p-6 ring-0 sm:max-w-md">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-h6 font-semibold text-dark-500">
+                  Remove this address?
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-body2 text-dark-300">
+                  {address.fullName}, {address.lines.join(', ')}. You can add it again later.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="m-0 gap-3 rounded-none border-0 bg-transparent p-0">
+                <AlertDialogCancel variant="outline" disabled={removing}>
+                  Keep
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  variant="red"
+                  disabled={removing}
+                  // Stay open while the request runs, so a failure can be shown and retried.
+                  onClick={(event) => {
+                    event.preventDefault()
+                    void remove()
+                  }}
+                >
+                  {removing ? 'Removing…' : 'Yes, remove'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
         {error && (
           <p role="alert" className="text-body3 text-brand-red-500">
             {error}

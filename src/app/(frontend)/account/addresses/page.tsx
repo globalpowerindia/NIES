@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 
 import { AccountCard, AccountEmpty, AccountShell } from '@/components/account/AccountShell'
 import { AddressCard } from '@/components/account/AddressCard'
-import { ButtonLink } from '@/components/ui/Button'
+import { ButtonLink } from '@/components/ui/button'
 import { getAddresses } from '@/lib/storefront/account'
 import { getCurrentCustomer } from '@/lib/storefront/customer'
 import { getPayloadClient } from '@/lib/storefront/queries'

@@ -3,7 +3,8 @@
 import { useState, type FormEvent } from 'react'
 
 import { applyCoupon, removeCoupon } from '@/components/cart/cart-store'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { formatCurrency } from '@/lib/money'
 import type { CartView } from '@/lib/storefront/cart'
 
@@ -85,7 +86,7 @@ const CouponBox = ({ cart }: { cart: CartView }) => {
           {coupon ? (
             <p className="truncate text-body1 font-medium text-dark-500">{coupon.code}</p>
           ) : (
-            <input
+            <Input
               value={code}
               onChange={(event) => {
                 setCode(event.target.value)

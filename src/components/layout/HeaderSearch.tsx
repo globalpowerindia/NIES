@@ -4,6 +4,7 @@ import { Search } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
+import { Input } from '@/components/ui/input'
 import { SearchPanel, SuggestionList, type TopMovingTile } from '@/components/layout/SearchPanel'
 import { addRecentSearch, clearRecentSearches, readRecentSearches } from '@/lib/recent-searches'
 import type { Suggestion } from '@/lib/storefront/search'
@@ -90,7 +91,7 @@ export const HeaderSearch = ({ tiles }: { tiles: TopMovingTile[] }) => {
         }}
         className="flex h-[58px] w-full items-center justify-between rounded-xl border-[0.5px] border-dark-200 bg-brand-blue-100 py-3 pr-2.5 pl-4"
       >
-        <input
+        <Input
           ref={input}
           type="search"
           name="q"

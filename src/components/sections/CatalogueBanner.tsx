@@ -1,7 +1,7 @@
 import { BookOpen } from 'lucide-react'
 import Image from 'next/image'
 
-import { ButtonLink } from '@/components/ui/Button'
+import { ButtonLink } from '@/components/ui/button'
 import type { MediaInfo } from '@/lib/storefront/content'
 
 export type CatalogueBannerProps = {

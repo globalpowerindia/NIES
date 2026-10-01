@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 
+import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 
 /** The design's value box: 0.5px grey border, 4px corners, 20px padding, Body-1 Medium. */
@@ -28,9 +29,9 @@ export const AccountField = ({
 }) => (
   <div className="flex min-w-0 flex-col gap-2">
     {htmlFor ? (
-      <label htmlFor={htmlFor} className="text-body1 text-dark-300">
+      <Label htmlFor={htmlFor} className="text-body1 text-dark-300">
         {label}
-      </label>
+      </Label>
     ) : (
       <p className="text-body1 text-dark-300">{label}</p>
     )}

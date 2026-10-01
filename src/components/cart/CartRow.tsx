@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 
 import { removeFromCart, setCartQuantity, showCartToast } from '@/components/cart/cart-store'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatCurrency } from '@/lib/money'
 import type { CartLineView } from '@/lib/storefront/cart'
 import { cn } from '@/lib/utils'
@@ -127,34 +128,44 @@ export const CartRow = ({ line }: { line: CartLineView }) => {
           )}
 
           {line.status !== 'UNAVAILABLE' && (
-            <label className="relative flex items-center gap-2.5 self-start rounded-sm bg-dark-100 py-1 pr-1 pl-3 sm:self-end">
-              <span className="text-body1 font-medium text-dark-400">Qty:</span>
-              <span className="relative flex items-center">
-                <select
-                  value={line.quantity}
-                  disabled={busy || line.status === 'OUT_OF_STOCK'}
-                  onChange={(event) =>
-                    run(() => setCartQuantity(line.variantId, Number(event.target.value)))
-                  }
-                  aria-label={`Quantity of ${line.name}`}
-                  className="cursor-pointer appearance-none bg-transparent pr-6 text-body2 font-medium text-dark-500 outline-none focus-visible:underline disabled:cursor-default"
-                >
-                  {Array.from({ length: choices }, (_, index) => index + 1).map((quantity) => (
-                    <option key={quantity} value={quantity}>
-                      {quantity}
-                    </option>
-                  ))}
-                </select>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/icons/arrow-down-filled.svg"
-                  alt=""
-                  width={24}
-                  height={24}
-                  className="pointer-events-none absolute right-0 size-6"
-                />
-              </span>
-            </label>
+            <Select
+              value={String(line.quantity)}
+              onValueChange={(quantity) =>
+                run(() => setCartQuantity(line.variantId, Number(quantity)))
+              }
+              disabled={busy || line.status === 'OUT_OF_STOCK'}
+            >
+              {/* The Figma chip (1096:27864): "Qty:", the number, and the design's arrow. */}
+              <SelectTrigger
+                aria-label={`Quantity of ${line.name}`}
+                className="cursor-pointer gap-2.5 self-start rounded-sm bg-dark-100 py-1 pr-1 pl-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue-500 disabled:cursor-default disabled:opacity-100 sm:self-end"
+                icon={
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src="/icons/arrow-down-filled.svg" alt="" width={24} height={24} className="size-6" />
+                }
+              >
+                <span className="text-body1 font-medium text-dark-400">Qty:</span>
+                <span className="-mr-2.5 text-body2 font-medium text-dark-500">
+                  <SelectValue />
+                </span>
+              </SelectTrigger>
+              <SelectContent
+                position="popper"
+                align="end"
+                sideOffset={4}
+                className="max-h-72 min-w-24 rounded-sm border-[0.5px] border-dark-100 bg-light-100 p-1 shadow-lg ring-0"
+              >
+                {Array.from({ length: choices }, (_, index) => String(index + 1)).map((quantity) => (
+                  <SelectItem
+                    key={quantity}
+                    value={quantity}
+                    className="cursor-pointer rounded-sm px-3 py-1.5 text-body2 font-medium text-dark-500 focus:bg-brand-blue-100"
+                  >
+                    {quantity}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
         </div>
       </div>

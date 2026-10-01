@@ -1,13 +1,17 @@
 'use client'
 
-import { Check, ChevronDown } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
 
 import { AccountField, fieldInputClass } from '@/components/account/AccountField'
 import { FormAlert } from '@/components/auth/fields'
 import { useAuthSubmit } from '@/components/auth/useAuthSubmit'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { AddressType } from '@/collections/Addresses'
 import { INDIAN_STATES } from '@/lib/indian-states'
 import { cn } from '@/lib/utils'
@@ -67,7 +71,7 @@ export const AddressForm = ({ id, initial }: { id?: number; initial: AddressForm
     const fieldId = `address-${name}`
     return (
       <AccountField label={label} htmlFor={fieldId} error={error}>
-        <input
+        <Input
           id={fieldId}
           name={name}
           type={props.type ?? 'text'}
@@ -117,71 +121,62 @@ export const AddressForm = ({ id, initial }: { id?: number; initial: AddressForm
       <div className="grid gap-4 sm:grid-cols-2">
         {text('city', 'City', { autoComplete: 'address-level2', maxLength: 60 })}
         <AccountField label="State" htmlFor="address-stateCode" error={stateError}>
-          <div className="relative">
-            <select
+          <Select
+            name="stateCode"
+            value={values.stateCode || undefined}
+            onValueChange={(code) => set('stateCode', code)}
+            required
+          >
+            <SelectTrigger
               id="address-stateCode"
-              name="stateCode"
-              value={values.stateCode}
-              onChange={(event) => set('stateCode', event.target.value)}
-              autoComplete="address-level1"
-              required
               aria-invalid={stateError ? true : undefined}
               aria-describedby={stateError ? 'address-stateCode-message' : undefined}
-              className={cn(
-                fieldInputClass(stateError),
-                'appearance-none py-0 pr-12',
-                !values.stateCode && 'text-dark-200',
-              )}
+              className={cn(fieldInputClass(stateError), 'py-0 pr-5 text-left')}
             >
-              <option value="" disabled>
-                Choose a state
-              </option>
+              <SelectValue placeholder="Choose a state" />
+            </SelectTrigger>
+            <SelectContent
+              position="popper"
+              sideOffset={4}
+              className="max-h-80 w-(--radix-select-trigger-width) rounded-sm border-[0.5px] border-light-600 bg-light-100 p-1 shadow-lg ring-0"
+            >
               {INDIAN_STATES.map((state) => (
-                <option key={state.code} value={state.code} className="text-dark-500">
+                <SelectItem
+                  key={state.code}
+                  value={state.code}
+                  className="cursor-pointer rounded-sm px-4 py-2.5 text-body1 text-dark-500 focus:bg-brand-blue-100"
+                >
                   {state.name}
-                </option>
+                </SelectItem>
               ))}
-            </select>
-            <ChevronDown
-              className="pointer-events-none absolute top-1/2 right-5 size-5 -translate-y-1/2 text-dark-300"
-              aria-hidden
-            />
-          </div>
+            </SelectContent>
+          </Select>
         </AccountField>
       </div>
 
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-2 text-body1 text-dark-300">Address Type</legend>
-        <div className="flex flex-wrap gap-2">
-          {TYPES.map((option) => {
-            const checked = values.type === option.value
-            return (
-              <label
-                key={option.value}
-                className="flex w-40 cursor-pointer items-center gap-4 rounded-sm p-5 text-body1 font-medium text-dark-400 has-focus-visible:ring-3 has-focus-visible:ring-brand-blue-100"
+        <RadioGroup
+          name="type"
+          value={values.type}
+          onValueChange={(type) => set('type', type as AddressType)}
+          className="flex flex-wrap gap-2"
+        >
+          {TYPES.map((option) => (
+            <Label
+              key={option.value}
+              className="flex w-40 cursor-pointer items-center gap-4 rounded-sm p-5 text-body1 font-medium text-dark-400 has-focus-visible:ring-3 has-focus-visible:ring-brand-blue-100"
+            >
+              <RadioGroupItem
+                value={option.value}
+                className="grid size-5 place-items-center rounded-[3px] border-2 border-dark-400 bg-transparent focus-visible:ring-0 data-checked:border-dark-500 data-checked:bg-dark-500 data-checked:text-light-100"
               >
-                <input
-                  type="radio"
-                  name="type"
-                  value={option.value}
-                  checked={checked}
-                  onChange={() => set('type', option.value)}
-                  className="sr-only"
-                />
-                <span
-                  aria-hidden
-                  className={cn(
-                    'grid size-5 place-items-center rounded-[3px] border-2',
-                    checked ? 'border-dark-500 bg-dark-500 text-light-100' : 'border-dark-400',
-                  )}
-                >
-                  {checked && <Check className="size-3.5" strokeWidth={3} />}
-                </span>
-                {option.label}
-              </label>
-            )
-          })}
-        </div>
+                <Check className="size-3.5" strokeWidth={3} />
+              </RadioGroupItem>
+              {option.label}
+            </Label>
+          ))}
+        </RadioGroup>
       </fieldset>
 
       <div className="flex flex-wrap items-center gap-3">

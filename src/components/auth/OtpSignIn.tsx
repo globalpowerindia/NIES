@@ -5,7 +5,9 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'rea
 
 import { FormAlert, TextField } from '@/components/auth/fields'
 import { useAuthSubmit } from '@/components/auth/useAuthSubmit'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 
 export type Channel = 'sms' | 'email'
@@ -191,10 +193,10 @@ export const OtpSignIn = ({
         {(verify.error || request.error) && <FormAlert>{verify.error ?? request.error}</FormAlert>}
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="otp-code" className="text-body3 font-medium text-dark-400">
+          <Label htmlFor="otp-code" className="text-body3 font-medium text-dark-400">
             Code
-          </label>
-          <input
+          </Label>
+          <Input
             ref={codeRef}
             id="otp-code"
             name="code"
@@ -283,9 +285,9 @@ export const OtpSignIn = ({
 
         {channel === 'sms' ? (
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="otp-phone" className="text-body3 font-medium text-dark-400">
+            <Label htmlFor="otp-phone" className="text-body3 font-medium text-dark-400">
               Mobile number
-            </label>
+            </Label>
             <div
               className={cn(
                 'flex h-12 items-stretch overflow-hidden rounded-xl border bg-light-100 transition-colors',
@@ -296,7 +298,7 @@ export const OtpSignIn = ({
               <span className="flex items-center border-r border-dark-100 bg-light-300 px-4 text-body2 text-dark-400">
                 +91
               </span>
-              <input
+              <Input
                 id="otp-phone"
                 name="destination"
                 type="tel"

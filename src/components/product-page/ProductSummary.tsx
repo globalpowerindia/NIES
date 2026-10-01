@@ -1,9 +1,10 @@
 import { RichText } from '@payloadcms/richtext-lexical/react'
-import { ChevronDown, FileText } from 'lucide-react'
+import { FileText } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { formatCurrency } from '@/lib/money'
 import type { ProductPageData, SpecRow } from '@/lib/storefront/product-page'
 import { cn } from '@/lib/utils'
@@ -15,14 +16,14 @@ const Divider = () => <hr className="w-full border-t-[0.5px] border-dark-200" />
 
 type RichTextData = Parameters<typeof RichText>[0]['data']
 
-const Accordion = ({ title, defaultOpen, children }: { title: string; defaultOpen?: boolean; children: ReactNode }) => (
-  <details open={defaultOpen} className="group/acc w-full border-b-[0.5px] border-dark-200 py-4">
-    <summary className="flex cursor-pointer list-none items-center justify-between pr-6 text-h6 font-medium text-dark-500 [&::-webkit-details-marker]:hidden">
-      {title}
-      <ChevronDown className="size-6 transition-transform group-open/acc:rotate-180" strokeWidth={1.5} />
-    </summary>
-    <div className="mt-6">{children}</div>
-  </details>
+/** One product detail section, on shadcn's Accordion with the Figma heading and divider. */
+const Section = ({ title, defaultOpen, children }: { title: string; defaultOpen?: boolean; children: ReactNode }) => (
+  <Accordion type="single" collapsible defaultValue={defaultOpen ? 'open' : undefined}>
+    <AccordionItem value="open" className="w-full border-b-[0.5px] border-dark-200 py-4">
+      <AccordionTrigger className="pr-6 text-h6 font-medium text-dark-500">{title}</AccordionTrigger>
+      <AccordionContent className="pt-6">{children}</AccordionContent>
+    </AccordionItem>
+  </Accordion>
 )
 
 const SpecList = ({ rows, className }: { rows: SpecRow[]; className?: string }) => (
@@ -164,26 +165,26 @@ export const ProductSummary = ({ data, basePath }: { data: ProductPageData; base
 
       <div className="flex flex-col">
         {(product.description || product.shortDesc) && (
-          <Accordion title="Description">
+          <Section title="Description">
             {product.description ? (
               <Prose data={product.description as RichTextData} />
             ) : (
               <p className="text-body1 text-dark-400">{product.shortDesc}</p>
             )}
-          </Accordion>
+          </Section>
         )}
         {data.summarySpecs.length > 0 && (
-          <Accordion title="Technical Specifications" defaultOpen>
+          <Section title="Technical Specifications" defaultOpen>
             <SpecList rows={data.summarySpecs} className="gap-y-3" />
-          </Accordion>
+          </Section>
         )}
         {product.keyFeatures && (
-          <Accordion title="Key Features">
+          <Section title="Key Features">
             <Prose data={product.keyFeatures as RichTextData} />
-          </Accordion>
+          </Section>
         )}
         {data.userManualUrl && (
-          <Accordion title="User Manual">
+          <Section title="User Manual">
             <a
               href={data.userManualUrl}
               target="_blank"
@@ -193,10 +194,10 @@ export const ProductSummary = ({ data, basePath }: { data: ProductPageData; base
               <FileText className="size-5" />
               Download the user manual (PDF)
             </a>
-          </Accordion>
+          </Section>
         )}
         {(product.warrantyInfo || product.warrantyMonths) && (
-          <Accordion title="Warranty Information">
+          <Section title="Warranty Information">
             {product.warrantyInfo ? (
               <Prose data={product.warrantyInfo as RichTextData} />
             ) : (
@@ -204,7 +205,7 @@ export const ProductSummary = ({ data, basePath }: { data: ProductPageData; base
                 {product.warrantyMonths} months manufacturer warranty against manufacturing defects.
               </p>
             )}
-          </Accordion>
+          </Section>
         )}
       </div>
     </div>

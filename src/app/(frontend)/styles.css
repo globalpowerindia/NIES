@@ -1,4 +1,6 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
 
 @theme {
   --font-sans:
@@ -145,4 +147,31 @@
   max-width: 1620px;
   margin-inline: auto;
   padding-inline: 1rem;
+}
+
+/*
+ * shadcn/ui's colour slots, pointed at the Figma tokens above, so the
+ * components wear the design system without per-use overrides. Radii are left
+ * to Tailwind's scale, which the Figma frames already use. There is no dark
+ * theme: the storefront design has none.
+ */
+@theme inline {
+  --color-background: var(--color-light-100);
+  --color-foreground: var(--color-dark-500);
+  --color-card: var(--color-light-100);
+  --color-card-foreground: var(--color-dark-500);
+  --color-popover: var(--color-light-100);
+  --color-popover-foreground: var(--color-dark-500);
+  --color-primary: var(--color-brand-blue-500);
+  --color-primary-foreground: var(--color-light-100);
+  --color-secondary: var(--color-brand-blue-100);
+  --color-secondary-foreground: var(--color-dark-500);
+  --color-muted: var(--color-neutral-200);
+  --color-muted-foreground: var(--color-dark-300);
+  --color-accent: var(--color-brand-blue-100);
+  --color-accent-foreground: var(--color-dark-500);
+  --color-destructive: var(--color-brand-red-500);
+  --color-border: var(--color-dark-100);
+  --color-input: var(--color-brand-blue-200);
+  --color-ring: var(--color-brand-blue-500);
 }

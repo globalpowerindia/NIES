@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState, type ReactNode } from 'react'
 
 import { addToCart } from '@/components/cart/cart-store'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 
 type Props = Omit<React.ComponentProps<typeof Button>, 'onClick' | 'children'> & {
   productId?: number

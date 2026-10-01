@@ -1,8 +1,10 @@
 'use client'
 
-import { AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react'
-import { useId, useState, type ComponentProps, type ReactNode } from 'react'
+import { AlertCircle, CheckCircle2 } from 'lucide-react'
+import { useId, type ComponentProps, type ReactNode } from 'react'
 
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 
 const inputClass = (invalid: boolean) =>
@@ -37,9 +39,9 @@ const FieldFrame = ({
 }) => (
   <div className="flex flex-col gap-1.5">
     <div className="flex items-baseline justify-between gap-3">
-      <label htmlFor={id} className="text-body3 font-medium text-dark-400">
+      <Label htmlFor={id} className="text-body3 font-medium text-dark-400">
         {label}
-      </label>
+      </Label>
       {aside}
     </div>
     {children}
@@ -59,41 +61,13 @@ export const TextField = ({ label, error, hint, aside, className, ...input }: Fi
   const id = useId()
   return (
     <FieldFrame id={id} label={label} error={error} hint={hint} aside={aside}>
-      <input
+      <Input
         id={id}
         aria-invalid={error ? true : undefined}
         aria-describedby={error || hint ? `${id}-message` : undefined}
         className={cn(inputClass(Boolean(error)), className)}
         {...input}
       />
-    </FieldFrame>
-  )
-}
-
-export const PasswordField = ({ label, error, hint, aside, className, ...input }: FieldProps) => {
-  const id = useId()
-  const [visible, setVisible] = useState(false)
-  return (
-    <FieldFrame id={id} label={label} error={error} hint={hint} aside={aside}>
-      <div className="relative">
-        <input
-          id={id}
-          type={visible ? 'text' : 'password'}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error || hint ? `${id}-message` : undefined}
-          className={cn(inputClass(Boolean(error)), 'pr-12', className)}
-          {...input}
-        />
-        <button
-          type="button"
-          onClick={() => setVisible((v) => !v)}
-          aria-label={visible ? 'Hide password' : 'Show password'}
-          aria-pressed={visible}
-          className="absolute inset-y-0 right-0 grid w-12 place-items-center rounded-r-xl text-dark-300 hover:text-dark-500 focus-visible:outline-2 focus-visible:outline-brand-blue-500"
-        >
-          {visible ? <EyeOff className="size-5" strokeWidth={1.75} /> : <Eye className="size-5" strokeWidth={1.75} />}
-        </button>
-      </div>
     </FieldFrame>
   )
 }

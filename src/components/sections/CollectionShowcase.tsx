@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 
 import { SectionHeading } from '@/components/sections/SectionHeading'
-import { ButtonLink } from '@/components/ui/Button'
+import { ButtonLink } from '@/components/ui/button'
 import { formatCurrency } from '@/lib/money'
 import { cn } from '@/lib/utils'
 

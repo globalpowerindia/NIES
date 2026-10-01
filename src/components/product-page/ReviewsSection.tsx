@@ -1,6 +1,6 @@
 import { Star } from 'lucide-react'
 
-import { ButtonLink } from '@/components/ui/Button'
+import { ButtonLink } from '@/components/ui/button'
 import type { ProductPageData } from '@/lib/storefront/product-page'
 
 import { RatingBadge } from './RatingBadge'

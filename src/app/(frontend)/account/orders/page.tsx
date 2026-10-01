@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 
 import { AccountCard, AccountEmpty, AccountShell } from '@/components/account/AccountShell'
 import { OrderRow } from '@/components/account/OrderRow'
-import { ButtonLink } from '@/components/ui/Button'
+import { ButtonLink } from '@/components/ui/button'
 import { getOrderLines } from '@/lib/storefront/account'
 import { getCurrentCustomer } from '@/lib/storefront/customer'
 import { getPayloadClient } from '@/lib/storefront/queries'

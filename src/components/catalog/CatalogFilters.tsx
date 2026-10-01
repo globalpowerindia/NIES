@@ -1,10 +1,13 @@
 'use client'
 
-import { Check, ChevronDown, ChevronRight, SlidersHorizontal } from 'lucide-react'
+import { Check, ChevronRight, SlidersHorizontal } from 'lucide-react'
 import Link from 'next/link'
 import { useState, type ReactNode } from 'react'
 
-import { Button } from '@/components/ui/Button'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
 import type { BrandFacet, SpecFacet } from '@/lib/storefront/catalog'
 import { cn } from '@/lib/utils'
 
@@ -39,7 +42,12 @@ type Props = {
 
 const VISIBLE_CATEGORIES = 7
 
-const Checkbox = ({ checked }: { checked: boolean }) => (
+/** The Figma box: 18px, square-cornered, filled dark when ticked. */
+const BOX =
+  'size-[18px] rounded-[2px] border-2 border-dark-500 bg-light-100 group-hover/option:not-data-checked:border-brand-blue-500 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue-500 data-checked:border-dark-500 data-checked:bg-dark-500 data-checked:text-light-100 [&_svg]:stroke-[3.5]'
+
+/** A link row's box only shows state; the link itself is what is pressed. */
+const LinkBox = ({ checked }: { checked: boolean }) => (
   <span aria-hidden className="grid size-6 shrink-0 place-items-center">
     <span
       className={cn(
@@ -64,26 +72,30 @@ const OptionRow = ({
   href?: string
 }) =>
   href ? (
-    <Link href={href} className="group/option flex items-center gap-2 p-2 text-body2 text-dark-500" aria-current={checked ? 'page' : undefined}>
-      <Checkbox checked={checked} />
+    <Link
+      href={href}
+      className="group/option flex items-center gap-2 p-2 text-body2 text-dark-500"
+      aria-current={checked ? 'page' : undefined}
+    >
+      <LinkBox checked={checked} />
       {label}
     </Link>
   ) : (
-    <label className="group/option flex cursor-pointer items-center gap-2 p-2 text-body2 text-dark-500">
-      <input type="checkbox" className="sr-only" checked={checked} onChange={onChange} />
-      <Checkbox checked={checked} />
+    <Label className="group/option flex cursor-pointer items-center gap-2 p-2 text-body2 text-dark-500">
+      <span className="grid size-6 shrink-0 place-items-center">
+        <Checkbox checked={checked} onCheckedChange={onChange} className={BOX} />
+      </span>
       {label}
-    </label>
+    </Label>
   )
 
 const FilterGroup = ({ title, defaultOpen, children }: { title: string; defaultOpen?: boolean; children: ReactNode }) => (
-  <details open={defaultOpen} className="group/filter w-full border-b-[0.5px] border-dark-200 bg-light-100 px-3 py-4">
-    <summary className="flex cursor-pointer list-none items-center justify-between text-body1 text-dark-500 [&::-webkit-details-marker]:hidden">
-      {title}
-      <ChevronDown className="size-6 transition-transform group-open/filter:rotate-180" strokeWidth={1.5} />
-    </summary>
-    <div className="mt-4">{children}</div>
-  </details>
+  <Accordion type="single" collapsible defaultValue={defaultOpen ? 'open' : undefined}>
+    <AccordionItem value="open" className="w-full border-b-[0.5px] border-dark-200 bg-light-100 px-3 py-4">
+      <AccordionTrigger className="text-body1 text-dark-500">{title}</AccordionTrigger>
+      <AccordionContent className="pt-4">{children}</AccordionContent>
+    </AccordionItem>
+  </Accordion>
 )
 
 export const CatalogFilters = ({ categories, brands, specs, price, current }: Props) => {

@@ -7,7 +7,7 @@ import { useLayoutEffect } from 'react'
 import { CartRow } from '@/components/cart/CartRow'
 import { CartSummary } from '@/components/cart/CartSummary'
 import { seedCart, useCart } from '@/components/cart/cart-store'
-import { ButtonLink } from '@/components/ui/Button'
+import { ButtonLink } from '@/components/ui/button'
 import type { CartView } from '@/lib/storefront/cart'
 
 /**
