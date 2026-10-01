@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useMemo, useState, useTransition } from 'react'
+import { useMemo, useState, useTransition, type ReactNode } from 'react'
 
 import type { Cell, DataListProps, Tone } from '@/admin/components/list/types'
 import { formatCurrency } from '@/lib/money'
@@ -32,12 +32,22 @@ const Pill = ({ v, tone }: { v: string; tone: Tone }) => {
   )
 }
 
-const CellView = ({ cell }: { cell: Cell }) => {
+/** The row's first cell links to the record, for keyboard users and opening in a new tab. */
+const RowLink = ({ href, children }: { href?: string; children: ReactNode }) =>
+  href ? (
+    <a className="dl__rowlink" href={href}>
+      {children}
+    </a>
+  ) : (
+    <>{children}</>
+  )
+
+const CellView = ({ cell, href }: { cell: Cell; href?: string }) => {
   switch (cell.t) {
     case 'text':
       return (
         <>
-          {cell.v}
+          <RowLink href={href}>{cell.v}</RowLink>
           {cell.sub && <span className="dl__sub">{cell.sub}</span>}
         </>
       )
@@ -81,7 +91,7 @@ const CellView = ({ cell }: { cell: Cell }) => {
             )}
           </span>
           <span>
-            {cell.v}
+            <RowLink href={href}>{cell.v}</RowLink>
             {cell.sub && <span className="dl__sub">{cell.sub}</span>}
           </span>
         </span>
@@ -225,6 +235,9 @@ export const DataList = ({
           border-bottom:1px solid var(--theme-border-color); background:var(--theme-elevation-50); white-space:nowrap; }
         .dl td { padding:11px 14px; border-bottom:1px solid var(--theme-elevation-100); vertical-align:middle; }
         .dl tbody tr:hover { background:var(--theme-elevation-50); }
+        .dl__row { cursor:pointer; }
+        .dl__rowlink { color:inherit; text-decoration:none; font-weight:500; }
+        .dl__rowlink:hover, .dl__rowlink:focus-visible { text-decoration:underline; }
         .dl tbody tr[data-selected="true"] { background:var(--theme-elevation-100); }
         .dl__num { font-variant-numeric:tabular-nums; white-space:nowrap; }
         .dl__link { color:inherit; font-weight:600; text-decoration:none; }
@@ -358,7 +371,20 @@ export const DataList = ({
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.id} data-selected={selected.has(row.id)}>
+              <tr
+                key={row.id}
+                data-selected={selected.has(row.id)}
+                className="dl__row"
+                // The whole row opens the record; checkboxes, buttons and links keep their own job,
+                // and selecting text to copy it doesn't navigate.
+                onClick={(event) => {
+                  const target = event.target as HTMLElement
+                  if (target.closest('a, button, input, label, select, textarea')) return
+                  if (window.getSelection()?.toString()) return
+                  if (event.metaKey || event.ctrlKey) window.open(row.href, '_blank')
+                  else router.push(row.href)
+                }}
+              >
                 {bulkActions.length > 0 && (
                   <td>
                     <input
@@ -381,7 +407,7 @@ export const DataList = ({
                     }
                     style={{ textAlign: columns[i]?.align ?? 'left' }}
                   >
-                    <CellView cell={cell} />
+                    <CellView cell={cell} href={i === 0 ? row.href : undefined} />
                   </td>
                 ))}
               </tr>
