@@ -3,7 +3,7 @@ import type { CollectionConfig } from 'payload'
 import { anyone, isManager, isSuperAdmin } from '@/access/roles'
 import { paiseField } from '@/fields/paise'
 import { ensureInventory } from '@/lib/inventory'
-import { revalidateStorefront } from '@/lib/revalidate'
+import { revalidateStorefront, revalidateStorefrontOnDelete } from '@/lib/revalidate'
 import { refreshOnVariantChange } from '@/lib/search-refresh'
 
 export const ProductVariants: CollectionConfig = {
@@ -46,6 +46,7 @@ export const ProductVariants: CollectionConfig = {
       revalidateStorefront,
       refreshOnVariantChange,
     ],
+    afterDelete: [revalidateStorefrontOnDelete],
   },
   fields: [
     {

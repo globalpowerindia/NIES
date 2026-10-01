@@ -1,6 +1,8 @@
+import { unstable_cache } from 'next/cache'
 import type { Payload } from 'payload'
 import { cache } from 'react'
 
+import { CACHE_VERSION, STOREFRONT_CACHE } from '@/lib/revalidate'
 import { fileUrlOf, mediaOf, type MediaInfo } from '@/lib/storefront/content'
 import { loadPricing, PLACEHOLDER_IMAGE, relId } from '@/lib/storefront/products'
 import { getPayloadClient } from '@/lib/storefront/queries'
@@ -51,7 +53,8 @@ export type CompareColumn = {
   pricePaise: number
   isCurrent: boolean
   basics: { label: string; value: string; isRating?: boolean }[]
-  specs: Map<string, string>
+  /** Spec value by label. A plain object, not a Map, so the page data can be cached. */
+  specs: Record<string, string>
 }
 
 export type ReviewCard = {
@@ -66,7 +69,7 @@ export type ReviewCard = {
 
 const COMPARE_LIMIT = 6
 
-export const getProductPage = cache(async (slug: string, variantSku?: string) => {
+const loadProductPage = async (slug: string, variantSku?: string) => {
   const payload = await getPayloadClient()
   const { docs } = await payload.find({
     collection: 'products',
@@ -202,7 +205,12 @@ export const getProductPage = cache(async (slug: string, variantSku?: string) =>
     promoImages: (product.promoImages ?? []).map(mediaOf).filter((media): media is MediaInfo => media !== null),
     compare,
   }
-})
+}
+
+/** Cached per product and variant until the catalogue or its reviews change. */
+export const getProductPage = cache(
+  unstable_cache(loadProductPage, ['product-page', CACHE_VERSION], STOREFRONT_CACHE),
+)
 
 export type ProductPageData = NonNullable<Awaited<ReturnType<typeof getProductPage>>>
 
@@ -260,7 +268,9 @@ const buildCompare = async (payload: Payload, product: Product, defs: Map<number
             : { label: 'Rating', value: 'No reviews yet' },
           { label: 'Availability', value: priced.inStock ? 'In Stock' : 'Out Of Stock' },
         ],
-        specs: new Map(specRows(entry, defs, (def) => def.isCompare !== false).map((row) => [row.label, row.value])),
+        specs: Object.fromEntries(
+          specRows(entry, defs, (def) => def.isCompare !== false).map((row) => [row.label, row.value]),
+        ),
       },
     ]
   })
@@ -270,7 +280,7 @@ const buildCompare = async (payload: Payload, product: Product, defs: Map<number
   const specLabels = [...defs.values()]
     .filter((def) => def.isCompare !== false)
     .map((def) => def.label)
-    .filter((label) => columns.some((column) => column.specs.has(label)))
+    .filter((label) => columns.some((column) => Object.hasOwn(column.specs, label)))
 
   return { columns, specLabels }
 }

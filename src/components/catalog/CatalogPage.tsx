@@ -6,7 +6,6 @@ import { ProductCard } from '@/components/product/ProductCard'
 import { getListing } from '@/lib/storefront/catalog'
 import type { MediaInfo } from '@/lib/storefront/content'
 import { parseListingParams, withParam, type RawParams, type SortKey } from '@/lib/storefront/listing-params'
-import { getPayloadClient } from '@/lib/storefront/queries'
 
 import { Breadcrumbs, type Crumb } from './Breadcrumbs'
 import { CatalogFilters, type CategoryFilter } from './CatalogFilters'
@@ -51,8 +50,7 @@ export const CatalogPage = async ({
 }: Props) => {
   const params = parseListingParams(raw, defaultSort)
   const narrowed = resolveSub && params.sub.length ? resolveSub(params.sub) : null
-  const payload = await getPayloadClient()
-  const listing = await getListing(payload, {
+  const listing = await getListing({
     categoryIds: narrowed?.length ? narrowed : scopeIds,
     params,
     productIds,

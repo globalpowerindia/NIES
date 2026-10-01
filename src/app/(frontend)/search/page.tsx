@@ -1,13 +1,22 @@
 import type { Metadata } from 'next'
+import { unstable_cache } from 'next/cache'
 import { redirect } from 'next/navigation'
 
 import { CatalogPage } from '@/components/catalog/CatalogPage'
+import { CACHE_VERSION, STOREFRONT_CACHE } from '@/lib/revalidate'
 import { getCategoryTree } from '@/lib/storefront/catalog'
 import { parseListingParams, type SortKey } from '@/lib/storefront/listing-params'
 import { getPayloadClient } from '@/lib/storefront/queries'
 import { searchProducts } from '@/lib/storefront/search'
 
 const SORT_OPTIONS: SortKey[] = ['relevance', 'newest', 'price-asc', 'price-desc', 'rating']
+
+/** Results per query, cached until the catalogue or the synonyms change. */
+const search = unstable_cache(
+  async (query: string) => searchProducts(await getPayloadClient(), query),
+  ['search-results', CACHE_VERSION],
+  STOREFRONT_CACHE,
+)
 
 const queryOf = (raw: Record<string, string | string[] | undefined>): string => {
   const value = Array.isArray(raw.q) ? raw.q[0] : raw.q
@@ -31,7 +40,7 @@ export default async function SearchPage(props: PageProps<'/search'>) {
 
   const payload = await getPayloadClient()
   const { ids, corrected, exactId } = query
-    ? await searchProducts(payload, query)
+    ? await search(query)
     : { ids: [] as number[], corrected: false, exactId: null }
 
   // A pasted product code goes straight to the product — but only when the

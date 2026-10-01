@@ -1,9 +1,11 @@
 import type { CollectionConfig } from 'payload'
 
 import { anyone, isManager, isStaff } from '@/access/roles'
+import { revalidateStorefront, revalidateStorefrontOnDelete } from '@/lib/revalidate'
 
 export const Media: CollectionConfig = {
   slug: 'media',
+  hooks: { afterChange: [revalidateStorefront], afterDelete: [revalidateStorefrontOnDelete] },
   admin: { group: 'Catalog' },
   access: {
     read: anyone,

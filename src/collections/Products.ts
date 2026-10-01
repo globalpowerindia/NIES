@@ -3,7 +3,7 @@ import type { CollectionConfig, Field, NumberFieldSingleValidation } from 'paylo
 import { anyone, isManager, isSuperAdmin } from '@/access/roles'
 import { slugFrom } from '@/fields/slug'
 import { DEFAULT_GST_RATE_BPS, GST_RATES_BPS } from '@/lib/money'
-import { revalidateStorefront } from '@/lib/revalidate'
+import { revalidateStorefront, revalidateStorefrontOnDelete } from '@/lib/revalidate'
 import { fillSearchDocument } from '@/lib/search-document'
 
 const validateGstRate: NumberFieldSingleValidation = (value) =>
@@ -25,7 +25,11 @@ export const Products: CollectionConfig = {
     update: isManager,
     delete: isSuperAdmin,
   },
-  hooks: { afterChange: [revalidateStorefront], beforeChange: [fillSearchDocument] },
+  hooks: {
+    afterChange: [revalidateStorefront],
+    afterDelete: [revalidateStorefrontOnDelete],
+    beforeChange: [fillSearchDocument],
+  },
   fields: [
     // Denormalised search text, by full-text weight. Hidden: written by
     // `fillSearchDocument`, never by hand. See src/lib/search-document.ts.

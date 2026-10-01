@@ -95,7 +95,7 @@ export const CompareTable = ({ compare }: { compare: Compare }) => {
             {specLabels.map((label, row) =>
               columns.map((column) => (
                 <Cell key={`${label}-${column.href}`} label={label} shaded={row % 2 === 1}>
-                  {column.specs.get(label) ?? '—'}
+                  {column.specs[label] ?? '—'}
                 </Cell>
               )),
             )}

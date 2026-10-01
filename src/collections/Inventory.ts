@@ -2,7 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 import { isManager, isStaff } from '@/access/roles'
 import { stockStatusOf } from '@/lib/inventory'
-import { revalidateStorefront } from '@/lib/revalidate'
+import { revalidateStorefront, revalidateStorefrontOnDelete } from '@/lib/revalidate'
 
 const relId = (value: unknown): number | undefined =>
   typeof value === 'number' ? value : (value as { id?: number } | null | undefined)?.id
@@ -48,6 +48,7 @@ export const Inventory: CollectionConfig = {
       },
     ],
     afterChange: [revalidateStorefront],
+    afterDelete: [revalidateStorefrontOnDelete],
   },
   fields: [
     {

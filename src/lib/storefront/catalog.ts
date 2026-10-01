@@ -1,9 +1,12 @@
-import type { Payload, Where } from 'payload'
+import { sql } from 'drizzle-orm'
+import { unstable_cache } from 'next/cache'
+import type { Payload } from 'payload'
 import { cache } from 'react'
 
 import type { ProductCardProps } from '@/components/product/ProductCard'
+import { CACHE_VERSION, STOREFRONT_CACHE } from '@/lib/revalidate'
 import type { ListingParams, SortKey } from '@/lib/storefront/listing-params'
-import { loadPricing, relId, toProductCards } from '@/lib/storefront/products'
+import { relId, toProductCards } from '@/lib/storefront/products'
 import { getPayloadClient } from '@/lib/storefront/queries'
 import type { Category, Product } from '@/payload-types'
 
@@ -14,25 +17,33 @@ export type CategoryNode = Pick<Category, 'id' | 'name' | 'slug' | 'description'
   bannerImage: Category['bannerImage']
 }
 
-/** The whole active category tree. Small (tens of rows), so one query per request. */
-export const getCategoryTree = cache(async () => {
-  const payload = await getPayloadClient()
-  const { docs } = await payload.find({
-    collection: 'categories',
-    where: { isActive: { equals: true } },
-    sort: ['sortOrder', 'name'],
-    pagination: false,
-    depth: 1,
-  })
+/** Cached across requests; cleared by any catalogue save (see src/lib/revalidate.ts). */
+const loadCategoryNodes = unstable_cache(
+  async (): Promise<CategoryNode[]> => {
+    const payload = await getPayloadClient()
+    const { docs } = await payload.find({
+      collection: 'categories',
+      where: { isActive: { equals: true } },
+      sort: ['sortOrder', 'name'],
+      pagination: false,
+      depth: 1,
+    })
+    return docs.map<CategoryNode>((doc) => ({
+      id: doc.id,
+      name: doc.name,
+      slug: doc.slug,
+      description: doc.description,
+      parentId: relId(doc.parent),
+      bannerImage: doc.bannerImage,
+    }))
+  },
+  ['category-tree', CACHE_VERSION],
+  STOREFRONT_CACHE,
+)
 
-  const nodes = docs.map<CategoryNode>((doc) => ({
-    id: doc.id,
-    name: doc.name,
-    slug: doc.slug,
-    description: doc.description,
-    parentId: relId(doc.parent),
-    bannerImage: doc.bannerImage,
-  }))
+/** The whole active category tree. Small (tens of rows); the lookups are rebuilt per request. */
+export const getCategoryTree = cache(async () => {
+  const nodes = await loadCategoryNodes()
   const bySlug = new Map(nodes.map((node) => [node.slug, node]))
   const byId = new Map(nodes.map((node) => [node.id, node]))
   const children = new Map<number, CategoryNode[]>()
@@ -73,91 +84,158 @@ const EMPTY_LISTING: Listing = {
   facets: { brands: [], specs: [], price: { min: 0, max: 0 } },
 }
 
-type ListingRow = Pick<Product, 'id' | 'sortOrder' | 'ratingAvg' | 'ratingCount' | 'createdAt' | 'specValues'> & {
-  brand?: number | null
-  category?: number | null
+/** One listable product, reduced to what filters, facets and sorting need. */
+type IndexRow = {
+  id: number
+  sortOrder: number
+  ratingAvg: number
+  ratingCount: number
+  createdAt: string
+  brandId: number | null
+  categoryId: number | null
+  pricePaise: number
+  inStock: boolean
+  /** Filterable spec values by definition key. */
+  specs: Record<string, string>
 }
 
-const specText = (entry: NonNullable<Product['specValues']>[number]): string | null => {
-  if (entry.valueText) return entry.valueText
-  if (typeof entry.valueBool === 'boolean') return entry.valueBool ? 'Yes' : 'No'
-  return null
+type CatalogueIndex = {
+  rows: IndexRow[]
+  brands: { id: number; name: string; slug: string }[]
+  specDefs: { key: string; label: string }[]
 }
 
 /**
- * The category / all-products listing. Filters, facet counts and sorting run
- * over lightweight rows in memory, then only the requested page is loaded in
- * full. That is plenty for a catalogue of a few thousand products; the plan's
- * Postgres search work replaces the in-memory step when it lands.
+ * Every active, priced product in three queries of plain SQL. Going through
+ * `payload.find` here meant building ~450 full documents per request, which
+ * took a second or more; Postgres answers this in milliseconds.
+ *
+ * The price comes from the variant a card shows (default first, else the
+ * first by sort order, as `pickVariant`), and a product is in stock when any
+ * of its variants can be sold, as `loadPricing`. Products with no active
+ * variant are left out: without a price they can't be bought.
  */
-export const getListing = async (
-  payload: Payload,
-  options: { categoryIds: number[] | null; params: ListingParams; productIds?: number[] | null },
-): Promise<Listing> => {
-  const { categoryIds, params, productIds = null } = options
-  const scope: Where[] = [{ status: { equals: 'ACTIVE' } }]
-  if (categoryIds) scope.push({ category: { in: categoryIds } })
-  // Search hands us the matching ids already ranked; an empty array means the
-  // query matched nothing, which is not the same as "no id filter".
-  if (productIds) {
-    if (productIds.length === 0) return EMPTY_LISTING
-    scope.push({ id: { in: productIds } })
-  }
+const loadCatalogueIndex = async (payload: Payload): Promise<CatalogueIndex> => {
+  const db = payload.db.drizzle
 
-  const { docs } = await payload.find({
-    collection: 'products',
-    where: { and: scope },
-    pagination: false,
-    depth: 0,
-    select: {
-      sortOrder: true,
-      ratingAvg: true,
-      ratingCount: true,
-      createdAt: true,
-      specValues: true,
-      brand: true,
-      category: true,
-    },
-  })
-  const rows = docs as unknown as ListingRow[]
-
-  const [pricing, brandDocs, specDefs] = await Promise.all([
-    loadPricing(
-      payload,
-      rows.map((row) => row.id),
-    ),
-    payload.find({
-      collection: 'brands',
-      where: { id: { in: [...new Set(rows.map((row) => relId(row.brand)).filter(Boolean))] } },
-      pagination: false,
-      depth: 0,
-      select: { name: true, slug: true, sortOrder: true },
-      sort: ['sortOrder', 'name'],
-    }),
-    payload.find({
-      collection: 'spec-definitions',
-      where: { and: [{ isFilter: { equals: true } }, { type: { not_equals: 'NUMBER' } }] },
-      pagination: false,
-      depth: 0,
-      sort: 'sortOrder',
-    }),
+  const [products, brands, specDefs] = await Promise.all([
+    db.execute(sql`
+      SELECT
+        p.id, p.sort_order, p.rating_avg, p.rating_count, p.created_at, p.brand_id, p.category_id,
+        v.selling_price_paise,
+        EXISTS (
+          SELECT 1 FROM inventory i
+          WHERE i.product_id = p.id
+            AND (i.allow_backorder IS TRUE OR COALESCE(i.on_hand, 0) - COALESCE(i.reserved, 0) > 0)
+        ) AS in_stock,
+        COALESCE((
+          SELECT json_object_agg(
+            d.key,
+            COALESCE(NULLIF(sv.value_text, ''), CASE sv.value_bool WHEN TRUE THEN 'Yes' WHEN FALSE THEN 'No' END)
+            ORDER BY sv._order
+          )
+          FROM products_spec_values sv
+          JOIN spec_definitions d ON d.id = sv.definition_id
+          WHERE sv._parent_id = p.id
+            AND d.is_filter IS TRUE
+            AND d.type <> 'NUMBER'
+            AND (NULLIF(sv.value_text, '') IS NOT NULL OR sv.value_bool IS NOT NULL)
+        ), '{}'::json) AS specs
+      FROM products p
+      JOIN LATERAL (
+        SELECT pv.selling_price_paise
+        FROM product_variants pv
+        WHERE pv.product_id = p.id AND pv.is_active IS TRUE
+        ORDER BY pv.is_default IS TRUE DESC, pv.sort_order ASC NULLS LAST, pv.id
+        LIMIT 1
+      ) v ON TRUE
+      WHERE p.status = 'ACTIVE'
+      -- Payload's default order, so sorts that tie keep the order they always had.
+      ORDER BY p.created_at DESC
+    `),
+    db.execute(sql`SELECT id, name, slug FROM brands ORDER BY sort_order ASC NULLS LAST, name`),
+    db.execute(sql`
+      SELECT key, label FROM spec_definitions
+      WHERE is_filter IS TRUE AND type <> 'NUMBER'
+      ORDER BY sort_order ASC NULLS LAST
+    `),
   ])
 
-  const brandSlugById = new Map(brandDocs.docs.map((brand) => [brand.id, brand.slug]))
-  const specKeyById = new Map(specDefs.docs.map((def) => [def.id, def.key]))
+  const optionalId = (value: unknown) => (value === null || value === undefined ? null : Number(value))
 
-  // Only products with a price can be listed at all.
-  const priced = rows.filter((row) => pricing.has(row.id))
-
-  const specsOf = (row: ListingRow): Map<string, string> => {
-    const out = new Map<string, string>()
-    for (const entry of row.specValues ?? []) {
-      const key = specKeyById.get(relId(entry.definition) ?? -1)
-      const text = specText(entry)
-      if (key && text) out.set(key, text)
-    }
-    return out
+  return {
+    rows: products.rows.map((row) => ({
+      id: Number(row.id),
+      sortOrder: Number(row.sort_order ?? 0),
+      ratingAvg: Number(row.rating_avg ?? 0),
+      ratingCount: Number(row.rating_count ?? 0),
+      createdAt: new Date(row.created_at as string).toISOString(),
+      brandId: optionalId(row.brand_id),
+      categoryId: optionalId(row.category_id),
+      pricePaise: Number(row.selling_price_paise),
+      inStock: Boolean(row.in_stock),
+      specs: (row.specs ?? {}) as Record<string, string>,
+    })),
+    brands: brands.rows.map((row) => ({ id: Number(row.id), name: String(row.name), slug: String(row.slug) })),
+    specDefs: specDefs.rows.map((row) => ({ key: String(row.key), label: String(row.label) })),
   }
+}
+
+/** Shared by every listing, search and filter combination until the catalogue changes. */
+const getCatalogueIndex = cache(
+  unstable_cache(
+    async () => loadCatalogueIndex(await getPayloadClient()),
+    ['catalogue-index', CACHE_VERSION],
+    STOREFRONT_CACHE,
+  ),
+)
+
+/** The cards for one page of results, in the order given. Cached per id list. */
+const getCards = unstable_cache(
+  async (ids: number[]): Promise<ProductCardProps[]> => {
+    const payload = await getPayloadClient()
+    const full = await payload.find({
+      collection: 'products',
+      where: { id: { in: ids } },
+      pagination: false,
+      depth: 1,
+    })
+    const byId = new Map(full.docs.map((doc) => [doc.id, doc]))
+    return toProductCards(
+      payload,
+      ids.map((id) => byId.get(id)).filter((doc): doc is Product => Boolean(doc)),
+    )
+  },
+  ['listing-cards', CACHE_VERSION],
+  STOREFRONT_CACHE,
+)
+
+/**
+ * The category / all-products / search listing. Filters, facet counts and
+ * sorting run in memory over the cached catalogue index, then only the
+ * requested page is turned into cards. That is plenty for a catalogue of a
+ * few thousand products.
+ */
+export const getListing = async (options: {
+  categoryIds: number[] | null
+  params: ListingParams
+  productIds?: number[] | null
+}): Promise<Listing> => {
+  const { categoryIds, params, productIds = null } = options
+  // Search hands us the matching ids already ranked; an empty array means the
+  // query matched nothing, which is not the same as "no id filter".
+  if (productIds?.length === 0) return EMPTY_LISTING
+
+  const index = await getCatalogueIndex()
+  const inCategories = categoryIds ? new Set(categoryIds) : null
+  const inIds = productIds ? new Set(productIds) : null
+  const priced = index.rows.filter(
+    (row) =>
+      (!inCategories || (row.categoryId !== null && inCategories.has(row.categoryId))) &&
+      (!inIds || inIds.has(row.id)),
+  )
+
+  const brandSlugById = new Map(index.brands.map((brand) => [brand.id, brand.slug]))
 
   const minPaise = params.minRupees !== undefined ? params.minRupees * 100 : undefined
   const maxPaise = params.maxRupees !== undefined ? params.maxRupees * 100 : undefined
@@ -165,36 +243,34 @@ export const getListing = async (
   // Each test is named so facet counts can skip their own filter: the brand
   // list shows how many you'd get by ticking that brand, given everything else.
   const tests = {
-    brand: (row: ListingRow) =>
-      params.brands.length === 0 || params.brands.includes(brandSlugById.get(relId(row.brand) ?? -1) ?? ''),
-    price: (row: ListingRow) => {
-      const price = pricing.get(row.id)!.variant.sellingPricePaise
-      return (minPaise === undefined || price >= minPaise) && (maxPaise === undefined || price <= maxPaise)
-    },
-    stock: (row: ListingRow) => !params.inStock || pricing.get(row.id)!.inStock,
-    specs: (row: ListingRow) => {
-      const specs = specsOf(row)
-      return Object.entries(params.specs).every(([key, values]) => values.includes(specs.get(key) ?? ''))
-    },
+    brand: (row: IndexRow) =>
+      params.brands.length === 0 || params.brands.includes(brandSlugById.get(row.brandId ?? -1) ?? ''),
+    price: (row: IndexRow) =>
+      (minPaise === undefined || row.pricePaise >= minPaise) && (maxPaise === undefined || row.pricePaise <= maxPaise),
+    stock: (row: IndexRow) => !params.inStock || row.inStock,
+    specs: (row: IndexRow) =>
+      Object.entries(params.specs).every(([key, values]) => values.includes(row.specs[key] ?? '')),
   }
   type TestName = keyof typeof tests
-  const passes = (row: ListingRow, skip?: TestName) =>
+  const passes = (row: IndexRow, skip?: TestName) =>
     (Object.keys(tests) as TestName[]).every((name) => name === skip || tests[name](row))
 
   const matched = priced.filter((row) => passes(row))
 
-  const brands: BrandFacet[] = brandDocs.docs
+  const brandsInScope = new Set(priced.map((row) => row.brandId))
+  const brands: BrandFacet[] = index.brands
+    .filter((brand) => brandsInScope.has(brand.id))
     .map((brand) => ({
       slug: brand.slug,
       name: brand.name,
-      count: priced.filter((row) => relId(row.brand) === brand.id && passes(row, 'brand')).length,
+      count: priced.filter((row) => row.brandId === brand.id && passes(row, 'brand')).length,
     }))
     .filter((brand) => brand.count > 0 || params.brands.includes(brand.slug))
 
-  const specs: SpecFacet[] = specDefs.docs.flatMap((def) => {
+  const specs: SpecFacet[] = index.specDefs.flatMap((def) => {
     const counts = new Map<string, number>()
     for (const row of priced) {
-      const value = specsOf(row).get(def.key)
+      const value = row.specs[def.key]
       if (value && passes(row, 'specs')) counts.set(value, (counts.get(value) ?? 0) + 1)
     }
     if (counts.size === 0) return []
@@ -207,45 +283,30 @@ export const getListing = async (
     ]
   })
 
-  const prices = priced.map((row) => pricing.get(row.id)!.variant.sellingPricePaise)
+  const prices = priced.map((row) => row.pricePaise)
   const price = {
     min: prices.length ? Math.floor(Math.min(...prices) / 100) : 0,
     max: prices.length ? Math.ceil(Math.max(...prices) / 100) : 0,
   }
 
-  const priceOf = (row: ListingRow) => pricing.get(row.id)!.variant.sellingPricePaise
-  const bySortOrder = (a: ListingRow, b: ListingRow) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0)
+  const bySortOrder = (a: IndexRow, b: IndexRow) => a.sortOrder - b.sortOrder
   // `productIds` arrives ranked; relevance just keeps that order.
   const rankOf = new Map(productIds?.map((id, position) => [id, position]))
-  const comparators: Record<SortKey, (a: ListingRow, b: ListingRow) => number> = {
+  const comparators: Record<SortKey, (a: IndexRow, b: IndexRow) => number> = {
     relevance: (a, b) =>
       (rankOf.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (rankOf.get(b.id) ?? Number.MAX_SAFE_INTEGER),
-    popularity: (a, b) => Number(b.ratingCount ?? 0) - Number(a.ratingCount ?? 0) || bySortOrder(a, b),
+    popularity: (a, b) => b.ratingCount - a.ratingCount || bySortOrder(a, b),
     newest: (a, b) => b.createdAt.localeCompare(a.createdAt),
-    'price-asc': (a, b) => priceOf(a) - priceOf(b),
-    'price-desc': (a, b) => priceOf(b) - priceOf(a),
-    rating: (a, b) => Number(b.ratingAvg ?? 0) - Number(a.ratingAvg ?? 0) || bySortOrder(a, b),
+    'price-asc': (a, b) => a.pricePaise - b.pricePaise,
+    'price-desc': (a, b) => b.pricePaise - a.pricePaise,
+    rating: (a, b) => b.ratingAvg - a.ratingAvg || bySortOrder(a, b),
   }
   matched.sort(comparators[params.sort])
 
   const pageCount = Math.max(1, Math.ceil(matched.length / PAGE_SIZE))
   const page = Math.min(params.page, pageCount)
   const pageIds = matched.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((row) => row.id)
-
-  let cards: ProductCardProps[] = []
-  if (pageIds.length) {
-    const full = await payload.find({
-      collection: 'products',
-      where: { id: { in: pageIds } },
-      pagination: false,
-      depth: 1,
-    })
-    const byId = new Map(full.docs.map((doc) => [doc.id, doc]))
-    cards = await toProductCards(
-      payload,
-      pageIds.map((id) => byId.get(id)).filter((doc): doc is Product => Boolean(doc)),
-    )
-  }
+  const cards = pageIds.length ? await getCards(pageIds) : []
 
   return { cards, total: matched.length, page, pageCount, facets: { brands, specs, price } }
 }

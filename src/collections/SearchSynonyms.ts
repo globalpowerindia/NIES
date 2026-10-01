@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { anyone, isManager, isSuperAdmin } from '@/access/roles'
+import { revalidateStorefront, revalidateStorefrontOnDelete } from '@/lib/revalidate'
 
 /**
  * Neon does not allow the custom thesaurus files Postgres would normally use
@@ -12,6 +13,7 @@ import { anyone, isManager, isSuperAdmin } from '@/access/roles'
  */
 export const SearchSynonyms: CollectionConfig = {
   slug: 'search-synonyms',
+  hooks: { afterChange: [revalidateStorefront], afterDelete: [revalidateStorefrontOnDelete] },
   labels: { singular: 'Synonym', plural: 'Search synonyms' },
   admin: {
     useAsTitle: 'terms',

@@ -1,6 +1,9 @@
 import config from '@payload-config'
+import { unstable_cache } from 'next/cache'
 import { getPayload } from 'payload'
 import { cache } from 'react'
+
+import { CACHE_VERSION, STOREFRONT_CACHE } from '@/lib/revalidate'
 
 export const getPayloadClient = cache(() => getPayload({ config }))
 
@@ -10,7 +13,14 @@ export const getHomePage = cache(async () => {
   return payload.findGlobal({ slug: 'home-page', depth: 2, draft: false })
 })
 
-export const getSiteSettings = cache(async () => {
-  const payload = await getPayloadClient()
-  return payload.findGlobal({ slug: 'site-settings', depth: 2 })
-})
+/** Header and footer, read by every page. Cached until Header & Footer is saved. */
+export const getSiteSettings = cache(
+  unstable_cache(
+    async () => {
+      const payload = await getPayloadClient()
+      return payload.findGlobal({ slug: 'site-settings', depth: 2 })
+    },
+    ['site-settings', CACHE_VERSION],
+    STOREFRONT_CACHE,
+  ),
+)

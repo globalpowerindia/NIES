@@ -1,9 +1,11 @@
 import type { CollectionConfig } from 'payload'
 
 import { anyone, isManager, isSuperAdmin } from '@/access/roles'
+import { revalidateStorefront, revalidateStorefrontOnDelete } from '@/lib/revalidate'
 
 export const SpecDefinitions: CollectionConfig = {
   slug: 'spec-definitions',
+  hooks: { afterChange: [revalidateStorefront], afterDelete: [revalidateStorefrontOnDelete] },
   labels: { singular: 'Spec Definition', plural: 'Spec Definitions' },
   admin: {
     useAsTitle: 'label',
