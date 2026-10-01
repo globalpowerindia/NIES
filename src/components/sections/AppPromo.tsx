@@ -85,7 +85,7 @@ const StoreBadge = ({
     target="_blank"
     rel="noopener noreferrer"
     aria-label={label}
-    className="relative block h-[58px] w-[184px] shrink-0 overflow-hidden rounded-[9px] transition-opacity hover:opacity-90"
+    className="relative block h-[40px] w-[127px] shrink-0 overflow-hidden rounded-[6px] transition-opacity hover:opacity-90 md:h-[58px] md:w-[184px] md:rounded-[9px]"
   >
     <Image
       src="/app-promo/store-badges.png"
@@ -100,7 +100,7 @@ const StoreBadge = ({
 )
 
 export const AppPromo = ({ title, description, screenshot, googlePlayUrl, appStoreUrl }: AppPromoProps) => (
-  <section className="relative my-5 overflow-hidden rounded-2xl bg-brand-blue-500 lg:aspect-[1620/500]">
+  <section className="relative overflow-hidden rounded-2xl bg-brand-blue-500 lg:aspect-[1620/500]">
     <div
       aria-hidden
       className="pointer-events-none absolute inset-0 opacity-[0.02]"
@@ -140,13 +140,13 @@ export const AppPromo = ({ title, description, screenshot, googlePlayUrl, appSto
       </div>
     )}
 
-    <div className="relative flex flex-col items-start gap-5 px-8 py-16 lg:absolute lg:top-[22.8%] lg:left-[15.56%] lg:w-[38.5%] lg:p-0">
+    <div className="relative flex flex-col items-center gap-5 px-8 pt-[62px] pb-[63px] text-center md:items-start md:py-16 md:text-left lg:absolute lg:top-[22.8%] lg:left-[15.56%] lg:w-[38.5%] lg:p-0">
       <div className="flex flex-col gap-6">
-        {title && <h2 className="text-h3 font-medium text-light-100 xl:text-title3">{title}</h2>}
-        {description && <p className="text-body1 text-brand-blue-200">{description}</p>}
+        {title && <h2 className="text-h5 font-semibold text-light-100 md:text-h3 md:font-medium xl:text-title3">{title}</h2>}
+        {description && <p className="text-body3 text-brand-blue-200 md:text-body1">{description}</p>}
       </div>
       {(googlePlayUrl || appStoreUrl) && (
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center justify-center gap-2 md:justify-start md:gap-3">
           {googlePlayUrl && (
             <StoreBadge
               href={googlePlayUrl}

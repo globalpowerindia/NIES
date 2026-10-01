@@ -61,7 +61,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:wght@400;500;600&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:wght@400;500;600&family=Manrope:wght@400;500;600&display=swap"
           rel="stylesheet"
         />
       </head>
@@ -91,7 +91,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Chat with us on WhatsApp"
-            className="fixed right-6 bottom-6 z-40 grid size-[60px] place-items-center rounded-md bg-[#25d366] shadow-lg transition-transform hover:scale-105"
+            className="fixed right-4 bottom-6 z-40 grid size-[41px] place-items-center rounded-md bg-[#25d366] shadow-lg transition-transform hover:scale-105 md:right-6 md:size-[60px]"
           >
             <Image src="/icons/social-whatsapp.svg" alt="" width={34} height={34} className="brightness-0 invert" />
           </a>

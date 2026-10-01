@@ -1,5 +1,8 @@
+'use client'
+
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRef, useState } from 'react'
 
 import { buttonVariants } from '@/components/ui/button'
 import type { BannerData } from '@/lib/storefront/content'
@@ -28,15 +31,15 @@ const PLACEMENT: Record<BannerVariant, { left: string; right: string; top: strin
 }
 
 const HEADING: Record<BannerVariant, string> = {
-  hero: 'text-h5 md:text-h2',
-  card: 'text-h5',
-  feature: 'text-h5 md:text-h3',
+  hero: 'text-h6 md:text-h2',
+  card: 'text-body2 md:text-h5',
+  feature: 'text-h6 md:text-h3',
 }
 
 const SUBHEADING: Record<BannerVariant, string> = {
-  hero: 'text-body2',
-  card: 'text-body3',
-  feature: 'text-body2 md:text-body1',
+  hero: 'text-caption1 md:text-body2',
+  card: 'text-caption1 md:text-body3',
+  feature: 'text-caption1 md:text-body1',
 }
 
 /**
@@ -80,7 +83,7 @@ export const BannerArt = ({ banner, variant, sizes, priority, className }: Banne
       {overlay && (
         <div
           className={cn(
-            'absolute inset-y-0 left-6 flex w-[60%] flex-col justify-center gap-2.5',
+            'absolute inset-y-0 left-5 flex w-[76%] flex-col justify-center gap-2.5',
             'md:inset-y-auto md:justify-start',
             overlay.position === 'right' ? place.right : place.left,
             place.top,
@@ -112,7 +115,7 @@ export const BannerArt = ({ banner, variant, sizes, priority, className }: Banne
             )}
           </div>
           {overlay.buttonLabel && (
-            <span className={cn(buttonVariants({ variant: overlay.buttonStyle }), 'self-start')}>
+            <span className={cn(buttonVariants({ variant: overlay.buttonStyle }), 'h-8 self-start px-3 text-[10px] leading-3 md:h-10 md:px-6 md:text-body2')}>
               {overlay.buttonLabel}
             </span>
           )}
@@ -138,17 +141,29 @@ export const BannerArt = ({ banner, variant, sizes, priority, className }: Banne
 }
 
 export const BannerRow = ({ banners }: { banners: BannerData[] }) => {
+  const track = useRef<HTMLDivElement>(null)
+  const [active, setActive] = useState(0)
   if (banners.length === 0) return null
   const single = banners.length === 1
   return (
-    <section className={cn('my-5 grid gap-6', !single && 'lg:grid-cols-2')}>
+    <section className="-mt-2.5 -mb-0.5 flex flex-col gap-[13px] md:my-0">
+      <div
+        ref={track}
+        onScroll={() => {
+          const element = track.current
+          if (!element) return
+          const step = (element.firstElementChild as HTMLElement | null)?.offsetWidth ?? 265
+          setActive(Math.min(banners.length - 1, Math.round(element.scrollLeft / (step + 16))))
+        }}
+        className={cn('flex snap-x snap-mandatory gap-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:gap-[22px]', !single && 'lg:grid-cols-2')}
+      >
       {banners.map((banner, index) => (
         <div
           key={`${banner.image.url}-${index}`}
           // A taller crop on phones so live text still fits; no min-height, which
           // would push the card wider than the screen through its aspect ratio.
           className={cn(
-            'w-full min-w-0 aspect-[16/10]',
+            'w-[265px] min-w-0 shrink-0 snap-start aspect-[265/164] md:w-full',
             single ? 'md:aspect-[1620/400]' : 'md:aspect-[799/400]',
           )}
         >
@@ -159,6 +174,25 @@ export const BannerRow = ({ banners }: { banners: BannerData[] }) => {
           />
         </div>
       ))}
+      </div>
+      {!single && (
+        <div className="flex h-[9px] items-center justify-center gap-[3px] md:hidden" aria-label="Promotional banners">
+          {banners.map((banner, index) => (
+            <button
+              key={`${banner.image.url}-${index}`}
+              type="button"
+              aria-label={`Show promotional banner ${index + 1}`}
+              aria-current={active === index ? 'true' : undefined}
+              className={cn('size-[9px] rounded-full', active === index ? 'bg-dark-500' : 'bg-neutral-300')}
+              onClick={() => {
+                const element = track.current
+                const child = element?.children[index] as HTMLElement | undefined
+                if (element && child) element.scrollTo({ left: child.offsetLeft - (element.firstElementChild as HTMLElement).offsetLeft, behavior: 'smooth' })
+              }}
+            />
+          ))}
+        </div>
+      )}
     </section>
   )
 }
@@ -166,8 +200,8 @@ export const BannerRow = ({ banners }: { banners: BannerData[] }) => {
 export const WideBanner = ({ banner, shape }: { banner: BannerData; shape: 'feature' | 'strip' }) => (
   <section
     className={cn(
-      'my-5 w-full',
-      shape === 'strip' ? 'aspect-[1620/239] min-h-[120px]' : 'aspect-[1620/500] min-h-[260px]',
+      'w-full',
+      shape === 'strip' ? 'aspect-[358/147] md:aspect-[1620/239] md:min-h-[120px]' : 'aspect-[358/182] md:aspect-[1620/500] md:min-h-[260px]',
     )}
   >
     <BannerArt banner={banner} variant="feature" sizes="100vw" />

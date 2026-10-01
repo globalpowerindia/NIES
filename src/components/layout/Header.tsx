@@ -6,6 +6,7 @@ import { CartLink } from '@/components/cart/CartLink'
 import { AccountLink } from '@/components/layout/AccountLink'
 import { CategoryNav } from '@/components/layout/CategoryNav'
 import { HeaderSearch } from '@/components/layout/HeaderSearch'
+import { MobileNavigation } from '@/components/layout/MobileNavigation'
 import { OffersTicker } from '@/components/layout/OffersTicker'
 import type { TopMovingTile } from '@/components/layout/SearchPanel'
 
@@ -53,7 +54,7 @@ export const Header = ({
     </div>
 
     <div className="bg-light-100">
-      <div className="container-page flex flex-wrap items-center justify-between gap-4 py-4">
+      <div className="container-page relative flex flex-wrap items-center justify-between gap-x-4 gap-y-0 pt-4 md:gap-y-4 md:pb-4">
         <Link href="/" className="shrink-0">
           <Image
             src={logoUrl}
@@ -61,19 +62,20 @@ export const Header = ({
             width={147}
             height={58}
             priority
-            className="h-[58px] w-auto object-contain"
+            className="h-[33px] w-[84px] object-contain md:h-[58px] md:w-auto"
           />
         </Link>
 
         <HeaderSearch tiles={searchTiles} />
 
-        <div className="flex shrink-0 items-center gap-5 lg:gap-7">
+        <div className="flex shrink-0 items-center gap-4 md:gap-5 lg:gap-7">
           <CartLink />
           <Link href="/account/wishlist" className="text-dark-500 hover:text-brand-red-500">
-            <Heart className="size-8 lg:size-10" strokeWidth={1.5} />
+            <Heart className="size-7 md:size-8 lg:size-10" strokeWidth={1.5} />
             <span className="sr-only">Wishlist</span>
           </Link>
-          <AccountLink />
+          <div className="hidden md:block"><AccountLink /></div>
+          <MobileNavigation categories={categories} />
         </div>
       </div>
     </div>

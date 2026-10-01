@@ -12,7 +12,7 @@ export const CartLink = () => {
 
   return (
     <Link href="/cart" className="relative text-dark-500 hover:text-brand-blue-500">
-      <ShoppingCart className="size-8 lg:size-10" strokeWidth={1.5} />
+      <ShoppingCart className="size-7 md:size-8 lg:size-10" strokeWidth={1.5} />
       {count > 0 && (
         <span
           aria-hidden

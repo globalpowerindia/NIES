@@ -3,18 +3,18 @@ import Image from 'next/image'
 import { NewsletterForm } from '@/components/sections/NewsletterForm'
 
 export const Newsletter = ({ title, description }: { title?: string; description?: string }) => (
-  <section className="my-20 flex flex-col items-center justify-between gap-10 rounded-2xl bg-brand-red-500 px-8 py-20 lg:flex-row lg:px-[150px] xl:px-[250px]">
-    <div className="flex max-w-[587px] items-center gap-10">
+  <section className="flex flex-col items-start justify-between gap-6 rounded-2xl bg-brand-red-500 px-4 py-10 md:items-center md:gap-10 md:px-8 md:py-20 min-[1652px]:flex-row min-[1652px]:gap-0 min-[1652px]:px-[250px]">
+    <div className="flex max-w-[587px] flex-col items-start gap-4 md:flex-row md:items-center md:gap-10">
       <Image
         src="/icons/newsletter.svg"
         alt=""
         width={100}
         height={100}
-        className="hidden size-[100px] shrink-0 sm:block"
+        className="size-[60px] shrink-0 md:size-[100px]"
       />
       <div className="flex flex-col gap-6">
-        {title && <h2 className="text-h3 font-medium text-light-100">{title}</h2>}
-        {description && <p className="text-body2 text-brand-red-200">{description}</p>}
+        {title && <h2 className="text-h5 font-semibold text-light-100 md:text-h3 md:font-medium">{title}</h2>}
+        {description && <p className="text-[12px] leading-4 text-brand-red-200 md:text-body2">{description}</p>}
       </div>
     </div>
 

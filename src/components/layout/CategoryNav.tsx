@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 export const CategoryNav = ({ categories }: { categories: { label: string; href: string }[] }) => {
   const pathname = usePathname()
   return (
-    <nav aria-label="Categories" className="bg-brand-blue-100">
+    <nav aria-label="Categories" className="hidden bg-brand-blue-100 md:block">
       <div className="flex justify-start gap-0 overflow-x-auto px-6 lg:justify-center [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {categories.map(({ label, href }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`)

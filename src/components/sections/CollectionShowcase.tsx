@@ -73,11 +73,11 @@ export const CollectionShowcase = ({
   const scrolls = scroll.pages > 1
 
   return (
-    <section className="flex flex-col gap-8 bg-light-400 pt-20 pb-10">
+    <section className="flex flex-col gap-4 bg-light-400 md:gap-8 md:pt-20 md:pb-10 min-[1652px]:min-h-[980px]">
       <SectionHeading eyebrow={eyebrow} title={title} description={description} className="gap-4 [&>p]:max-w-[792px]" />
 
       <div className="flex flex-col items-center gap-6 lg:flex-row">
-        <div className="relative hidden h-[612px] w-[588px] shrink-0 overflow-hidden rounded-2xl lg:block">
+        <div className="relative h-[347px] w-full shrink-0 overflow-hidden rounded-2xl md:hidden lg:block lg:h-[612px] lg:w-[588px]">
           <Image src={featureImage} alt="" fill sizes="588px" className="object-cover" />
         </div>
 
@@ -90,12 +90,12 @@ export const CollectionShowcase = ({
             {items.map((item, index) => (
               <Fragment key={item.href}>
                 {index > 0 && <li aria-hidden className="w-px shrink-0 self-stretch bg-neutral-300" />}
-                <li className="flex w-[371px] max-w-[85vw] shrink-0 snap-start flex-col items-center gap-4 pb-6">
+                <li className="flex w-[258px] max-w-[85vw] shrink-0 snap-start flex-col items-center gap-4 pb-6 md:w-[371px]">
                   <Link
                     href={item.href}
-                    className="flex h-[300px] w-full items-center justify-center rounded-xl p-4 lg:h-[394px]"
+                    className="flex h-[210px] w-full items-center justify-center rounded-xl p-4 md:h-[300px] lg:h-[394px]"
                   >
-                    <span className="relative block size-[252px]">
+                    <span className="relative block size-[170px] md:size-[252px]">
                       <Image src={item.imageUrl} alt={item.name} fill sizes="252px" className="object-contain" />
                     </span>
                   </Link>
@@ -143,7 +143,7 @@ export const CollectionShowcase = ({
       </div>
 
       {scrolls && (
-        <div className="flex items-center gap-4">
+        <div className="hidden items-center gap-4 md:flex">
           <div className="relative h-0.5 flex-1 bg-neutral-300">
             <div
               className="absolute inset-y-0 rounded-full bg-dark-500 transition-[left] duration-150"

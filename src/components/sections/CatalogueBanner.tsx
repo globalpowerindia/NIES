@@ -14,11 +14,11 @@ export type CatalogueBannerProps = {
 }
 
 export const CatalogueBanner = ({ title, description, buttonLabel, href, isDownload, image }: CatalogueBannerProps) => (
-  <section className="my-10 flex flex-col overflow-hidden rounded-2xl lg:flex-row">
-    <div className="flex flex-1 items-center bg-brand-blue-100 px-8 py-20 lg:px-[150px]">
+  <section className="-mx-4 flex flex-col-reverse overflow-hidden md:mx-0 md:rounded-2xl lg:flex-row">
+    <div className="flex flex-1 items-center bg-brand-blue-100 px-4 py-10 md:px-8 md:py-20 lg:px-[150px]">
       <div className="flex w-full max-w-[450px] flex-col gap-6">
-        <h2 className="text-h3 font-medium text-balance text-dark-500">{title}</h2>
-        {description && <p className="text-body3 text-dark-400">{description}</p>}
+        <h2 className="max-w-[260px] text-h5 font-semibold text-balance text-dark-500 md:max-w-none md:text-h3 md:font-medium">{title}</h2>
+        {description && <p className="text-[12px] leading-4 text-dark-400 md:text-body3">{description}</p>}
         {href && (
           <ButtonLink
             href={href}
@@ -33,7 +33,7 @@ export const CatalogueBanner = ({ title, description, buttonLabel, href, isDownl
         )}
       </div>
     </div>
-    <div className="relative min-h-[260px] flex-1 lg:min-h-[404px]">
+    <div className="relative min-h-[195px] flex-1 md:min-h-[260px] lg:min-h-[404px]">
       <Image src={image.url} alt={image.alt} fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover" />
     </div>
   </section>

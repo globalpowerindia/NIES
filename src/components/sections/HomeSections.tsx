@@ -33,7 +33,7 @@ const renderSection = async (payload: Payload, section: Section) => {
     case 'heroCarousel': {
       const slides = (section.slides ?? []).map(bannerOf).filter(isBanner)
       return slides.length ? (
-        <div className="pt-6">
+        <div className="pt-[14px] md:pt-[23px]">
           <HeroCarousel slides={slides} />
         </div>
       ) : null

@@ -16,14 +16,14 @@ const LOGO_MAX_WIDTH = 200
 export const TrustedBrands = ({ title, description, brands }: TrustedBrandsProps) => {
   if (brands.length === 0) return null
   return (
-    <section className="flex flex-col items-center gap-12 py-20 lg:flex-row lg:gap-[182px]">
+    <section className="flex flex-col items-center gap-10 py-10 md:gap-12 md:py-20 lg:flex-row lg:gap-[182px]">
       <div className="flex w-full shrink-0 flex-col gap-6 lg:w-[450px]">
-        <h2 className="max-w-[300px] text-h3 font-medium text-dark-500">{title}</h2>
-        {description && <p className="text-body3 text-dark-400">{description}</p>}
+        <h2 className="max-w-[180px] text-h5 font-medium text-dark-500 md:max-w-[300px] md:text-h3">{title}</h2>
+        {description && <p className="text-[12px] leading-4 text-dark-400 md:text-body3">{description}</p>}
       </div>
 
-      <div className="relative h-[95px] w-full overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]">
-        <ul className="absolute flex h-full animate-marquee items-center gap-[88px] will-change-transform">
+      <div className="relative h-[48px] w-full overflow-hidden md:h-[95px] [mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]">
+        <ul className="absolute flex h-full animate-marquee items-center gap-10 will-change-transform md:gap-[88px]">
           {[...brands, ...brands].map((brand, index) => {
             const ratio = brand.logo.width && brand.logo.height ? brand.logo.width / brand.logo.height : 2
             // Wide wordmarks would otherwise dominate the strip; contain them in a box.
@@ -36,7 +36,7 @@ export const TrustedBrands = ({ title, description, brands }: TrustedBrandsProps
                   width={width}
                   height={LOGO_HEIGHT}
                   style={{ width, height: LOGO_HEIGHT }}
-                  className="object-contain"
+                  className="max-md:max-h-[34px] max-md:max-w-[90px] object-contain"
                 />
               </li>
             )

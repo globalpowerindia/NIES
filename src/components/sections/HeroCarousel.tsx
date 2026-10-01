@@ -28,7 +28,7 @@ export const HeroCarousel = ({ slides }: { slides: BannerData[] }) => {
     <section
       aria-roledescription="carousel"
       aria-label="Featured products"
-      className="relative aspect-[1620/600] min-h-[240px] w-full overflow-hidden rounded-2xl"
+      className="relative aspect-[358/164] w-full overflow-hidden rounded-2xl md:aspect-[1620/600] md:min-h-[240px]"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
@@ -55,12 +55,12 @@ export const HeroCarousel = ({ slides }: { slides: BannerData[] }) => {
       ))}
 
       {slides.length > 1 && (
-        <div className="absolute right-6 bottom-6 flex items-center gap-3">
+        <div className="absolute right-2 bottom-2 flex items-center gap-1 md:right-6 md:bottom-6 md:gap-3">
           <button
             type="button"
             onClick={() => go(-1)}
             aria-label="Previous slide"
-            className="grid size-8 place-items-center rounded-full bg-light-100/70 text-dark-500 transition-colors hover:bg-light-100"
+            className="grid size-6 place-items-center rounded-full bg-light-100/70 text-dark-500 transition-colors hover:bg-light-100 md:size-8"
           >
             <ChevronLeft className="size-5" />
           </button>
@@ -68,7 +68,7 @@ export const HeroCarousel = ({ slides }: { slides: BannerData[] }) => {
             type="button"
             onClick={() => go(1)}
             aria-label="Next slide"
-            className="grid size-8 place-items-center rounded-full bg-light-100/70 text-dark-500 transition-colors hover:bg-light-100"
+            className="grid size-6 place-items-center rounded-full bg-light-100/70 text-dark-500 transition-colors hover:bg-light-100 md:size-8"
           >
             <ChevronRight className="size-5" />
           </button>

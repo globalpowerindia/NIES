@@ -82,14 +82,14 @@ export const HeaderSearch = ({ tiles }: { tiles: TopMovingTile[] }) => {
   const hasPanel = typing ? suggestions.length > 0 : recents.length > 0 || tiles.length > 0
 
   return (
-    <div ref={root} className="relative order-3 w-full md:order-none md:max-w-[873px] md:flex-1">
+    <div ref={root} className="relative order-3 mt-4 w-full md:order-none md:mt-0 md:max-w-[873px] md:flex-1">
       <form
         action="/search"
         onSubmit={(event) => {
           event.preventDefault()
           go(input.current?.value ?? '')
         }}
-        className="flex h-[58px] w-full items-center justify-between rounded-xl border-[0.5px] border-dark-200 bg-brand-blue-100 py-3 pr-2.5 pl-4"
+        className="flex h-[51px] w-full items-center justify-between rounded-xl border-[0.5px] border-dark-200 bg-brand-blue-100 py-3 pr-2.5 pl-4 md:h-[58px]"
       >
         <Input
           ref={input}
@@ -103,12 +103,12 @@ export const HeaderSearch = ({ tiles }: { tiles: TopMovingTile[] }) => {
             setTerm(event.target.value)
             setOpen(true)
           }}
-          className="min-w-0 flex-1 bg-transparent text-body1 text-dark-500 outline-none placeholder:text-dark-400"
+          className="min-w-0 flex-1 bg-transparent text-body3 text-dark-500 outline-none placeholder:text-dark-400 md:text-body1"
         />
         <button
           type="submit"
           aria-label="Search"
-          className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-blue-500 text-light-100 transition-colors hover:bg-brand-blue-600"
+          className="grid size-7 shrink-0 place-items-center rounded-lg bg-brand-blue-500 text-light-100 transition-colors hover:bg-brand-blue-600 md:size-10"
         >
           <Search className="size-5" />
         </button>

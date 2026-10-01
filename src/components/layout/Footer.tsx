@@ -1,4 +1,4 @@
-import { Copyright, Phone } from 'lucide-react'
+import { ChevronDown, Copyright, Phone } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -65,21 +65,21 @@ export const Footer = ({
   certifications,
   paymentImage,
 }: FooterProps) => (
-  <footer className="bg-light-100 pt-20 pb-10">
+  <footer className="mx-4 bg-light-100 py-10 md:mx-0 md:pt-20">
     <div className="container-page flex flex-col gap-5">
-      <div className="flex flex-wrap items-start justify-between gap-10">
+      <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:flex-wrap md:gap-10">
         <Link href="/">
           <Image
             src={logoUrl}
             alt={siteName}
             width={147}
             height={58}
-            className="h-[58px] w-auto object-contain"
+            className="h-[33px] w-[84px] object-contain md:h-[58px] md:w-auto"
           />
         </Link>
 
         {(columns.length ? columns : DEFAULT_LINK_COLUMNS).map((column) => (
-          <div key={column.heading} className="flex flex-col gap-[11px]">
+          <div key={column.heading} className="hidden flex-col gap-[11px] md:flex">
             <p className="px-3 text-body1 font-medium text-dark-500">{column.heading}</p>
             <ul className="flex flex-col justify-center">
               {column.links.map((link) => (
@@ -94,6 +94,22 @@ export const Footer = ({
               ))}
             </ul>
           </div>
+        ))}
+
+        {(columns.length ? columns : DEFAULT_LINK_COLUMNS).map((column) => (
+          <details key={`mobile-${column.heading}`} className="group w-full md:hidden">
+            <summary className="flex cursor-pointer list-none items-center justify-between py-2 text-body2 [&::-webkit-details-marker]:hidden">
+              {column.heading}
+              <ChevronDown className="size-4 transition-transform group-open:rotate-180" aria-hidden />
+            </summary>
+            <ul className="pb-2">
+              {column.links.map((link) => (
+                <li key={`${link.label}-${link.href}`}>
+                  <Link href={link.href} className="block py-2 text-body3 text-dark-400 hover:text-brand-red-500">{link.label}</Link>
+                </li>
+              ))}
+            </ul>
+          </details>
         ))}
 
         <div className="flex flex-col gap-[11px]">
@@ -127,18 +143,18 @@ export const Footer = ({
 
       <hr className="border-t border-neutral-300" />
 
-      <div className="flex flex-wrap items-center justify-between gap-6 rounded-2xl bg-light-100 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-6 rounded-2xl bg-light-100 md:p-3">
         <a href={`tel:${tollFreeNumber.replace(/[^\d+]/g, '')}`} className="flex items-center gap-2">
-          <span className="grid h-full min-h-[64px] w-[70px] place-items-center rounded-full bg-brand-blue-400 text-light-100">
+          <span className="grid size-12 shrink-0 place-items-center rounded-full bg-brand-blue-400 text-light-100 md:h-full md:min-h-[64px] md:w-[70px]">
             <Phone className="size-6" strokeWidth={1.5} />
           </span>
           <span className="flex flex-col items-start">
-            <span className="px-3 text-body1 text-dark-400">Toll Free Number</span>
-            <span className="px-3 py-1 text-h5 font-semibold text-dark-500">{tollFreeNumber}</span>
+            <span className="px-3 text-body3 text-dark-400 md:text-body1">Toll Free Number</span>
+            <span className="px-3 py-1 text-h6 font-semibold text-dark-500 md:text-h5">{tollFreeNumber}</span>
           </span>
         </a>
 
-        <ul className="flex flex-wrap items-center gap-8">
+        <ul className="flex flex-wrap items-center gap-4 md:gap-8">
           {certifications.map((cert) => {
             const width =
               cert.width && cert.height ? Math.round((CERT_HEIGHT * cert.width) / cert.height) : CERT_HEIGHT
@@ -150,7 +166,7 @@ export const Footer = ({
                   width={width}
                   height={CERT_HEIGHT}
                   style={{ width, height: CERT_HEIGHT }}
-                  className="object-contain"
+                  className="max-md:max-h-8 max-md:max-w-12 object-contain"
                 />
               </li>
             )
@@ -166,7 +182,7 @@ export const Footer = ({
               width={316}
               height={37}
               style={{ width: 316, height: 37 }}
-              className="object-contain"
+              className="max-w-full object-contain"
             />
           </div>
         )}
@@ -175,14 +191,14 @@ export const Footer = ({
       <hr className="border-t border-neutral-300" />
 
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <p className="flex items-center gap-1 text-body3 text-dark-500">
+        <p className="flex items-center gap-1 text-[12px] leading-4 text-dark-500 md:text-body3">
           <Copyright className="size-[18px]" strokeWidth={1.5} />
           <span>
             {new Date().getFullYear()} <span className="text-brand-red-500">{siteName}</span> . All Rights
             Reserved
           </span>
         </p>
-        <p className="text-body3 text-dark-500">
+        <p className="text-[12px] leading-4 text-dark-500 md:text-body3">
           Designed &amp; Developed by <span className="font-medium text-brand-red-500">mits</span>
         </p>
       </div>

@@ -46,7 +46,7 @@ export const ProductCard = ({
   return (
     <div
       className={cn(
-        'group flex flex-col gap-4 rounded-xl border-[0.5px] border-brand-blue-200 bg-light-100 p-2',
+        'group flex flex-col gap-4 rounded-xl bg-light-100 p-2 ring-[0.5px] ring-inset ring-brand-blue-200',
         className,
       )}
     >
@@ -66,7 +66,7 @@ export const ProductCard = ({
           <WishlistHeart productId={productId} label={label} iconClassName="size-7" />
         </div>
 
-        <Link href={href} className="relative block aspect-square w-full">
+        <Link href={href} className="relative block size-[170px] max-w-full self-center md:aspect-square md:size-auto md:w-full">
           <Image
             src={imageUrl}
             alt={imageAlt}
@@ -93,7 +93,7 @@ export const ProductCard = ({
         )}
       </div>
 
-      <div className="flex flex-col gap-3 px-3">
+      <div className="flex min-h-32 flex-col gap-3 px-3">
         <div className="flex flex-col items-start gap-2">
           {typeof rating === 'number' && (
             <span className="flex items-center justify-center gap-0.5 rounded-full bg-green-400 py-0 pr-2 pl-0.5 text-body3 text-green-100">
@@ -128,7 +128,7 @@ export const ProductCard = ({
         </div>
       </div>
 
-      <div className="flex items-center gap-0 self-start rounded-full">
+      <div className="mt-auto flex items-center gap-0 self-start rounded-full">
         <span className="grid size-5 place-items-center">
           <span
             className={cn('size-2 rounded-full', inStock ? 'bg-green-400' : 'bg-brand-red-500')}

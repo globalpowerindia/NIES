@@ -14,7 +14,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        red: 'bg-brand-red-400 text-light-100 hover:bg-brand-red-500 focus-visible:outline-brand-red-500',
+        red: 'bg-brand-red-500 text-light-100 hover:bg-brand-red-400 focus-visible:outline-brand-red-500',
         blue: 'bg-brand-blue-500 text-light-100 hover:bg-brand-blue-600 focus-visible:outline-brand-blue-500',
         outline:
           'border border-brand-blue-200 bg-light-100 text-dark-500 hover:bg-brand-blue-100 focus-visible:outline-brand-blue-500',
