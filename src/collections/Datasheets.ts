@@ -11,6 +11,7 @@ export const Datasheets: CollectionConfig = {
     update: isStaff,
     delete: isManager,
   },
-  upload: { mimeTypes: ['application/pdf'] },
+  upload: {
+    externalFileHeaderFilter: () => ({}), mimeTypes: ['application/pdf'] },
   fields: [{ name: 'title', type: 'text', required: true }],
 }

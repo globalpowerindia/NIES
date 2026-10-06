@@ -17,6 +17,7 @@ export const consoleEmailAdapter: EmailAdapter<{ logged: true }> = ({ payload })
   defaultFromAddress: 'no-reply@toolshypermarket.local',
   defaultFromName: 'Tools Hypermarket (dev)',
   sendEmail: async (message) => {
+    if (process.env.NODE_ENV === 'production') throw new Error('Email delivery is not configured.')
     const links = String(message.html ?? '').match(/https?:\/\/[^\s"'<>]+/g) ?? []
     payload.logger.info(
       [

@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { anyone, isManager, isSuperAdmin } from '@/access/roles'
+import { publishedVariants, isManager, isSuperAdmin } from '@/access/roles'
 import { paiseField } from '@/fields/paise'
 import { ensureInventory } from '@/lib/inventory'
 import { revalidateStorefront, revalidateStorefrontOnDelete } from '@/lib/revalidate'
@@ -16,16 +16,17 @@ export const ProductVariants: CollectionConfig = {
     components: { views: { list: { Component: '/admin/views/VariantsList#VariantsList' } } },
   },
   access: {
-    read: anyone,
+    read: publishedVariants,
     create: isManager,
     update: isManager,
     delete: isSuperAdmin,
   },
   hooks: {
     beforeValidate: [
-      ({ data }) => {
+      ({ data, originalDoc }) => {
         if (!data) return data
-        const { mrpPaise, sellingPricePaise } = data
+        const mrpPaise = data.mrpPaise ?? originalDoc?.mrpPaise
+        const sellingPricePaise = data.sellingPricePaise ?? originalDoc?.sellingPricePaise
         if (
           typeof mrpPaise === 'number' &&
           typeof sellingPricePaise === 'number' &&

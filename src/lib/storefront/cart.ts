@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto'
 
 import { sql } from 'drizzle-orm'
 import { cookies } from 'next/headers'
-import type { Payload } from 'payload'
+import type { Payload, PayloadRequest } from 'payload'
 
 import {
   evaluateCoupon,
@@ -15,6 +15,7 @@ import {
 import { computeCartTotals, DEFAULT_GST_RATE_BPS, SELLER_STATE_CODE } from '@/lib/money'
 import { mediaOf } from '@/lib/storefront/content'
 import { pickVariant, PLACEHOLDER_IMAGE, relId } from '@/lib/storefront/products'
+import { inTransaction, transactionDB } from '@/lib/transaction'
 import type { Product, ProductVariant } from '@/payload-types'
 
 /**
@@ -48,6 +49,7 @@ const toRef = (doc: { id: number; customer?: unknown; coupon?: unknown }): CartR
 const findActiveCart = async (
   payload: Payload,
   owner: { customerId: number } | { token: string },
+  req?: PayloadRequest,
 ): Promise<CartRef | null> => {
   const { docs } = await payload.find({
     collection: 'carts',
@@ -63,6 +65,7 @@ const findActiveCart = async (
     limit: 1,
     depth: 0,
     overrideAccess: true,
+    req,
   })
   return docs[0] ? toRef(docs[0]) : null
 }
@@ -85,30 +88,38 @@ export const findOrCreateCart = async (
   const existing = await findCart(payload, customerId)
   if (existing) return existing
 
-  const token = customerId ? null : randomBytes(24).toString('base64url')
-  const created = await payload.create({
-    collection: 'carts',
-    data: {
-      customer: customerId,
-      token,
-      status: 'ACTIVE',
-      lastActivityAt: new Date().toISOString(),
-    },
-    overrideAccess: true,
-  })
-  if (token) {
-    ;(await cookies()).set(CART_COOKIE, token, { ...cookieOptions, maxAge: COOKIE_MAX_AGE_SECONDS })
+  const create = (data: { customer: number | null; token: string | null }, req?: PayloadRequest) =>
+    payload.create({
+      collection: 'carts',
+      data: { ...data, status: 'ACTIVE', lastActivityAt: new Date().toISOString() },
+      overrideAccess: true,
+      req,
+    })
+
+  // Two first adds at once must not give an account two carts: look again
+  // under the customer's lock (the database index backs this up).
+  if (customerId) {
+    return inTransaction(payload, [cartLock(customerId)], async (req) =>
+      (await findActiveCart(payload, { customerId }, req)) ?? toRef(await create({ customer: customerId, token: null }, req)),
+    )
   }
+
+  const token = randomBytes(24).toString('base64url')
+  const created = await create({ customer: null, token })
+  ;(await cookies()).set(CART_COOKIE, token, { ...cookieOptions, maxAge: COOKIE_MAX_AGE_SECONDS })
   return toRef(created)
 }
 
+const cartLock = (customerId: number) => `cart:customer:${customerId}`
+
 /** Any change brings a cart back from "abandoned". */
-const touch = async (payload: Payload, cartId: number, data: Record<string, unknown> = {}) => {
+const touch = async (payload: Payload, cartId: number, data: Record<string, unknown> = {}, req?: PayloadRequest) => {
   await payload.update({
     collection: 'carts',
     id: cartId,
     data: { ...data, lastActivityAt: new Date().toISOString(), abandonedAt: null },
     overrideAccess: true,
+    req,
   })
 }
 
@@ -178,7 +189,7 @@ const loadSellableVariants = async (
 
 type ItemRow = { id: number; variantId: number; productId: number; quantity: number }
 
-const loadItems = async (payload: Payload, cartId: number): Promise<ItemRow[]> => {
+const loadItems = async (payload: Payload, cartId: number, req?: PayloadRequest): Promise<ItemRow[]> => {
   const { docs } = await payload.find({
     collection: 'cart-items',
     where: { cart: { equals: cartId } },
@@ -186,6 +197,7 @@ const loadItems = async (payload: Payload, cartId: number): Promise<ItemRow[]> =
     pagination: false,
     depth: 0,
     overrideAccess: true,
+    req,
   })
   return docs.map((doc) => ({
     id: doc.id,
@@ -596,50 +608,59 @@ export const mergeGuestCart = async (payload: Payload, customerId: number): Prom
   const store = await cookies()
   const token = store.get(CART_COOKIE)?.value
   if (!token) return
-  // The guest cookie has done its job whatever happens next.
-  store.set(CART_COOKIE, '', { ...cookieOptions, maxAge: 0 })
 
-  const guest = await findActiveCart(payload, { token })
-  if (!guest) return
+  // All or nothing, under the account's and the guest cart's locks, so a
+  // simultaneous add or second sign-in can't interleave with it.
+  await inTransaction(payload, [cartLock(customerId), `cart:token:${token}`], async (req) => {
+    const guest = await findActiveCart(payload, { token }, req)
+    if (!guest) return
 
-  const account = await findActiveCart(payload, { customerId })
-  if (!account) {
-    await touch(payload, guest.id, { customer: customerId, token: null })
-    return
-  }
+    const account = await findActiveCart(payload, { customerId }, req)
+    if (!account) {
+      await touch(payload, guest.id, { customer: customerId, token: null }, req)
+      return
+    }
 
-  const [guestItems, accountItems] = await Promise.all([
-    loadItems(payload, guest.id),
-    loadItems(payload, account.id),
-  ])
-  const variantIds = [...new Set(guestItems.map((item) => item.variantId))]
-  const [sellable, stock] = await Promise.all([
-    loadSellableVariants(payload, variantIds),
-    loadStock(payload, variantIds),
-  ])
-  const changes = mergeCartLines(accountItems, guestItems, (variantId) =>
-    sellable.has(variantId) ? purchasableQuantity(stock.get(variantId)) : 0,
-  )
+    const [guestItems, accountItems] = await Promise.all([
+      loadItems(payload, guest.id, req),
+      loadItems(payload, account.id, req),
+    ])
+    const variantIds = [...new Set(guestItems.map((item) => item.variantId))]
+    const [sellable, stock] = await Promise.all([
+      loadSellableVariants(payload, variantIds),
+      loadStock(payload, variantIds),
+    ])
+    const changes = mergeCartLines(accountItems, guestItems, (variantId) =>
+      sellable.has(variantId) ? purchasableQuantity(stock.get(variantId)) : 0,
+    )
 
-  for (const change of changes) {
-    const existing = accountItems.find((item) => item.variantId === change.variantId)
-    await setLine(
+    // An upsert rather than create-then-recover: inside a transaction a
+    // unique-index error would abort everything after it.
+    const db = await transactionDB(req)
+    for (const change of changes) {
+      await db.execute(sql`
+        INSERT INTO cart_items (cart_id, variant_id, product_id, quantity, updated_at, created_at)
+        VALUES (${account.id}, ${change.variantId}, ${sellable.get(change.variantId)!.product.id}, ${change.quantity}, now(), now())
+        ON CONFLICT (cart_id, variant_id) DO UPDATE SET quantity = EXCLUDED.quantity, updated_at = now()
+      `)
+    }
+
+    await touch(
       payload,
       account.id,
-      { ...change, productId: sellable.get(change.variantId)!.product.id },
-      existing?.id,
+      !account.couponId && guest.couponId ? { coupon: guest.couponId } : {},
+      req,
     )
-  }
-
-  await touch(
-    payload,
-    account.id,
-    !account.couponId && guest.couponId ? { coupon: guest.couponId } : {},
-  )
-  await payload.update({
-    collection: 'carts',
-    id: guest.id,
-    data: { status: 'MERGED', token: null },
-    overrideAccess: true,
+    await payload.update({
+      collection: 'carts',
+      id: guest.id,
+      data: { status: 'MERGED', token: null },
+      overrideAccess: true,
+      req,
+    })
   })
+
+  // Only once the merge has committed: a failed merge keeps the cookie, so
+  // the guest cart is still there to merge on the next sign-in.
+  store.set(CART_COOKIE, '', { ...cookieOptions, maxAge: 0 })
 }

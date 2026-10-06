@@ -1,3 +1,5 @@
+import { LIMITS } from '@/lib/rate-limit'
+import { guardMutation } from '@/lib/request-security'
 import type { NextResponse } from 'next/server'
 import type { Payload } from 'payload'
 
@@ -31,6 +33,8 @@ export const POST = async (
   request: Request,
   ctx: RouteContext<'/api/account/addresses/[id]'>,
 ): Promise<NextResponse> => {
+  const denied = await guardMutation(request, 'accountWrite', LIMITS.accountWrite)
+  if (denied) return denied
   const customer = await getCurrentCustomer()
   if (!customer) return fail(401, 'Please sign in again.')
 
@@ -47,9 +51,11 @@ export const POST = async (
 
 /** Removes one of the signed-in customer's addresses. Past orders keep their own copy. */
 export const DELETE = async (
-  _request: Request,
+  request: Request,
   ctx: RouteContext<'/api/account/addresses/[id]'>,
 ): Promise<NextResponse> => {
+  const denied = await guardMutation(request, 'accountWrite', LIMITS.accountWrite)
+  if (denied) return denied
   const customer = await getCurrentCustomer()
   if (!customer) return fail(401, 'Please sign in again.')
 

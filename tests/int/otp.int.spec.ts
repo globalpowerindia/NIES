@@ -112,6 +112,21 @@ describe('OTP challenges', () => {
     if (!again.ok) expect(again.retryAfterSeconds).toBeGreaterThan(50)
   })
 
+  it('sends one code, not ten, when ten requests arrive at once', async () => {
+    const phone = newPhone()
+    const results = await Promise.all(
+      Array.from({ length: 10 }, () => issueChallenge(payload, { channel: 'SMS', destination: phone, ip: ip() })),
+    )
+    const { docs } = await payload.find({
+      collection: 'otp-challenges',
+      where: { and: [{ destination: { equals: phone } }, { consumedAt: { exists: false } }] },
+      overrideAccess: true,
+    })
+
+    expect(results.filter((r) => r.ok)).toHaveLength(1)
+    expect(docs).toHaveLength(1)
+  })
+
   it('retires the old code when a new one is sent', async () => {
     const phone = newPhone()
     const first = await issue(phone)

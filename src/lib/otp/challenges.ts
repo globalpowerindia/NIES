@@ -5,6 +5,7 @@ import type { Payload } from 'payload'
 
 import type { OtpChannel } from '@/collections/OtpChallenges'
 import { env } from '@/lib/env'
+import { inTransaction } from '@/lib/transaction'
 
 /**
  * Issuing and checking one-time codes, for both SMS and email.
@@ -46,7 +47,9 @@ export type IssueResult =
 export const issueChallenge = async (
   payload: Payload,
   { channel, destination, ip }: { channel: OtpChannel; destination: string; ip: string },
-): Promise<IssueResult> => {
+): Promise<IssueResult> => inTransaction(payload, [
+  `otp:destination:${channel}:${destination}`, `otp:ip:${hashIp(ip)}`,
+], async (req): Promise<IssueResult> => {
   const now = Date.now()
   const ipHash = hashIp(ip)
   const hourAgo = new Date(now - HOUR_MS).toISOString()
@@ -63,6 +66,7 @@ export const issueChallenge = async (
     sort: '-createdAt',
     limit: PER_DESTINATION_PER_HOUR,
     overrideAccess: true,
+    req,
   })
 
   const waitFor = (sinceIso: string, windowMs: number) =>
@@ -80,6 +84,7 @@ export const issueChallenge = async (
     collection: 'otp-challenges',
     where: { and: [{ ipHash: { equals: ipHash } }, { createdAt: { greater_than: hourAgo } }] },
     overrideAccess: true,
+    req,
   })
   if (fromThisIp >= PER_IP_PER_HOUR) return { ok: false, retryAfterSeconds: 15 * 60 }
 
@@ -95,6 +100,7 @@ export const issueChallenge = async (
     },
     data: { consumedAt: new Date(now).toISOString() },
     overrideAccess: true,
+    req,
   })
 
   const code = String(randomInt(0, 10 ** OTP_LENGTH)).padStart(OTP_LENGTH, '0')
@@ -109,10 +115,11 @@ export const issueChallenge = async (
       ipHash,
     },
     overrideAccess: true,
+    req,
   })
 
   return { ok: true, code, resendAfterSeconds: RESEND_AFTER_MS / 1000 }
-}
+})
 
 export type CheckResult =
   | { ok: true }
@@ -154,7 +161,7 @@ export const checkChallenge = async (
   // Spend an attempt first; the right code costs one too.
   const counted = await db.execute(sql`
     UPDATE "otp_challenges" SET "attempts" = "attempts" + 1, "updated_at" = now()
-    WHERE "id" = ${challenge.id} AND "attempts" < ${OTP_MAX_ATTEMPTS} AND "consumed_at" IS NULL
+    WHERE "id" = ${challenge.id} AND "attempts" < ${OTP_MAX_ATTEMPTS} AND "consumed_at" IS NULL AND "expires_at" > now()
     RETURNING "attempts"
   `)
   const attempts = counted.rows[0] ? Number(counted.rows[0].attempts) : null
@@ -169,7 +176,7 @@ export const checkChallenge = async (
 
   const spent = await db.execute(sql`
     UPDATE "otp_challenges" SET "consumed_at" = now(), "updated_at" = now()
-    WHERE "id" = ${challenge.id} AND "consumed_at" IS NULL
+    WHERE "id" = ${challenge.id} AND "consumed_at" IS NULL AND "expires_at" > now()
     RETURNING "id"
   `)
   return spent.rows.length ? { ok: true } : { ok: false, reason: 'NO_CODE' }

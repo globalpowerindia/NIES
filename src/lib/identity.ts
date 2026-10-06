@@ -1,6 +1,7 @@
-import type { Payload } from 'payload'
+import type { Payload, PayloadRequest } from 'payload'
 
 import type { AuthProvider } from '@/collections/AuthIdentities'
+import { inTransaction } from '@/lib/transaction'
 import type { Customer } from '@/payload-types'
 
 /**
@@ -64,7 +65,7 @@ const touch = async (payload: Payload, identityId: number): Promise<void> => {
   })
 }
 
-const findIdentity = async (payload: Payload, provider: AuthProvider, providerAccountId: string) => {
+const findIdentity = async (payload: Payload, provider: AuthProvider, providerAccountId: string, req?: PayloadRequest) => {
   const { docs } = await payload.find({
     collection: 'auth-identities',
     where: {
@@ -73,6 +74,7 @@ const findIdentity = async (payload: Payload, provider: AuthProvider, providerAc
     limit: 1,
     depth: 1,
     overrideAccess: true,
+    req,
   })
   return docs[0] ?? null
 }
@@ -132,12 +134,13 @@ const releaseUnverifiedEmail = async (payload: Payload, email: string): Promise<
   }
 }
 
-const releaseUnverifiedPhone = async (payload: Payload, phone: string): Promise<void> => {
+const releaseUnverifiedPhone = async (payload: Payload, phone: string, req?: PayloadRequest): Promise<void> => {
   const { docs } = await payload.find({
     collection: 'customers',
     where: { and: [{ phone: { equals: phone } }, { phoneVerifiedAt: { exists: false } }] },
     pagination: false,
     overrideAccess: true,
+    req,
   })
   for (const squatter of docs) {
     await payload.update({
@@ -145,6 +148,7 @@ const releaseUnverifiedPhone = async (payload: Payload, phone: string): Promise<
       id: squatter.id,
       data: { phone: null },
       overrideAccess: true,
+      req,
     })
   }
 }
@@ -227,6 +231,24 @@ export const resolveIdentity = async (payload: Payload, input: IdentityInput): P
 export type AttachPhoneResult =
   | { outcome: 'ATTACHED' | 'MOVED'; customer: Customer }
   | { outcome: 'CONFLICT' }
+  | { outcome: 'BLOCKED' }
+
+/** Everything a customer can own besides their logins. A shell with any of it is never deleted. */
+const OWNED_COLLECTIONS = ['addresses', 'orders', 'wishlist-items', 'coupon-redemptions'] as const
+
+const ownsAnything = async (payload: Payload, customerId: number, req: PayloadRequest): Promise<boolean> => {
+  for (const collection of OWNED_COLLECTIONS) {
+    const { totalDocs } = await payload.count({ collection, where: { customer: { equals: customerId } }, overrideAccess: true, req })
+    if (totalDocs > 0) return true
+  }
+  const { totalDocs: lines } = await payload.count({
+    collection: 'cart-items',
+    where: { 'cart.customer': { equals: customerId } },
+    overrideAccess: true,
+    req,
+  })
+  return lines > 0
+}
 
 /**
  * Adds a just-verified phone to a customer who signed in some other way —
@@ -239,10 +261,12 @@ export type AttachPhoneResult =
  * correctly treated as a stranger. Their Google login then moves onto the
  * phone account and the empty shell is removed.
  *
- * The move happens only when the shell holds nothing but Google logins, which
- * is the only way it can exist without a verified phone: a Google-only
- * customer never gets a session until this step succeeds, so it cannot have
- * placed an order. Anything else is reported as a conflict rather than merged.
+ * The move happens only when the shell holds nothing but Google logins and
+ * owns nothing else — no addresses, orders, wishlist or cart lines. That is
+ * checked, not assumed: while SMS is switched off, Google-only customers do
+ * get sessions and can build up data. Anything else is a conflict, never a
+ * merge. The whole step runs in one transaction under the phone's and the
+ * customer's locks, so it either completes or changes nothing.
  */
 export const attachPhone = async (
   payload: Payload,
@@ -250,52 +274,63 @@ export const attachPhone = async (
   rawPhone: string,
 ): Promise<AttachPhoneResult> => {
   const phone = normalisePhone(rawPhone)
-  const owner = await findIdentity(payload, 'PHONE_OTP', phone)
-  const ownerId = owner ? (typeof owner.customer === 'object' ? owner.customer.id : owner.customer) : null
+  return inTransaction(payload, [`identity:phone:${phone}`, `customer:${customerId}`], async (req) => {
+    const source = await payload.findByID({ collection: 'customers', id: customerId, overrideAccess: true, req })
+    if (source.status !== 'ACTIVE') return { outcome: 'BLOCKED' }
 
-  if (ownerId === customerId) {
-    const customer = await payload.findByID({ collection: 'customers', id: customerId, overrideAccess: true })
-    return { outcome: 'ATTACHED', customer }
-  }
+    const owner = await findIdentity(payload, 'PHONE_OTP', phone, req)
+    const ownerId = owner ? (typeof owner.customer === 'object' ? owner.customer.id : owner.customer) : null
 
-  if (ownerId !== null) {
-    const { docs: shellLogins } = await payload.find({
-      collection: 'auth-identities',
-      where: { customer: { equals: customerId } },
-      pagination: false,
-      overrideAccess: true,
-    })
-    if (shellLogins.some((identity) => identity.provider !== 'GOOGLE')) return { outcome: 'CONFLICT' }
+    if (ownerId === customerId) return { outcome: 'ATTACHED', customer: source }
 
-    const target = await payload.findByID({ collection: 'customers', id: ownerId, overrideAccess: true })
-    for (const identity of shellLogins) {
-      await payload.update({
+    if (ownerId !== null) {
+      const target = await payload.findByID({ collection: 'customers', id: ownerId, overrideAccess: true, req })
+      if (target.status !== 'ACTIVE') return { outcome: 'BLOCKED' }
+
+      const { docs: shellLogins } = await payload.find({
         collection: 'auth-identities',
-        id: identity.id,
-        data: { customer: ownerId },
+        where: { customer: { equals: customerId } },
+        pagination: false,
         overrideAccess: true,
+        req,
       })
-    }
-    await payload.delete({ collection: 'customers', id: customerId, overrideAccess: true })
-    return { outcome: 'MOVED', customer: target }
-  }
+      if (shellLogins.some((identity) => identity.provider !== 'GOOGLE')) return { outcome: 'CONFLICT' }
+      if (await ownsAnything(payload, customerId, req)) return { outcome: 'CONFLICT' }
 
-  await releaseUnverifiedPhone(payload, phone)
-  const customer = await payload.update({
-    collection: 'customers',
-    id: customerId,
-    data: { phone, phoneVerifiedAt: new Date().toISOString() },
-    overrideAccess: true,
+      for (const identity of shellLogins) {
+        await payload.update({
+          collection: 'auth-identities',
+          id: identity.id,
+          data: { customer: ownerId },
+          overrideAccess: true,
+          req,
+        })
+      }
+      // Empty carts are the only thing a shell may still own.
+      await payload.delete({ collection: 'carts', where: { customer: { equals: customerId } }, overrideAccess: true, req })
+      await payload.delete({ collection: 'customers', id: customerId, overrideAccess: true, req })
+      return { outcome: 'MOVED', customer: target }
+    }
+
+    await releaseUnverifiedPhone(payload, phone, req)
+    const customer = await payload.update({
+      collection: 'customers',
+      id: customerId,
+      data: { phone, phoneVerifiedAt: new Date().toISOString() },
+      overrideAccess: true,
+      req,
+    })
+    await payload.create({
+      collection: 'auth-identities',
+      data: {
+        provider: 'PHONE_OTP',
+        providerAccountId: phone,
+        customer: customerId,
+        lastUsedAt: new Date().toISOString(),
+      },
+      overrideAccess: true,
+      req,
+    })
+    return { outcome: 'ATTACHED', customer }
   })
-  await payload.create({
-    collection: 'auth-identities',
-    data: {
-      provider: 'PHONE_OTP',
-      providerAccountId: phone,
-      customer: customerId,
-      lastUsedAt: new Date().toISOString(),
-    },
-    overrideAccess: true,
-  })
-  return { outcome: 'ATTACHED', customer }
 }

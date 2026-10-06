@@ -1,3 +1,5 @@
+import { LIMITS } from '@/lib/rate-limit'
+import { guardMutation } from '@/lib/request-security'
 import type { NextResponse } from 'next/server'
 
 import { invalid, readJson } from '@/lib/api-response'
@@ -7,6 +9,8 @@ import { couponSchema } from '@/lib/validations/cart'
 
 /** Applies a discount code, or says why it can't be used. */
 export const POST = async (request: Request): Promise<NextResponse> => {
+  const denied = await guardMutation(request, 'couponTry', LIMITS.couponTry)
+  if (denied) return denied
   const parsed = couponSchema.safeParse(await readJson(request))
   if (!parsed.success) return invalid(parsed.error)
 
@@ -21,7 +25,9 @@ export const POST = async (request: Request): Promise<NextResponse> => {
   return replyWithCart(payload, cart, await applyCoupon(payload, cart, parsed.data.code))
 }
 
-export const DELETE = async (): Promise<NextResponse> => {
+export const DELETE = async (request: Request): Promise<NextResponse> => {
+  const denied = await guardMutation(request, 'cartWrite', LIMITS.cartWrite)
+  if (denied) return denied
   const { payload, find } = await cartContext()
   const cart = await find()
   if (!cart) return replyWithCart(payload, null, { ok: true })

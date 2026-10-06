@@ -1,3 +1,4 @@
+import { mutationGuard } from '@/lib/request-security'
 import type { NextResponse } from 'next/server'
 
 import { fail, invalid, ok, readJson } from '@/lib/api-response'
@@ -19,6 +20,8 @@ import { otpRequestSchema } from '@/lib/validations/auth'
  * only thing between this endpoint and a large SMS bill.
  */
 export const POST = async (request: Request): Promise<NextResponse> => {
+  const denied = mutationGuard(request)
+  if (denied) return denied
   const parsed = otpRequestSchema.safeParse(await readJson(request))
   if (!parsed.success) return invalid(parsed.error)
 

@@ -50,6 +50,7 @@ describe('resolveIdentity', () => {
   afterEach(async () => {
     for (const id of [...created]) {
       await payload.delete({ collection: 'auth-identities', where: { customer: { equals: id } }, overrideAccess: true })
+      await payload.delete({ collection: 'addresses', where: { customer: { equals: id } }, overrideAccess: true })
       await payload.delete({ collection: 'customers', id, overrideAccess: true }).catch(() => {})
     }
     created.clear()
@@ -164,6 +165,7 @@ describe('attachPhone (the Google follow-up step)', () => {
   afterEach(async () => {
     for (const id of [...created]) {
       await payload.delete({ collection: 'auth-identities', where: { customer: { equals: id } }, overrideAccess: true })
+      await payload.delete({ collection: 'addresses', where: { customer: { equals: id } }, overrideAccess: true })
       await payload.delete({ collection: 'customers', id, overrideAccess: true }).catch(() => {})
     }
     created.clear()
@@ -176,7 +178,7 @@ describe('attachPhone (the Google follow-up step)', () => {
     const result = await attachPhone(payload, google.id, phone)
 
     expect(result.outcome).toBe('ATTACHED')
-    if (result.outcome === 'CONFLICT') return
+    if (!('customer' in result)) return
     expect(result.customer.phoneVerifiedAt).toBeTruthy()
     expect((await byPhone(phone)).customer.id).toBe(google.id)
   })
@@ -190,7 +192,7 @@ describe('attachPhone (the Google follow-up step)', () => {
     const result = await attachPhone(payload, shell.id, phone)
 
     expect(result.outcome).toBe('MOVED')
-    if (result.outcome === 'CONFLICT') return
+    if (!('customer' in result)) return
     expect(result.customer.id).toBe(phoneOwner.id)
     // Google now reaches the phone account, and the empty shell is gone.
     expect((await byGoogle(sub, null)).customer.id).toBe(phoneOwner.id)
@@ -210,5 +212,38 @@ describe('attachPhone (the Google follow-up step)', () => {
 
     expect(result.outcome).toBe('CONFLICT')
     expect(await identitiesOf(both.id)).toHaveLength(2)
+  })
+
+  it('keeps a Google account that owns data instead of merging it away', async () => {
+    const phone = uniquePhone()
+    const phoneOwner = track((await byPhone(phone)).customer)
+    const sub = uniqueSub()
+    const shell = track((await byGoogle(sub, uniqueEmail())).customer)
+    await payload.create({
+      collection: 'addresses',
+      data: { customer: shell.id, fullName: 'Shell', phone, line1: '1 MG Road', line2: 'Ernakulam', city: 'Kochi', pincode: '682001', stateCode: '32', type: 'HOME' },
+      overrideAccess: true,
+    })
+
+    const result = await attachPhone(payload, shell.id, phone)
+
+    expect(result.outcome).toBe('CONFLICT')
+    expect(await payload.findByID({ collection: 'customers', id: shell.id, overrideAccess: true })).toBeTruthy()
+    expect((await byGoogle(sub, null)).customer.id).toBe(shell.id)
+    expect((await byPhone(phone)).customer.id).toBe(phoneOwner.id)
+  })
+
+  it('changes nothing when the phone account is blocked', async () => {
+    const phone = uniquePhone()
+    const phoneOwner = track((await byPhone(phone)).customer)
+    await payload.update({ collection: 'customers', id: phoneOwner.id, data: { status: 'BLOCKED' }, overrideAccess: true })
+    const sub = uniqueSub()
+    const shell = track((await byGoogle(sub, uniqueEmail())).customer)
+
+    const result = await attachPhone(payload, shell.id, phone)
+
+    expect(result.outcome).toBe('BLOCKED')
+    expect((await byGoogle(sub, null)).customer.id).toBe(shell.id)
+    expect(await identitiesOf(phoneOwner.id)).toHaveLength(1)
   })
 })

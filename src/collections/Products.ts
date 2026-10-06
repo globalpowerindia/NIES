@@ -1,6 +1,6 @@
 import { APIError, type CollectionBeforeChangeHook, type CollectionConfig, type Field, type NumberFieldSingleValidation } from 'payload'
 
-import { anyone, isManager, isSuperAdmin } from '@/access/roles'
+import { publishedProducts, isManager, isSuperAdmin } from '@/access/roles'
 import { slugFrom } from '@/fields/slug'
 import { DEFAULT_GST_RATE_BPS, GST_RATES_BPS } from '@/lib/money'
 import { isPriced, loadProductStock } from '@/lib/product-stock'
@@ -41,7 +41,7 @@ export const Products: CollectionConfig = {
     components: { views: { list: { Component: '/admin/views/ProductsList#ProductsList' } } },
   },
   access: {
-    read: anyone,
+    read: publishedProducts,
     create: isManager,
     update: isManager,
     delete: isSuperAdmin,

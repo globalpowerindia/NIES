@@ -1,3 +1,5 @@
+import { LIMITS } from '@/lib/rate-limit'
+import { guardMutation } from '@/lib/request-security'
 import type { NextResponse } from 'next/server'
 
 import { fail, invalid, readJson } from '@/lib/api-response'
@@ -7,6 +9,8 @@ import { addToCartSchema } from '@/lib/validations/cart'
 
 /** Adds a product or variant. Adding what is already there increases the line. */
 export const POST = async (request: Request): Promise<NextResponse> => {
+  const denied = await guardMutation(request, 'cartWrite', LIMITS.cartWrite)
+  if (denied) return denied
   const parsed = addToCartSchema.safeParse(await readJson(request))
   if (!parsed.success) return invalid(parsed.error)
 

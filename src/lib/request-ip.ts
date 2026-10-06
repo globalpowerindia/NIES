@@ -1,10 +1,10 @@
 /**
- * The caller's IP, for rate limits. On Vercel the platform sets
- * `x-forwarded-for` itself, with the client first; elsewhere it is a hint at
- * best, which is acceptable for throttling but must never be used to grant
- * anything.
+ * The caller's IP, for rate limits. Vercel overwrites `x-real-ip` with the
+ * address it actually saw, so a client can't choose its own; `x-forwarded-for`
+ * is only a fallback for other hosts, where it is a hint at best. Good enough
+ * for throttling, never for granting anything.
  */
-export const clientIp = (request: Request): string =>
-  request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+export const clientIp = (request: { headers: Headers }): string =>
   request.headers.get('x-real-ip')?.trim() ||
+  request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
   'unknown'

@@ -1,6 +1,6 @@
 import type { GlobalConfig } from 'payload'
 
-import { anyone, isManager } from '@/access/roles'
+import { publishedHome, isManager, isStaff } from '@/access/roles'
 import { HOME_BLOCKS } from '@/globals/home-blocks'
 import { revalidateStorefrontGlobal } from '@/lib/revalidate'
 
@@ -13,7 +13,8 @@ export const HomePage: GlobalConfig = {
       'Every section of the homepage, top to bottom. Drag to reorder, hide a section without deleting it, and save a draft before publishing.',
   },
   access: {
-    read: anyone,
+    read: publishedHome,
+    readVersions: isStaff,
     update: isManager,
   },
   versions: {

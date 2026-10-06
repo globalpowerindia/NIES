@@ -14,6 +14,7 @@ export const Media: CollectionConfig = {
     delete: isManager,
   },
   upload: {
+    externalFileHeaderFilter: () => ({}),
     // Product videos live here too; Payload only makes the resized copies below for images.
     mimeTypes: ['image/*', 'video/mp4', 'video/webm', 'video/quicktime'],
     imageSizes: [

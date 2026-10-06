@@ -1,7 +1,10 @@
 'use server'
 
+import { headers } from 'next/headers'
 import { z } from 'zod'
 
+import { LIMITS, rateLimit } from '@/lib/rate-limit'
+import { clientIp } from '@/lib/request-ip'
 import { getPayloadClient } from '@/lib/storefront/queries'
 
 export type NewsletterState = { status: 'idle' | 'success' | 'error'; message: string }
@@ -9,8 +12,7 @@ export type NewsletterState = { status: 'idle' | 'success' | 'error'; message: s
 const emailSchema = z.email().max(254)
 
 /**
- * Stores a newsletter sign-up. Repeat sign-ups succeed quietly (and
- * re-subscribe someone who had left), so the form never reveals whether an
+ * Stores a newsletter sign-up. Repeat sign-ups succeed quietly (without changing an existing unsubscribe decision), so the form never reveals whether an
  * address is already on the list.
  */
 export async function subscribeToNewsletter(
@@ -26,6 +28,9 @@ export async function subscribeToNewsletter(
 
   try {
     const payload = await getPayloadClient()
+    const ip = clientIp({ headers: await headers() })
+    const allowed = await rateLimit(payload, `newsletter:ip:${ip}`, LIMITS.newsletter)
+    if (!allowed.ok) return { status: 'error', message: 'Too many sign-ups from here. Please try again later.' }
     const existing = await payload.find({
       collection: 'newsletter-subscribers',
       where: { email: { equals: email } },
@@ -35,8 +40,8 @@ export async function subscribeToNewsletter(
     const current = existing.docs[0]
     if (!current) {
       await payload.create({ collection: 'newsletter-subscribers', data: { email, status: 'SUBSCRIBED', source: 'homepage' } })
-    } else if (current.status !== 'SUBSCRIBED') {
-      await payload.update({ collection: 'newsletter-subscribers', id: current.id, data: { status: 'SUBSCRIBED' } })
+    } else {
+      // Preserve unsubscribe decisions. Re-subscription requires verified consent.
     }
     return { status: 'success', message: 'Thanks! You’re on the list.' }
   } catch (error) {

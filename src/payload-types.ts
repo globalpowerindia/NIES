@@ -89,6 +89,7 @@ export interface Config {
     'wishlist-items': WishlistItem;
     'auth-identities': AuthIdentity;
     'otp-challenges': OtpChallenge;
+    'customer-sessions': CustomerSession;
     users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -132,6 +133,7 @@ export interface Config {
     'wishlist-items': WishlistItemsSelect<false> | WishlistItemsSelect<true>;
     'auth-identities': AuthIdentitiesSelect<false> | AuthIdentitiesSelect<true>;
     'otp-challenges': OtpChallengesSelect<false> | OtpChallengesSelect<true>;
+    'customer-sessions': CustomerSessionsSelect<false> | CustomerSessionsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -1068,6 +1070,18 @@ export interface OtpChallenge {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customer-sessions".
+ */
+export interface CustomerSession {
+  id: number;
+  customer: number | Customer;
+  expiresAt: string;
+  revokedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -1177,6 +1191,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'otp-challenges';
         value: number | OtpChallenge;
+      } | null)
+    | ({
+        relationTo: 'customer-sessions';
+        value: number | CustomerSession;
       } | null)
     | ({
         relationTo: 'users';
@@ -1695,6 +1713,17 @@ export interface OtpChallengesSelect<T extends boolean = true> {
   expiresAt?: T;
   consumedAt?: T;
   ipHash?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customer-sessions_select".
+ */
+export interface CustomerSessionsSelect<T extends boolean = true> {
+  customer?: T;
+  expiresAt?: T;
+  revokedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

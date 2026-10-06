@@ -1,3 +1,4 @@
+import { mutationGuard } from '@/lib/request-security'
 import type { NextResponse } from 'next/server'
 
 import { fail, invalid, ok, readJson } from '@/lib/api-response'
@@ -20,6 +21,8 @@ const SUSPENDED = 'This account has been suspended. Please contact us for help.'
  * for a mobile number (see `src/lib/pending-signin.ts`).
  */
 export const POST = async (request: Request): Promise<NextResponse> => {
+  const denied = mutationGuard(request)
+  if (denied) return denied
   const parsed = otpVerifySchema.safeParse(await readJson(request))
   if (!parsed.success) return invalid(parsed.error)
 
@@ -54,6 +57,7 @@ export const POST = async (request: Request): Promise<NextResponse> => {
 
   if (pending) {
     const attached = await attachPhone(payload, pending.customerId, destination)
+    if (attached.outcome === 'BLOCKED') return fail(403, SUSPENDED)
     if (attached.outcome === 'CONFLICT') {
       return fail(
         409,

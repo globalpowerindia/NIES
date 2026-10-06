@@ -13,6 +13,7 @@ import { Categories } from './collections/Categories'
 import { CouponRedemptions } from './collections/CouponRedemptions'
 import { Coupons } from './collections/Coupons'
 import { AuthIdentities } from './collections/AuthIdentities'
+import { CustomerSessions } from './collections/CustomerSessions'
 import { OtpChallenges } from './collections/OtpChallenges'
 import { Addresses } from './collections/Addresses'
 import { Customers } from './collections/Customers'
@@ -32,7 +33,11 @@ import { WishlistItems } from './collections/WishlistItems'
 import { HomePage } from './globals/HomePage'
 import { SiteSettings } from './globals/SiteSettings'
 import { env, r2 } from './lib/env'
+import { activeStaffRole } from './access/roles'
+import { siteUrl } from './lib/site-url'
 import { consoleEmailAdapter } from './lib/email-console'
+import { enforceCommerceInvariants } from './lib/commerce-constraints'
+import { addRateLimitTable } from './lib/rate-limit'
 import { enforceIntegerMoney } from './lib/schema-constraints'
 import { addSearchVector } from './lib/search-schema'
 
@@ -57,6 +62,9 @@ const r2Files = {
 }
 
 export default buildConfig({
+  serverURL: siteUrl(),
+  csrf: [siteUrl()],
+  upload: { limits: { fileSize: 25 * 1024 * 1024 }, abortOnLimit: true },
   admin: {
     user: Users.slug,
     importMap: {
@@ -97,6 +105,7 @@ export default buildConfig({
     WishlistItems,
     AuthIdentities,
     OtpChallenges,
+    CustomerSessions,
     Users,
   ],
   globals: [HomePage, SiteSettings],
@@ -113,8 +122,8 @@ export default buildConfig({
     // Under test that runs once per file against a remote database: it took
     // the suite to 33 minutes and Neon started resetting connections
     // mid-introspection. Tests run against the schema dev has already pushed.
-    push: process.env.NODE_ENV !== 'test',
-    afterSchemaInit: [enforceIntegerMoney, addSearchVector],
+    push: process.env.ALLOW_SCHEMA_PUSH === 'true' && process.env.NODE_ENV === 'development',
+    afterSchemaInit: [enforceIntegerMoney, enforceCommerceInvariants, addSearchVector, addRateLimitTable],
   }),
   // Until a real provider is configured (Module 9), print emails so the
   // verification and reset links are usable locally.
@@ -126,7 +135,7 @@ export default buildConfig({
       alwaysInsertFields: true,
       // Large files (videos, big photos) can't pass through a Vercel function,
       // so once R2's CORS allows it the browser uploads them directly.
-      clientUploads: env.R2_CLIENT_UPLOADS === 'true',
+      clientUploads: env.R2_CLIENT_UPLOADS === 'true' ? { access: ({ req }) => Boolean(activeStaffRole(req.user)) } : false,
       collections: { media: r2Files, datasheets: r2Files },
       bucket: r2?.bucket ?? '',
       config: {

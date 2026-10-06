@@ -1,6 +1,6 @@
 import type { CollectionAfterChangeHook, CollectionAfterDeleteHook, CollectionConfig, PayloadRequest } from 'payload'
 
-import { isManager, isStaff } from '@/access/roles'
+import { activeStaffRole, isManager, isStaff } from '@/access/roles'
 
 const relId = (value: unknown): number | undefined =>
   typeof value === 'number' ? value : (value as { id?: number } | null | undefined)?.id
@@ -49,7 +49,7 @@ export const Reviews: CollectionConfig = {
   },
   access: {
     // The public sees approved reviews only; staff see the moderation queue.
-    read: ({ req }) => (req.user ? true : { status: { equals: 'APPROVED' } }),
+    read: ({ req }) => (activeStaffRole(req.user) ? true : { status: { equals: 'APPROVED' } }),
     create: isStaff,
     update: isStaff,
     delete: isManager,

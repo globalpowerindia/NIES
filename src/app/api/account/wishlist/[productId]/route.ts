@@ -1,3 +1,5 @@
+import { LIMITS } from '@/lib/rate-limit'
+import { guardMutation } from '@/lib/request-security'
 import type { NextResponse } from 'next/server'
 
 import { fail, ok } from '@/lib/api-response'
@@ -6,9 +8,11 @@ import { getPayloadClient } from '@/lib/storefront/queries'
 
 /** Takes a product off the signed-in customer's wishlist. Already gone is fine too. */
 export const DELETE = async (
-  _request: Request,
+  request: Request,
   ctx: RouteContext<'/api/account/wishlist/[productId]'>,
 ): Promise<NextResponse> => {
+  const denied = await guardMutation(request, 'accountWrite', LIMITS.accountWrite)
+  if (denied) return denied
   const customer = await getCurrentCustomer()
   if (!customer) return fail(401, 'Please sign in again.')
 

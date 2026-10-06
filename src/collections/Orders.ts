@@ -1,8 +1,9 @@
-import type { CollectionConfig } from 'payload'
+import { APIError, type CollectionBeforeChangeHook, type CollectionConfig } from 'payload'
 
 import { bulkOrderStatus } from '@/admin/endpoints/bulkOrderStatus'
 import { isManager, isStaff, isSuperAdmin } from '@/access/roles'
 import { paiseField } from '@/fields/paise'
+import { LOCKED_ORDER_FIELDS, staffCanMoveOrder } from '@/lib/order-rules'
 
 export const ORDER_STATUSES = [
   'PENDING_PAYMENT',
@@ -28,6 +29,23 @@ export const ORDER_STATUS_OPTIONS = [
   { label: 'Returned', value: 'RETURNED' },
 ]
 
+/**
+ * The same rules for every staff write — admin form, REST, GraphQL or the bulk
+ * endpoint. System code (checkout, payment capture, seeds) runs without a
+ * staff user and is not limited by them.
+ */
+const enforceOrderRules: CollectionBeforeChangeHook = ({ data, originalDoc, operation, req }) => {
+  if (operation !== 'update' || !originalDoc || !req.user) return data
+  for (const field of LOCKED_ORDER_FIELDS) if (field in data) data[field] = originalDoc[field]
+  const from = originalDoc.status as OrderStatus
+  const to = (data.status ?? from) as OrderStatus
+  if (!staffCanMoveOrder(from, to)) {
+    const label = (status: OrderStatus) => ORDER_STATUS_OPTIONS.find((option) => option.value === status)?.label ?? status
+    throw new APIError(`An order can't go from "${label(from)}" to "${label(to)}".`, 400)
+  }
+  return data
+}
+
 export const Orders: CollectionConfig = {
   slug: 'orders',
   admin: {
@@ -46,6 +64,7 @@ export const Orders: CollectionConfig = {
     update: isManager,
     delete: isSuperAdmin,
   },
+  hooks: { beforeChange: [enforceOrderRules] },
   endpoints: [{ path: '/bulk-status', method: 'post', handler: bulkOrderStatus }],
   fields: [
     {

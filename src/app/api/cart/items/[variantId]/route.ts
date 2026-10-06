@@ -1,3 +1,5 @@
+import { LIMITS } from '@/lib/rate-limit'
+import { guardMutation } from '@/lib/request-security'
 import type { NextResponse } from 'next/server'
 
 import { fail, invalid, readJson } from '@/lib/api-response'
@@ -15,6 +17,8 @@ export const PATCH = async (
   request: Request,
   ctx: RouteContext<'/api/cart/items/[variantId]'>,
 ): Promise<NextResponse> => {
+  const denied = await guardMutation(request, 'cartWrite', LIMITS.cartWrite)
+  if (denied) return denied
   const variantId = await variantIdOf(ctx)
   if (!variantId) return fail(404, 'That item is no longer in your cart.')
   const parsed = setQuantitySchema.safeParse(await readJson(request))
@@ -32,9 +36,11 @@ export const PATCH = async (
 
 /** Removes a line. Already gone is fine too. */
 export const DELETE = async (
-  _request: Request,
+  request: Request,
   ctx: RouteContext<'/api/cart/items/[variantId]'>,
 ): Promise<NextResponse> => {
+  const denied = await guardMutation(request, 'cartWrite', LIMITS.cartWrite)
+  if (denied) return denied
   const variantId = await variantIdOf(ctx)
   const { payload, find } = await cartContext()
   const cart = await find()

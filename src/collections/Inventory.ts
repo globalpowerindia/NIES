@@ -56,6 +56,7 @@ export const Inventory: CollectionConfig = {
       fields: [
         {
           name: 'variant',
+          access: { update: () => false },
           type: 'relationship',
           relationTo: 'product-variants',
           required: true,
@@ -65,6 +66,7 @@ export const Inventory: CollectionConfig = {
         },
         {
           name: 'product',
+          access: { create: () => false, update: () => false },
           type: 'relationship',
           relationTo: 'products',
           index: true,
@@ -81,14 +83,14 @@ export const Inventory: CollectionConfig = {
           type: 'number',
           defaultValue: 0,
           label: 'On hand',
-          access: { update: () => false },
+          access: { create: () => false, update: () => false },
           admin: { width: '25%', readOnly: true, description: 'Units physically in the warehouse.' },
         },
         {
           name: 'reserved',
           type: 'number',
           defaultValue: 0,
-          access: { update: () => false },
+          access: { create: () => false, update: () => false },
           admin: { width: '25%', readOnly: true, description: 'Held for orders awaiting payment.' },
         },
         {

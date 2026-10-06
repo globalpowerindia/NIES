@@ -1,3 +1,5 @@
+import { LIMITS } from '@/lib/rate-limit'
+import { guardMutation } from '@/lib/request-security'
 import type { NextResponse } from 'next/server'
 
 import { fail, invalid, ok, readJson } from '@/lib/api-response'
@@ -10,6 +12,8 @@ const MAX_ADDRESSES = 20
 
 /** Adds an address for the signed-in customer. */
 export const POST = async (request: Request): Promise<NextResponse> => {
+  const denied = await guardMutation(request, 'accountWrite', LIMITS.accountWrite)
+  if (denied) return denied
   const customer = await getCurrentCustomer()
   if (!customer) return fail(401, 'Please sign in again.')
 

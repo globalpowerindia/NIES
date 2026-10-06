@@ -1,12 +1,12 @@
 import type { CollectionConfig } from 'payload'
 
 import { isManager, isStaff, isSuperAdmin } from '@/access/roles'
+import { revokeAllSessions } from '@/lib/customer-sessions'
 
 /**
  * The person. Deliberately NOT a Payload auth collection: staff log in through
  * Payload at /admin, customers through our own `session_token` JWT. Keeping the
- * realms in separate systems makes privilege escalation structurally
- * impossible rather than one missing role-check away.
+ * realms separate prevents customer sessions from authenticating as staff.
  *
  * Payload only stores and displays customers, which is what support staff need.
  * Every customer-facing write goes through our own /api handlers.
@@ -24,6 +24,23 @@ export const Customers: CollectionConfig = {
     group: 'Customers',
     defaultColumns: ['email', 'phone', 'firstName', 'lastName', 'createdAt'],
     description: 'Shoppers. Staff accounts live under Users.',
+  },
+  hooks: {
+    // Sessions can't outlive their customer (the column is required).
+    beforeDelete: [
+      async ({ id, req }) => {
+        await req.payload.delete({ collection: 'customer-sessions', where: { customer: { equals: id } }, overrideAccess: true, req })
+      },
+    ],
+    // Blocking someone signs them out everywhere, not just on their next request.
+    afterChange: [
+      async ({ doc, previousDoc, req }) => {
+        if (doc.status === 'BLOCKED' && previousDoc?.status !== 'BLOCKED') {
+          await revokeAllSessions(req.payload, doc.id, req)
+        }
+        return doc
+      },
+    ],
   },
   access: {
     // Never `anyone`: this is personal data. The storefront reads customers
@@ -51,12 +68,14 @@ export const Customers: CollectionConfig = {
         {
           name: 'email',
           type: 'email',
+          access: { update: () => false },
           index: true,
           admin: { width: '50%' },
         },
         {
           name: 'phone',
           type: 'text',
+          access: { update: () => false },
           index: true,
           admin: {
             width: '50%',
@@ -71,6 +90,7 @@ export const Customers: CollectionConfig = {
         {
           name: 'emailVerifiedAt',
           type: 'date',
+          access: { create: () => false, update: () => false },
           admin: {
             width: '50%',
             readOnly: true,
@@ -80,6 +100,7 @@ export const Customers: CollectionConfig = {
         {
           name: 'phoneVerifiedAt',
           type: 'date',
+          access: { create: () => false, update: () => false },
           admin: { width: '50%', readOnly: true, description: 'Set only by a correct SMS code. Gates account linking.' },
         },
       ],

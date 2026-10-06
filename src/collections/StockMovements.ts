@@ -56,7 +56,7 @@ export const StockMovements: CollectionConfig = {
         data.inventory = inventory.id
         data.onHandAfter = balance.onHand
         data.reservedAfter = balance.reserved
-        if (req.user && !data.recordedBy) data.recordedBy = req.user.id
+        if (req.user) data.recordedBy = req.user.id
         return data
       },
     ],

@@ -6,7 +6,7 @@
  * login page into a trusted-looking hop to a phishing site.
  */
 export const safeNext = (value: unknown, fallback = '/'): string => {
-  if (typeof value !== 'string') return fallback
+  if (typeof value !== 'string' || /[\x00-\x20\x7f\\]/.test(value)) return fallback
   if (!value.startsWith('/') || value.startsWith('//') || value.startsWith('/\\')) return fallback
   // Never bounce back onto an auth page — that is where they just were.
   if (/^\/(login|register)(\/|\?|$)/.test(value)) return fallback
