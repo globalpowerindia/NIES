@@ -67,3 +67,6 @@ node_modules/
 # Client catalogue workbooks and extracted import data stay out of git
 *.xlsx
 /import/
+
+# Internal audit reports
+/audit/

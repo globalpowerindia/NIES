@@ -71,6 +71,7 @@ export const useProductStock = (productId: number | string | undefined) => {
   }, [productId])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetching on mount; state is set when the request settles
     void load()
     window.addEventListener(STOCK_CHANGED, load)
     return () => window.removeEventListener(STOCK_CHANGED, load)

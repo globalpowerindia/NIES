@@ -2,7 +2,7 @@
 
 import { FieldDescription, FieldError, FieldLabel, useField } from '@payloadcms/ui'
 import type { NumberFieldClientComponent } from 'payload'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 const toText = (paise: number | null | undefined) =>
   typeof paise === 'number'
@@ -30,10 +30,11 @@ export const RupeeField: NumberFieldClientComponent = ({ field, path, readOnly }
   const [invalid, setInvalid] = useState(false)
 
   // Follow outside changes (a reset, or another field setting this one).
-  useEffect(() => {
+  const [followed, setFollowed] = useState(value)
+  if (followed !== value) {
+    setFollowed(value)
     if (parseRupees(text) !== value) setText(toText(value))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value])
+  }
 
   const description =
     typeof field.admin?.description === 'string' ? field.admin.description : undefined

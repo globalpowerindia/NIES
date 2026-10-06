@@ -15,20 +15,22 @@
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
     "test": "npm run test:unit && npm run test:int && npm run test:e2e",
     "test:e2e": "cross-env NODE_OPTIONS=\"--no-deprecation --import=tsx/esm\" playwright test --config=playwright.config.ts",
-    "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts tests/int",
-    "test:unit": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts src",
+    "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts --project int",
+    "test:unit": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts --project unit",
     "media:repair": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env src/seed/repair-media.ts",
     "search:check": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env src/seed/search-check.ts",
     "search:reindex": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env src/seed/reindex-search.ts",
     "import:catalogue": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env src/seed/import-catalogue.ts",
     "seed:orders": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env src/seed/orders.ts",
-    "seed:storefront": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env src/seed/storefront.ts"
+    "seed:storefront": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env src/seed/storefront.ts",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test:db:migrate": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file-if-exists=.env tests/helpers/migrate-test-db.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "3.89.0",
     "@payloadcms/next": "3.89.0",
     "@payloadcms/richtext-lexical": "3.89.0",
-    "@payloadcms/storage-s3": "^3.89.0",
+    "@payloadcms/storage-s3": "3.89.0",
     "@payloadcms/ui": "3.89.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -37,7 +39,7 @@
     "graphql": "^16.8.1",
     "jose": "^6.2.12",
     "lucide-react": "^1.47.0",
-    "next": "16.3.3",
+    "next": "16.3.8",
     "payload": "3.89.0",
     "radix-ui": "^1.6.7",
     "react": "19.2.6",
@@ -57,7 +59,7 @@
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "4.5.2",
     "eslint": "^9.16.0",
-    "eslint-config-next": "16.3.3",
+    "eslint-config-next": "16.3.8",
     "jsdom": "28.0.0",
     "prettier": "^3.4.2",
     "shadcn": "^4.21.0",
@@ -65,10 +67,10 @@
     "tsx": "4.22.4",
     "typescript": "5.7.3",
     "vite-tsconfig-paths": "6.0.5",
-    "vitest": "4.0.18"
+    "vitest": "4.1.11"
   },
   "engines": {
-    "node": "^18.20.2 || >=20.9.0",
+    "node": ">=20.9.0",
     "pnpm": "^9 || ^10 || ^11"
   },
   "pnpm": {
@@ -77,5 +79,10 @@
       "esbuild",
       "unrs-resolver"
     ]
+  },
+  "overrides": {
+    "payload": {
+      "undici": "7.29.1"
+    }
   }
 }

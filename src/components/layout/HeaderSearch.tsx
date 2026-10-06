@@ -16,20 +16,19 @@ export const HeaderSearch = ({ tiles }: { tiles: TopMovingTile[] }) => {
   const [open, setOpen] = useState(false)
   const [recents, setRecents] = useState<string[]>([])
   const [term, setTerm] = useState('')
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([])
+  // Tagged with the query they answer, so a stale reply is never shown for newer text.
+  const [answered, setAnswered] = useState<{ query: string; suggestions: Suggestion[] }>({ query: '', suggestions: [] })
 
   // localStorage is read after mount: the server cannot know it, and rendering
   // it on the first pass would be a hydration mismatch.
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- one post-mount read of browser storage
   useEffect(() => setRecents(readRecentSearches()), [])
 
   // Type-ahead. Debounced so a fast typist makes one request, not eight, and
   // aborted on the next keystroke so a slow reply can't overwrite a newer one.
   useEffect(() => {
     const query = term.trim()
-    if (query.length < 2) {
-      setSuggestions([])
-      return
-    }
+    if (query.length < 2) return
 
     const controller = new AbortController()
     const timer = setTimeout(async () => {
@@ -39,7 +38,7 @@ export const HeaderSearch = ({ tiles }: { tiles: TopMovingTile[] }) => {
         })
         if (!response.ok) return
         const data: { suggestions?: Suggestion[] } = await response.json()
-        setSuggestions(data.suggestions ?? [])
+        setAnswered({ query, suggestions: data.suggestions ?? [] })
       } catch {
         // Aborted, offline or a bad reply: the panel simply shows no
         // suggestions. Search itself still works from the form.
@@ -79,6 +78,7 @@ export const HeaderSearch = ({ tiles }: { tiles: TopMovingTile[] }) => {
   // While there is a query, the panel belongs to the suggestions; the idle
   // panel (recents and tiles) is what you get before typing starts.
   const typing = term.trim().length >= 2
+  const suggestions = answered.query === term.trim() ? answered.suggestions : []
   const hasPanel = typing ? suggestions.length > 0 : recents.length > 0 || tiles.length > 0
 
   return (

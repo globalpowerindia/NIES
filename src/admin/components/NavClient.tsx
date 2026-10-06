@@ -35,6 +35,7 @@ export const NavClient = ({ groups, staffName }: { groups: NavGroup[]; staffName
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- one post-mount read of browser storage
   useEffect(() => setCollapsed(readCollapsed()), [])
 
   useEffect(() => {

@@ -6,6 +6,12 @@ import { defineConfig, devices } from '@playwright/test'
  */
 import 'dotenv/config'
 
+import { requireTestDatabase } from './tests/helpers/test-database'
+
+// The admin tests seed and delete a staff account, so the browser tests run
+// only against a separate, disposable database, on a server started for them.
+requireTestDatabase()
+
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
@@ -34,8 +40,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm dev',
-    reuseExistingServer: true,
+    command: 'npm run dev',
+    // Never attach to an already-running dev server: it is on the app database.
+    reuseExistingServer: false,
     url: 'http://localhost:3000',
+    env: { DATABASE_URL: process.env.DATABASE_URL ?? '' },
   },
 })

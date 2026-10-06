@@ -5,17 +5,38 @@ import tsconfigPaths from 'vite-tsconfig-paths'
 export default defineConfig({
   plugins: [tsconfigPaths(), react()],
   test: {
-    environment: 'jsdom',
-    setupFiles: ['./vitest.setup.ts'],
-    include: ['tests/int/**/*.int.spec.ts', 'src/**/*.test.ts'],
-    // Integration tests boot Payload against Neon, which pulls the schema over
-    // the network and can take the best part of a minute on a cold start.
-    // Vitest's 10s default made `test:int` impossible to pass.
-    hookTimeout: 120_000,
-    testTimeout: 60_000,
-    // Each integration file boots Payload, and Payload pushes the schema on
-    // boot. Two doing that at once race on the same database and fail with
-    // "constraint does not exist". One file at a time.
-    fileParallelism: false,
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'unit',
+          environment: 'jsdom',
+          // Unit tests never connect, but some import modules that validate
+          // the environment on load; CI has no .env.
+          env: { DATABASE_URL: process.env.DATABASE_URL ?? 'postgres://unit-tests-do-not-connect@invalid/none' },
+          setupFiles: ['./vitest.setup.ts'],
+          include: ['src/**/*.test.ts'],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'int',
+          environment: 'node',
+          // tests/int/setup.ts refuses to run unless TEST_DATABASE_URL names a
+          // separate database: these tests create and delete real rows.
+          setupFiles: ['./vitest.setup.ts', './tests/int/setup.ts'],
+          include: ['tests/int/**/*.int.spec.ts'],
+          // Integration tests boot Payload over the network, which can take the
+          // best part of a minute on a cold start. Vitest's 10s default made
+          // `test:int` impossible to pass.
+          hookTimeout: 120_000,
+          testTimeout: 60_000,
+          // Each integration file boots Payload against the same database.
+          // One file at a time.
+          fileParallelism: false,
+        },
+      },
+    ],
   },
 })

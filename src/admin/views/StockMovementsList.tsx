@@ -29,6 +29,8 @@ export const StockMovementsList = async ({ payload, searchParams }: ListViewServ
     ? { or: [{ 'variant.sku': { like: q } }, { note: { like: q } }] }
     : undefined
 
+  // A server component renders once per request, so reading the clock here is safe.
+  // eslint-disable-next-line react-hooks/purity
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
   const [result, received, removed, lastWeek] = await Promise.all([
