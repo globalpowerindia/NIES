@@ -27,15 +27,15 @@ export const SortMenu = ({
 
   return (
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger className="group/sort flex items-center outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue-500">
-        <span className="grid size-[33px] place-items-center">
+      <DropdownMenuTrigger aria-label={`Sort products: ${SORTS[value]}`} className="group/sort flex max-w-full items-center outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue-500">
+        <span className="hidden size-[33px] place-items-center md:grid">
           <ListFilter className="size-6 text-dark-400" strokeWidth={1.5} />
         </span>
-        <span className="p-1 text-body2 font-medium whitespace-nowrap text-dark-300 sm:text-h6">Sort By :</span>
-        <span className="p-1 text-body2 font-semibold whitespace-nowrap text-dark-400 sm:text-h6">
+        <span className="p-0.5 text-[10px] leading-4 whitespace-nowrap text-dark-300 md:p-1 md:text-h6 md:font-medium">Sort By :</span>
+        <span className="p-0.5 text-[10px] leading-4 whitespace-nowrap text-dark-400 md:p-1 md:text-h6 md:font-semibold">
           {SORTS[value]}
         </span>
-        <ChevronDown className="size-5 text-dark-400 transition-transform group-data-[state=open]/sort:rotate-180" />
+        <ChevronDown className="size-4 shrink-0 text-dark-400 transition-transform group-data-[state=open]/sort:rotate-180 md:size-5" />
       </DropdownMenuTrigger>
 
       <DropdownMenuContent

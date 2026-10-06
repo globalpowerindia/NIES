@@ -14,13 +14,13 @@ export const useListingUrl = () => {
   const [isPending, startTransition] = useTransition()
 
   const update = useCallback(
-    (mutate: (params: URLSearchParams) => void) => {
+    (mutate: (params: URLSearchParams) => void, destination = pathname) => {
       const params = new URLSearchParams(searchParams.toString())
       mutate(params)
       params.delete('page')
       const query = params.toString()
       startTransition(() => {
-        router.push(query ? `${pathname}?${query}` : pathname, { scroll: false })
+        router.push(query ? `${destination}?${query}` : destination, { scroll: false })
       })
     },
     [pathname, router, searchParams],

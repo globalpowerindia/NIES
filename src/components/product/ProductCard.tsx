@@ -109,11 +109,11 @@ export const ProductCard = ({
 
         <hr className="border-t border-neutral-300" />
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="text-label1 font-semibold text-dark-500">
             {formatCurrency(pricePaise)}
           </span>
-          {mrpPaise && mrpPaise > pricePaise && (
+          {mrpPaise !== undefined && mrpPaise > pricePaise && (
             <span className="text-label1 text-dark-300 line-through">
               {formatCurrency(mrpPaise)}
             </span>

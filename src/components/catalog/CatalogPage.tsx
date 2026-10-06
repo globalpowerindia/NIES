@@ -2,13 +2,13 @@ import Image from 'next/image'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
-import { ProductCard } from '@/components/product/ProductCard'
 import { getListing } from '@/lib/storefront/catalog'
 import type { MediaInfo } from '@/lib/storefront/content'
 import { parseListingParams, withParam, type RawParams, type SortKey } from '@/lib/storefront/listing-params'
 
 import { Breadcrumbs, type Crumb } from './Breadcrumbs'
 import { CatalogFilters, type CategoryFilter } from './CatalogFilters'
+import { CatalogProductCard } from './CatalogProductCard'
 import { Pagination } from './Pagination'
 import { SortMenu } from './SortMenu'
 
@@ -65,8 +65,8 @@ export const CatalogPage = async ({
 
   return (
     <main className="bg-light-400 pb-6">
-      <div className="container-page flex flex-col gap-6 pt-6">
-        <div className="relative flex h-40 items-center justify-center overflow-hidden rounded-2xl bg-brand-blue-500 sm:h-[300px]">
+      <div className="container-page flex flex-col gap-[21px] pt-[14px] md:gap-6 md:pt-6">
+        <div className="relative flex h-[131px] items-center justify-center overflow-hidden rounded-2xl bg-brand-blue-500 md:h-[300px]">
           {banner && (
             <Image
               src={banner.url}
@@ -77,12 +77,12 @@ export const CatalogPage = async ({
               className="object-cover object-bottom"
             />
           )}
-          <h1 className="relative px-4 text-center text-h5 font-semibold text-light-100 sm:text-h3">{title}</h1>
+          <h1 className="relative px-4 text-center text-h6 font-semibold text-light-100 md:text-h3">{title}</h1>
         </div>
 
-        <Breadcrumbs items={breadcrumbs} />
+        <div className="hidden lg:block"><Breadcrumbs items={breadcrumbs} /></div>
 
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-7">
+        <div className="flex flex-col gap-2.5 lg:flex-row lg:items-start lg:gap-7">
           <aside className="w-full shrink-0 lg:w-[346px]">
             <CatalogFilters
               categories={categoryFilter}
@@ -99,11 +99,11 @@ export const CatalogPage = async ({
             />
           </aside>
 
-          <section aria-label="Products" className="flex min-w-0 flex-1 flex-col gap-4">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <p className="p-1 text-body1 font-medium text-dark-300 sm:text-h6">
+          <section aria-label="Products" className="flex min-w-0 flex-1 flex-col gap-2.5 md:gap-4">
+            <div className="flex min-h-8 flex-wrap items-center justify-between gap-x-1 gap-y-2">
+              <p className="p-1 text-[12px] leading-6 font-medium text-dark-300 md:text-h6">
                 Results for <span className="font-semibold text-dark-500">{title}</span>
-                <span className="ml-2 text-body3 font-normal text-dark-300">({listing.total})</span>
+                <span className="sr-only md:not-sr-only md:ml-2 md:text-body3 md:font-normal md:text-dark-300"> ({listing.total})</span>
               </p>
               <SortMenu value={params.sort} options={sortOptions} defaultSort={defaultSort} />
             </div>
@@ -111,10 +111,10 @@ export const CatalogPage = async ({
             {notice}
 
             {listing.cards.length > 0 ? (
-              <ul className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
+              <ul className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 min-[103.25rem]:grid-cols-4">
                 {listing.cards.map((card) => (
-                  <li key={card.href} className="flex">
-                    <ProductCard {...card} className="w-full" />
+                  <li key={card.href} className="flex min-w-0">
+                    <CatalogProductCard {...card} />
                   </li>
                 ))}
               </ul>

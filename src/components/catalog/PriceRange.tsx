@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,18 +20,22 @@ export const PriceRange = ({ bounds, value, onCommit }: Props) => {
   const [min, setMin] = useState(value.min ?? bounds.min)
   const [max, setMax] = useState(value.max ?? bounds.max)
 
-  // A back/forward navigation changes the URL under us; follow it.
-  useEffect(() => {
+  // A back/forward navigation changes the URL under us; follow it (adjusting
+  // state during render, which React prefers over an effect for this).
+  const incoming = `${value.min ?? bounds.min}-${value.max ?? bounds.max}`
+  const [followed, setFollowed] = useState(incoming)
+  if (followed !== incoming) {
+    setFollowed(incoming)
     setMin(value.min ?? bounds.min)
     setMax(value.max ?? bounds.max)
-  }, [value.min, value.max, bounds.min, bounds.max])
+  }
 
   const span = bounds.max - bounds.min || 1
   const step = Math.max(1, Math.round(span / 100))
 
   const commit = (nextMin = min, nextMax = max) => {
-    const low = Math.max(bounds.min, Math.min(nextMin, nextMax))
-    const high = Math.min(bounds.max, Math.max(nextMin, nextMax))
+    const low = Math.min(bounds.max, Math.max(bounds.min, Math.min(nextMin, nextMax)))
+    const high = Math.max(bounds.min, Math.min(bounds.max, Math.max(nextMin, nextMax)))
     setMin(low)
     setMax(high)
     if (low !== (value.min ?? bounds.min) || high !== (value.max ?? bounds.max)) onCommit(low, high)

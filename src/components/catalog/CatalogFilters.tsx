@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, ChevronRight, SlidersHorizontal } from 'lucide-react'
+import { Check, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { useState, type ReactNode } from 'react'
 
@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils'
 
 import { PriceRange } from './PriceRange'
 import { useListingUrl } from './useListingUrl'
+import { MobileCatalogFilters } from './MobileCatalogFilters'
 
 /**
  * `filter`: the category has sub-categories, and ticking them narrows this page (`?sub=`).
@@ -26,7 +27,7 @@ export type CategoryFilter = {
   selected: string[]
 }
 
-type Props = {
+export type CatalogFiltersProps = {
   categories: CategoryFilter | null
   brands: BrandFacet[]
   specs: SpecFacet[]
@@ -98,12 +99,11 @@ const FilterGroup = ({ title, defaultOpen, children }: { title: string; defaultO
   </Accordion>
 )
 
-export const CatalogFilters = ({ categories, brands, specs, price, current }: Props) => {
+export const CatalogFilters = ({ categories, brands, specs, price, current }: CatalogFiltersProps) => {
   const { update, toggle, isPending } = useListingUrl()
   const [showAllCategories, setShowAllCategories] = useState(false)
   const hasExtraFilter = current.inStock || Object.keys(current.specs).length > 0
   const [showMore, setShowMore] = useState(hasExtraFilter)
-  const [mobileOpen, setMobileOpen] = useState(false)
 
   const categoryOptions = categories
     ? showAllCategories
@@ -114,25 +114,15 @@ export const CatalogFilters = ({ categories, brands, specs, price, current }: Pr
 
   return (
     <div className="flex w-full flex-col gap-3">
-      <div className="flex items-center justify-between">
+      <MobileCatalogFilters categories={categories} brands={brands} specs={specs} price={price} current={current} />
+      <div className="hidden items-center justify-between lg:flex">
         <h2 className="text-h5 font-semibold text-dark-500 lg:text-h4">Filter</h2>
-        <button
-          type="button"
-          onClick={() => setMobileOpen((open) => !open)}
-          aria-expanded={mobileOpen}
-          aria-controls="catalog-filters"
-          className="flex items-center gap-2 rounded-xl border border-brand-blue-200 bg-light-100 px-4 py-2 text-body2 text-dark-500 lg:hidden"
-        >
-          <SlidersHorizontal className="size-5" />
-          {mobileOpen ? 'Hide filters' : 'Show filters'}
-        </button>
       </div>
 
       <div
         id="catalog-filters"
         className={cn(
-          'flex-col gap-3 rounded-xl bg-light-100 p-4 transition-opacity sm:p-8 lg:flex',
-          mobileOpen ? 'flex' : 'hidden',
+          'hidden flex-col gap-3 rounded-xl bg-light-100 p-8 transition-opacity lg:flex',
           isPending && 'opacity-60',
         )}
       >
