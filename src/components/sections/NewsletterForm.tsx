@@ -23,7 +23,7 @@ export const NewsletterForm = () => {
           aria-label="Email address"
           aria-describedby="newsletter-status"
           disabled={pending}
-          className="min-w-0 flex-1 rounded-xl bg-light-100 px-6 py-4 text-body3 text-dark-500 outline-none placeholder:text-dark-400 md:rounded-none md:rounded-l-xl"
+          className="h-[52px] min-w-0 flex-none rounded-xl bg-light-100 px-6 py-4 text-body3 text-dark-500 outline-none placeholder:text-dark-400 md:h-auto md:flex-1 md:rounded-none md:rounded-l-xl"
         />
         {/* Honeypot for bots; hidden from people and assistive tech. */}
         <input type="text" name="company" tabIndex={-1} autoComplete="off" aria-hidden className="hidden" />

@@ -44,10 +44,23 @@ export const CollectionShowcase = ({
   const update = useCallback(() => {
     const track = trackRef.current
     if (!track) return
-    const scrollable = track.scrollWidth - track.clientWidth
+    const scrollable = Math.max(0, track.scrollWidth - track.clientWidth)
+    const pages = Math.max(1, Math.ceil(track.scrollWidth / track.clientWidth - 0.05))
+    // The final page is clamped to the end of the track, rather than a full
+    // viewport step. Compare against those reachable positions after snapping.
+    const positions = Array.from({ length: pages }, (_, page) =>
+      Math.min(page * track.clientWidth, scrollable),
+    )
+    const page = positions.reduce(
+      (closest, position, index) =>
+        Math.abs(position - track.scrollLeft) < Math.abs(positions[closest] - track.scrollLeft)
+          ? index
+          : closest,
+      0,
+    )
     setScroll({
-      pages: Math.max(1, Math.ceil(track.scrollWidth / track.clientWidth - 0.05)),
-      page: Math.round(track.scrollLeft / Math.max(track.clientWidth, 1)),
+      pages,
+      page,
       ratio: Math.min(track.clientWidth / track.scrollWidth, 1),
       offset: scrollable > 0 ? track.scrollLeft / scrollable : 0,
     })
@@ -76,7 +89,7 @@ export const CollectionShowcase = ({
     <section className="flex flex-col gap-4 bg-light-400 md:gap-8 md:pt-20 md:pb-10 min-[1652px]:min-h-[980px]">
       <SectionHeading eyebrow={eyebrow} title={title} description={description} className="gap-4 [&>p]:max-w-[792px]" />
 
-      <div className="flex flex-col items-center gap-6 lg:flex-row">
+      <div className="flex flex-col items-center gap-4 md:gap-6 lg:flex-row">
         <div className="relative h-[347px] w-full shrink-0 overflow-hidden rounded-2xl md:hidden lg:block lg:h-[612px] lg:w-[588px]">
           <Image src={featureImage} alt="" fill sizes="588px" className="object-cover" />
         </div>
@@ -90,12 +103,12 @@ export const CollectionShowcase = ({
             {items.map((item, index) => (
               <Fragment key={item.href}>
                 {index > 0 && <li aria-hidden className="w-px shrink-0 self-stretch bg-neutral-300" />}
-                <li className="flex w-[258px] max-w-[85vw] shrink-0 snap-start flex-col items-center gap-4 pb-6 md:w-[371px]">
+                <li className="flex w-[237px] max-w-[85vw] shrink-0 snap-start flex-col items-center gap-4 pb-6 md:w-[371px]">
                   <Link
                     href={item.href}
-                    className="flex h-[210px] w-full items-center justify-center rounded-xl p-4 md:h-[300px] lg:h-[394px]"
+                    className="flex h-[254px] w-full items-center justify-center rounded-xl p-4 md:h-[300px] lg:h-[394px]"
                   >
-                    <span className="relative block size-[170px] md:size-[252px]">
+                    <span className="relative block size-[190px] md:size-[252px]">
                       <Image src={item.imageUrl} alt={item.name} fill sizes="252px" className="object-contain" />
                     </span>
                   </Link>
@@ -116,7 +129,7 @@ export const CollectionShowcase = ({
           </ul>
 
           {scrolls && (
-            <div className="flex items-start gap-1" role="tablist" aria-label="Collection pages">
+            <div className="hidden items-start gap-1 md:flex" role="tablist" aria-label="Collection pages">
               {Array.from({ length: scroll.pages }, (_, page) => (
                 <button
                   key={page}
@@ -135,7 +148,7 @@ export const CollectionShowcase = ({
           )}
 
           {ctaLabel && ctaHref && (
-            <ButtonLink href={ctaHref} variant="blue">
+            <ButtonLink href={ctaHref} variant="blue" className="hidden md:inline-flex">
               {ctaLabel}
             </ButtonLink>
           )}

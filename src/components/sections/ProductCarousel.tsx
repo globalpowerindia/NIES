@@ -47,7 +47,7 @@ export const ProductCarousel = ({
   return (
     // Without a heading (e.g. deals directly under the offer strip) the section
     // tucks up against whatever introduces it, as in the design.
-    <section className={eyebrow || title || description ? 'flex flex-col gap-4 md:gap-10 md:pt-20 md:pb-10' : 'flex flex-col py-5'}>
+    <section className={eyebrow || title || description ? 'flex flex-col gap-4 md:gap-10 md:pt-20 md:pb-10' : 'flex flex-col max-md:-mt-6 md:py-5'}>
       <SectionHeading eyebrow={eyebrow} title={title} description={description} />
 
       <div className="flex flex-col gap-10 py-6 md:py-0">

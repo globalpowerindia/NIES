@@ -33,7 +33,7 @@ export const CatalogueBanner = ({ title, description, buttonLabel, href, isDownl
         )}
       </div>
     </div>
-    <div className="relative min-h-[195px] flex-1 md:min-h-[260px] lg:min-h-[404px]">
+    <div className="relative min-h-[260px] flex-1 lg:min-h-[404px]">
       <Image src={image.url} alt={image.alt} fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover" />
     </div>
   </section>

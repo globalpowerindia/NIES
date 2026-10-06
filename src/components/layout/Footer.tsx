@@ -67,14 +67,14 @@ export const Footer = ({
 }: FooterProps) => (
   <footer className="mx-4 bg-light-100 py-10 md:mx-0 md:pt-20">
     <div className="container-page flex flex-col gap-5">
-      <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:flex-wrap md:gap-10">
+      <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:flex-wrap md:gap-10">
         <Link href="/">
           <Image
             src={logoUrl}
             alt={siteName}
             width={147}
             height={58}
-            className="h-[33px] w-[84px] object-contain md:h-[58px] md:w-auto"
+            className="h-[58px] w-auto object-contain"
           />
         </Link>
 
@@ -96,21 +96,25 @@ export const Footer = ({
           </div>
         ))}
 
-        {(columns.length ? columns : DEFAULT_LINK_COLUMNS).map((column) => (
-          <details key={`mobile-${column.heading}`} className="group w-full md:hidden">
-            <summary className="flex cursor-pointer list-none items-center justify-between py-2 text-body2 [&::-webkit-details-marker]:hidden">
-              {column.heading}
-              <ChevronDown className="size-4 transition-transform group-open:rotate-180" aria-hidden />
-            </summary>
-            <ul className="pb-2">
-              {column.links.map((link) => (
-                <li key={`${link.label}-${link.href}`}>
-                  <Link href={link.href} className="block py-2 text-body3 text-dark-400 hover:text-brand-red-500">{link.label}</Link>
-                </li>
-              ))}
-            </ul>
-          </details>
-        ))}
+        <div className="flex w-full flex-col gap-2 md:hidden">
+          {(columns.length ? columns : DEFAULT_LINK_COLUMNS).map((column) => (
+            <details key={`mobile-${column.heading}`} className="group w-full">
+              <summary className="flex h-7 cursor-pointer list-none items-center justify-between px-3 text-body2 font-medium text-dark-500 [&::-webkit-details-marker]:hidden">
+                {column.heading}
+                <ChevronDown className="size-6 transition-transform group-open:rotate-180" aria-hidden />
+              </summary>
+              <ul className="pt-[11px]">
+                {column.links.map((link) => (
+                  <li key={`${link.label}-${link.href}`}>
+                    <Link href={link.href} className="block px-5 py-4 text-body2 text-dark-500 hover:text-brand-red-500">{link.label}</Link>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ))}
+        </div>
+
+        <hr className="w-full border-t border-neutral-300 md:hidden" />
 
         <div className="flex flex-col gap-[11px]">
           <p className="px-3 text-body1 font-medium text-dark-500">Follow Us On</p>
@@ -143,30 +147,32 @@ export const Footer = ({
 
       <hr className="border-t border-neutral-300" />
 
-      <div className="flex flex-wrap items-center justify-between gap-6 rounded-2xl bg-light-100 md:p-3">
+      <div className="flex flex-col items-center gap-5 rounded-2xl bg-white p-3 md:flex-row md:flex-wrap md:justify-between md:gap-6 md:bg-light-100">
         <a href={`tel:${tollFreeNumber.replace(/[^\d+]/g, '')}`} className="flex items-center gap-2">
-          <span className="grid size-12 shrink-0 place-items-center rounded-full bg-brand-blue-400 text-light-100 md:h-full md:min-h-[64px] md:w-[70px]">
+          <span className="grid h-[49px] w-[50px] shrink-0 place-items-center rounded-full bg-brand-blue-400 text-light-100 md:h-full md:min-h-[64px] md:w-[70px]">
             <Phone className="size-6" strokeWidth={1.5} />
           </span>
           <span className="flex flex-col items-start">
-            <span className="px-3 text-body3 text-dark-400 md:text-body1">Toll Free Number</span>
+            <span className="px-3 text-body2 text-dark-400 md:text-body1">Toll Free Number</span>
             <span className="px-3 py-1 text-h6 font-semibold text-dark-500 md:text-h5">{tollFreeNumber}</span>
           </span>
         </a>
 
-        <ul className="flex flex-wrap items-center gap-4 md:gap-8">
+        <hr className="w-full border-t border-neutral-300 md:hidden" />
+
+        <ul className="flex w-full items-center justify-center gap-3.5 md:w-auto md:flex-wrap md:gap-8">
           {certifications.map((cert) => {
             const width =
               cert.width && cert.height ? Math.round((CERT_HEIGHT * cert.width) / cert.height) : CERT_HEIGHT
             return (
-              <li key={cert.url}>
+              <li key={cert.url} className="min-w-0">
                 <Image
                   src={cert.url}
                   alt={cert.alt}
                   width={width}
                   height={CERT_HEIGHT}
-                  style={{ width, height: CERT_HEIGHT }}
-                  className="max-md:max-h-8 max-md:max-w-12 object-contain"
+                  // All seven sit on one row on phones (Figma: 32px tall at most).
+                  className="h-auto max-h-8 w-auto max-w-full object-contain md:h-12 md:max-h-none"
                 />
               </li>
             )
@@ -174,15 +180,14 @@ export const Footer = ({
         </ul>
 
         {paymentImage && (
-          <div className="flex flex-col items-start gap-1">
+          <div className="flex min-w-0 max-w-full flex-col items-start gap-1">
             <p className="text-body1 text-dark-400">Payment</p>
             <Image
               src={paymentImage.url}
               alt={paymentImage.alt || 'Accepted payment methods'}
               width={316}
               height={37}
-              style={{ width: 316, height: 37 }}
-              className="max-w-full object-contain"
+              className="h-auto w-[316px] max-w-full object-contain"
             />
           </div>
         )}
@@ -190,15 +195,15 @@ export const Footer = ({
 
       <hr className="border-t border-neutral-300" />
 
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <p className="flex items-center gap-1 text-[12px] leading-4 text-dark-500 md:text-body3">
+      <div className="flex flex-col items-center gap-2 md:flex-row md:flex-wrap md:justify-between md:gap-4">
+        <p className="flex items-center gap-1 text-body3 text-dark-500">
           <Copyright className="size-[18px]" strokeWidth={1.5} />
           <span>
             {new Date().getFullYear()} <span className="text-brand-red-500">{siteName}</span> . All Rights
             Reserved
           </span>
         </p>
-        <p className="text-[12px] leading-4 text-dark-500 md:text-body3">
+        <p className="text-body3 text-dark-500">
           Designed &amp; Developed by <span className="font-medium text-brand-red-500">mits</span>
         </p>
       </div>

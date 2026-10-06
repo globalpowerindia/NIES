@@ -22,7 +22,6 @@ type BannerArtProps = {
  * Where the text block sits on each kind of banner, taken from the Figma
  * frames: hero 1620×600 (text at x 1139 / y 300), banner-row card 799×400
  * (x 526 / y 232, or x 57 on the left), feature 1620×500 (x 176 / y 175).
- * Below md everything falls back to a left-aligned, vertically centred block.
  */
 const PLACEMENT: Record<BannerVariant, { left: string; right: string; top: string; width: string }> = {
   hero: { left: 'md:left-[7%]', right: 'md:left-[70.3%]', top: 'md:top-1/2', width: 'md:w-[28%]' },
@@ -30,16 +29,27 @@ const PLACEMENT: Record<BannerVariant, { left: string; right: string; top: strin
   feature: { left: 'md:left-[10.9%]', right: 'md:right-[10.9%]', top: 'md:top-[35%]', width: 'md:w-[40%]' },
 }
 
+/**
+ * Below md, right-hand text follows the mobile frames: hero 358×164 (text at
+ * x 176 / y 78) and banner-row card 265×164 (x 117 / y 64). Everything else
+ * falls back to a left-aligned, vertically centred block.
+ */
+const MOBILE_RIGHT: Partial<Record<BannerVariant, string>> = {
+  hero: 'top-[47.5%] left-[49.2%] w-[39%]',
+  card: 'top-[39%] left-[44.2%] right-4',
+}
+const MOBILE_DEFAULT = 'inset-y-0 left-5 w-[76%] justify-center'
+
 const HEADING: Record<BannerVariant, string> = {
-  hero: 'text-h6 md:text-h2',
-  card: 'text-body2 md:text-h5',
-  feature: 'text-h6 md:text-h3',
+  hero: 'text-label2 font-semibold md:text-h2 md:font-medium',
+  card: 'text-label2 font-semibold md:text-h5 md:font-medium',
+  feature: 'text-h6 font-semibold md:text-h3 md:font-medium',
 }
 
 const SUBHEADING: Record<BannerVariant, string> = {
   hero: 'text-caption1 md:text-body2',
   card: 'text-caption1 md:text-body3',
-  feature: 'text-caption1 md:text-body1',
+  feature: 'font-mobile-caption text-caption1 md:font-sans md:text-body1',
 }
 
 /**
@@ -50,6 +60,7 @@ const SUBHEADING: Record<BannerVariant, string> = {
 export const BannerArt = ({ banner, variant, sizes, priority, className }: BannerArtProps) => {
   const { image, mobileImage, overlay, href } = banner
   const place = PLACEMENT[variant]
+  const mobilePlace = (overlay?.position === 'right' && MOBILE_RIGHT[variant]) || MOBILE_DEFAULT
 
   const art = (
     <>
@@ -83,19 +94,20 @@ export const BannerArt = ({ banner, variant, sizes, priority, className }: Banne
       {overlay && (
         <div
           className={cn(
-            'absolute inset-y-0 left-5 flex w-[76%] flex-col justify-center gap-2.5',
-            'md:inset-y-auto md:justify-start',
+            'absolute flex flex-col gap-[9px]',
+            mobilePlace,
+            'md:inset-y-auto md:right-auto md:justify-start md:gap-2.5',
             overlay.position === 'right' ? place.right : place.left,
             place.top,
             place.width,
-            variant === 'feature' && 'md:gap-4',
+            variant === 'feature' && 'gap-4 md:gap-4',
           )}
         >
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-[9px] md:gap-2">
             {overlay.heading && (
               <h2
                 className={cn(
-                  'font-medium whitespace-pre-line',
+                  'whitespace-pre-line',
                   HEADING[variant],
                   overlay.textTone === 'dark' ? 'text-dark-500' : 'text-light-100',
                 )}
@@ -107,7 +119,7 @@ export const BannerArt = ({ banner, variant, sizes, priority, className }: Banne
               <p
                 className={cn(
                   SUBHEADING[variant],
-                  overlay.textTone === 'dark' ? 'text-dark-400' : 'text-dark-200',
+                  overlay.textTone === 'dark' ? 'text-dark-400' : 'text-dark-100 md:text-dark-200',
                 )}
               >
                 {overlay.subheading}
@@ -115,7 +127,13 @@ export const BannerArt = ({ banner, variant, sizes, priority, className }: Banne
             )}
           </div>
           {overlay.buttonLabel && (
-            <span className={cn(buttonVariants({ variant: overlay.buttonStyle }), 'h-8 self-start px-3 text-[10px] leading-3 md:h-10 md:px-6 md:text-body2')}>
+            <span
+              className={cn(
+                buttonVariants({ variant: overlay.buttonStyle }),
+                'h-8 self-start px-6 text-[12px] leading-4 font-normal md:h-10 md:text-body2 md:font-medium',
+                variant === 'feature' && 'h-10',
+              )}
+            >
               {overlay.buttonLabel}
             </span>
           )}
@@ -145,8 +163,12 @@ export const BannerRow = ({ banners }: { banners: BannerData[] }) => {
   const [active, setActive] = useState(0)
   if (banners.length === 0) return null
   const single = banners.length === 1
+  // Artwork-only rows are the promo banners (Figma mobile 340×182, no dots);
+  // rows with live text are the hero's 265×164 companions, tucked under it.
+  const promo = banners.every((banner) => !banner.overlay)
+  const dots = !single && !promo
   return (
-    <section className="-mt-2.5 -mb-0.5 flex flex-col gap-[13px] md:my-0">
+    <section className={cn('flex flex-col gap-[13px]', !promo && '-mt-2.5 -mb-0.5 md:my-0')}>
       <div
         ref={track}
         onScroll={() => {
@@ -155,7 +177,11 @@ export const BannerRow = ({ banners }: { banners: BannerData[] }) => {
           const step = (element.firstElementChild as HTMLElement | null)?.offsetWidth ?? 265
           setActive(Math.min(banners.length - 1, Math.round(element.scrollLeft / (step + 16))))
         }}
-        className={cn('flex snap-x snap-mandatory gap-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:gap-[22px]', !single && 'lg:grid-cols-2')}
+        className={cn(
+          'flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:gap-[22px]',
+          promo ? 'gap-3' : 'gap-4',
+          !single && 'lg:grid-cols-2',
+        )}
       >
       {banners.map((banner, index) => (
         <div
@@ -163,7 +189,8 @@ export const BannerRow = ({ banners }: { banners: BannerData[] }) => {
           // A taller crop on phones so live text still fits; no min-height, which
           // would push the card wider than the screen through its aspect ratio.
           className={cn(
-            'w-[265px] min-w-0 shrink-0 snap-start aspect-[265/164] md:w-full',
+            'min-w-0 shrink-0 snap-start md:w-full',
+            promo ? 'aspect-[340/182] w-[min(340px,87vw)]' : 'aspect-[265/164] w-[265px]',
             single ? 'md:aspect-[1620/400]' : 'md:aspect-[799/400]',
           )}
         >
@@ -171,11 +198,12 @@ export const BannerRow = ({ banners }: { banners: BannerData[] }) => {
             banner={banner}
             variant={single ? 'feature' : 'card'}
             sizes={single ? '100vw' : '(max-width: 1024px) 100vw, 800px'}
+            className={promo ? undefined : 'max-md:rounded-xl'}
           />
         </div>
       ))}
       </div>
-      {!single && (
+      {dots && (
         <div className="flex h-[9px] items-center justify-center gap-[3px] md:hidden" aria-label="Promotional banners">
           {banners.map((banner, index) => (
             <button

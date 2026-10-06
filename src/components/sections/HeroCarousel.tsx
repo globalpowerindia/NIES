@@ -1,7 +1,7 @@
 'use client'
 
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { BannerArt } from '@/components/sections/Banner'
 import type { BannerData } from '@/lib/storefront/content'
@@ -14,6 +14,8 @@ export const HeroCarousel = ({ slides }: { slides: BannerData[] }) => {
   const [paused, setPaused] = useState(false)
 
   const go = (delta: number) => setIndex((current) => (current + delta + slides.length) % slides.length)
+  // Phones get no arrows (as in the mobile design), so a horizontal swipe turns the slide.
+  const touchX = useRef<number | null>(null)
 
   useEffect(() => {
     if (paused || slides.length < 2) return
@@ -28,11 +30,20 @@ export const HeroCarousel = ({ slides }: { slides: BannerData[] }) => {
     <section
       aria-roledescription="carousel"
       aria-label="Featured products"
-      className="relative aspect-[358/164] w-full overflow-hidden rounded-2xl md:aspect-[1620/600] md:min-h-[240px]"
+      className="relative aspect-[358/164] w-full overflow-hidden rounded-xl md:rounded-2xl md:aspect-[1620/600] md:min-h-[240px]"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
+      onTouchStart={(event) => {
+        touchX.current = event.touches[0].clientX
+      }}
+      onTouchEnd={(event) => {
+        if (touchX.current === null) return
+        const dx = event.changedTouches[0].clientX - touchX.current
+        touchX.current = null
+        if (Math.abs(dx) > 40 && slides.length > 1) go(dx < 0 ? 1 : -1)
+      }}
     >
       {slides.map((slide, slideIndex) => (
         <div
@@ -55,7 +66,7 @@ export const HeroCarousel = ({ slides }: { slides: BannerData[] }) => {
       ))}
 
       {slides.length > 1 && (
-        <div className="absolute right-2 bottom-2 flex items-center gap-1 md:right-6 md:bottom-6 md:gap-3">
+        <div className="absolute right-6 bottom-6 hidden items-center gap-3 md:flex">
           <button
             type="button"
             onClick={() => go(-1)}
