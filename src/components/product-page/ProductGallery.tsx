@@ -66,10 +66,10 @@ export const ProductGallery = ({
   const current = items[active] ?? items[0]
 
   return (
-    <div className="flex flex-col-reverse gap-4 lg:flex-row">
+    <div className="flex flex-col-reverse gap-[13px] lg:flex-row lg:gap-4">
       {items.length > 1 && (
         <ul
-          className="flex gap-3 overflow-x-auto lg:max-h-[724px] lg:flex-col lg:gap-5 lg:overflow-y-auto"
+          className="flex gap-2.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:max-h-[724px] lg:flex-col lg:gap-5 lg:overflow-y-auto"
           aria-label="Product images and videos"
         >
           {items.map((item, index) => (
@@ -93,7 +93,7 @@ export const ProductGallery = ({
                 }
                 aria-pressed={index === active}
                 className={cn(
-                  'relative block h-[88px] w-[83px] overflow-hidden rounded-xl bg-light-100 lg:h-[166px] lg:w-[156px]',
+                  'relative block h-[86px] w-[82px] overflow-hidden rounded-xl bg-light-100 lg:h-[166px] lg:w-[156px]',
                   index === active
                     ? 'border-[0.5px] border-dark-500'
                     : 'border-[0.5px] border-transparent hover:border-dark-200',
@@ -106,15 +106,19 @@ export const ProductGallery = ({
         </ul>
       )}
 
-      <div className="relative aspect-[682/724] w-full overflow-hidden rounded-xl bg-light-100 lg:flex-1">
-        {current.kind === 'image' ? (
+      <div className="relative h-[299px] w-full overflow-hidden rounded-xl bg-light-100 lg:aspect-[682/724] lg:h-auto lg:flex-1">
+        {!current ? (
+          <span className="grid h-full place-items-center text-body3 text-dark-300">
+            No product image available
+          </span>
+        ) : current.kind === 'image' ? (
           <Image
             src={current.image.url}
             alt={current.image.alt || name}
             fill
             priority
             sizes="(max-width: 1024px) 100vw, 682px"
-            className="object-contain p-[7.5%_7.5%_10%]"
+            className="object-contain px-[min(13.8%,50px)] pt-[34px] pb-2 lg:p-[7.5%_7.5%_10%]"
           />
         ) : current.kind === 'youtube' ? (
           <div className="absolute inset-0 grid place-items-center bg-dark-500">
@@ -139,12 +143,12 @@ export const ProductGallery = ({
             <source src={current.url} type={current.mimeType} />
           </video>
         )}
-        {current.kind === 'image' && (
+        {current?.kind === 'image' && (
           <WishlistHeart
             productId={productId}
             label={name}
-            className="absolute top-5 right-5"
-            iconClassName="size-9 lg:size-[45px]"
+            className="absolute top-3 right-3 lg:top-5 lg:right-5"
+            iconClassName="size-5 lg:size-[45px]"
             strokeWidth={1.25}
           />
         )}

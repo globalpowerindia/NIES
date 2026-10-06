@@ -10,7 +10,11 @@ const Stars = ({ filled }: { filled: number }) => (
     {[1, 2, 3, 4, 5].map((index) => (
       <Star
         key={index}
-        className={index <= filled ? 'size-[18px] fill-green-400 stroke-green-400' : 'size-[18px] stroke-green-400'}
+        className={
+          index <= filled
+            ? 'size-[18px] fill-green-400 stroke-green-400'
+            : 'size-[18px] stroke-green-400'
+        }
         strokeWidth={1.5}
       />
     ))}
@@ -18,27 +22,49 @@ const Stars = ({ filled }: { filled: number }) => (
 )
 
 const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Kolkata' })
+  new Date(iso).toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'Asia/Kolkata',
+  })
 
-export const ReviewsSection = ({ data, loginHref }: { data: ProductPageData; loginHref: string }) => {
+export const ReviewsSection = ({
+  data,
+  loginHref,
+}: {
+  data: ProductPageData
+  loginHref: string
+}) => {
   const { rating, reviews } = data
   const total = rating.distribution.reduce((sum, row) => sum + row.count, 0)
 
   return (
-    <section id="reviews" aria-labelledby="reviews-heading" className="flex scroll-mt-6 flex-col gap-6">
-      <h2 id="reviews-heading" className="text-h5 font-medium text-dark-500">
+    <section
+      id="reviews"
+      aria-labelledby="reviews-heading"
+      className="flex scroll-mt-6 flex-col gap-6"
+    >
+      <h2 id="reviews-heading" className="text-body2 font-medium text-dark-500 lg:text-h5">
         Rating &amp; Reviews
       </h2>
 
-      <div className="flex flex-col gap-6 py-4">
-        <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
-          <div className="flex flex-col items-center gap-1 self-center md:self-auto">
+      <div className="flex flex-col gap-4 py-2 lg:gap-6 lg:py-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex flex-col items-start gap-1 self-start lg:items-center lg:self-auto">
             <p className="flex items-center py-1 pr-4 pl-2">
-              <Star className="size-[59px] fill-green-400 stroke-green-400" aria-hidden />
-              <span className="text-h2 font-semibold text-dark-500">{rating.count ? rating.average.toFixed(1) : 0}</span>
+              <Star
+                className="size-10 fill-green-400 lg:size-[59px] stroke-green-400"
+                aria-hidden
+              />
+              <span className="text-h3 font-semibold lg:text-h2 text-dark-500">
+                {rating.count ? rating.average.toFixed(1) : 0}
+              </span>
             </p>
-            <p className="text-h6 font-medium text-dark-400">
-              {rating.count ? `${rating.count} review${rating.count === 1 ? '' : 's'}` : 'No reviews yet'}
+            <p className="text-body3 font-medium text-dark-400 lg:text-h6">
+              {rating.count
+                ? `${rating.count} review${rating.count === 1 ? '' : 's'}`
+                : 'No reviews yet'}
             </p>
           </div>
 
@@ -49,10 +75,15 @@ export const ReviewsSection = ({ data, loginHref }: { data: ProductPageData; log
                 <li key={row.stars} className="flex items-center gap-3">
                   <span className="sr-only">{row.stars} stars:</span>
                   <Stars filled={row.stars} />
-                  <span className="relative h-3 w-full min-w-24 bg-[#d9d9d9] md:w-[353px]">
-                    <span className="absolute inset-y-0 left-0 bg-green-400" style={{ width: `${percent}%` }} />
+                  <span className="relative h-3 w-full min-w-24 bg-[#d9d9d9] lg:w-[353px]">
+                    <span
+                      className="absolute inset-y-0 left-0 bg-green-400"
+                      style={{ width: `${percent}%` }}
+                    />
                   </span>
-                  <span className="w-12 text-h6 font-medium text-dark-400">{percent}%</span>
+                  <span className="w-12 text-body3 font-medium text-dark-400 lg:text-h6">
+                    {percent}%
+                  </span>
                 </li>
               )
             })}
@@ -60,10 +91,18 @@ export const ReviewsSection = ({ data, loginHref }: { data: ProductPageData; log
 
           <div className="flex flex-col justify-center gap-4">
             <div className="flex flex-col gap-1">
-              <p className="text-h6 font-semibold text-dark-500">Review this product</p>
-              <p className="text-body1 text-dark-300">Share your thoughts with other customers</p>
+              <p className="text-body2 font-semibold text-dark-500 lg:text-h6">
+                Review this product
+              </p>
+              <p className="text-[12px] leading-5 text-dark-300 lg:text-body1">
+                Share your thoughts with other customers
+              </p>
             </div>
-            <ButtonLink href={loginHref} variant="blue" className="h-[50px] w-[228px]">
+            <ButtonLink
+              href={loginHref}
+              variant="blue"
+              className="h-10 w-[228px] text-body3 lg:h-[50px] lg:text-body2"
+            >
               Write a Review
             </ButtonLink>
           </div>
@@ -83,7 +122,13 @@ export const ReviewsSection = ({ data, loginHref }: { data: ProductPageData; log
                     {review.verifiedPurchase && (
                       <span className="flex items-center gap-1 text-label2 text-dark-400">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src="/icons/verified.svg" alt="" width={20} height={20} className="size-5" />
+                        <img
+                          src="/icons/verified.svg"
+                          alt=""
+                          width={20}
+                          height={20}
+                          className="size-5"
+                        />
                         Verified Purchase
                       </span>
                     )}
@@ -100,7 +145,9 @@ export const ReviewsSection = ({ data, loginHref }: { data: ProductPageData; log
                       {review.authorName.trim().charAt(0).toUpperCase()}
                     </span>
                     <span className="flex flex-col gap-1">
-                      <span className="text-h6 font-semibold text-dark-400">{review.authorName}</span>
+                      <span className="text-h6 font-semibold text-dark-400">
+                        {review.authorName}
+                      </span>
                       <time dateTime={review.date} className="text-label2 text-dark-300">
                         {formatDate(review.date)}
                       </time>

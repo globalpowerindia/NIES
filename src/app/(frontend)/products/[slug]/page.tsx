@@ -12,6 +12,8 @@ import { ProductGallery } from '@/components/product-page/ProductGallery'
 import { ProductSummary } from '@/components/product-page/ProductSummary'
 import { ProductTabs } from '@/components/product-page/ProductTabs'
 import { ReviewsSection } from '@/components/product-page/ReviewsSection'
+import { ProductMobileBack } from '@/components/product-page/ProductMobileBack'
+import styles from '@/components/product-page/product-mobile.module.css'
 import { getProductPage } from '@/lib/storefront/product-page'
 
 const variantParam = (value: string | string[] | undefined) =>
@@ -59,13 +61,19 @@ export default async function ProductPage(props: PageProps<'/products/[slug]'>) 
   ]
 
   return (
-    <main className="bg-light-400 pb-6">
-      <div className="container-page flex flex-col gap-6 pt-6">
-        <Breadcrumbs items={crumbs} />
+    <main className={`${styles.page} bg-light-400 pb-6`}>
+      <div className="container-page">
+        <ProductMobileBack fallback={category ? `/category/${category.slug}` : '/products'} />
+      </div>
+      <div className="container-page flex flex-col gap-6 lg:pt-6">
+        <div className="hidden lg:block">
+          <Breadcrumbs items={crumbs} />
+        </div>
 
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-[60px]">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-[60px]">
           <div className="w-full lg:sticky lg:top-6 lg:w-[53%] lg:max-w-[854px]">
             <ProductGallery
+              key={data.variant.id}
               productId={product.id}
               images={data.images}
               videos={data.videos}
@@ -73,7 +81,7 @@ export default async function ProductPage(props: PageProps<'/products/[slug]'>) 
             />
           </div>
           <div className="min-w-0 flex-1">
-            <ProductSummary data={data} basePath={basePath} />
+            <ProductSummary key={data.variant.id} data={data} basePath={basePath} />
           </div>
         </div>
 

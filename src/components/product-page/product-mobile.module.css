@@ -1,0 +1,10 @@
+@media (width < 64rem) {
+  :global(body):has(.page) > header,
+  :global(body):has(.page) > a[aria-label='Chat with us on WhatsApp'] {
+    display: none;
+  }
+
+  :global(body):has(.page) {
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+}
