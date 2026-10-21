@@ -1,4 +1,4 @@
-import type { CollectionConfig, NumberFieldSingleValidation } from 'payload'
+import type { CollectionConfig, NumberFieldSingleValidation, Validate } from 'payload'
 
 import { isManager, isStaff, isSuperAdmin } from '@/access/roles'
 import { paiseField } from '@/fields/paise'
@@ -7,8 +7,17 @@ import { normaliseCouponCode } from '@/lib/cart-rules'
 /**
  * Discount codes. The cart checks every rule here on each view (see
  * `evaluateCoupon`); usage is counted from Coupon redemptions, which checkout
- * writes when an order is paid.
+ * writes when an order is paid, plus open checkouts still holding the code.
  */
+
+/** A code limited to some items must name at least one product, category or brand. */
+const validateScope: Validate = (_value, { siblingData }) => {
+  const data = siblingData as { appliesTo?: string; products?: unknown[]; categories?: unknown[]; brands?: unknown[] }
+  if (data.appliesTo !== 'ITEMS') return true
+  return (data.products?.length ?? 0) + (data.categories?.length ?? 0) + (data.brands?.length ?? 0) > 0
+    ? true
+    : 'Choose at least one product, category or brand, or apply the code to the whole order.'
+}
 export const Coupons: CollectionConfig = {
   slug: 'coupons',
   labels: { singular: 'Coupon', plural: 'Coupons' },
@@ -16,6 +25,7 @@ export const Coupons: CollectionConfig = {
     useAsTitle: 'code',
     group: 'Commerce',
     defaultColumns: ['code', 'type', 'percentBps', 'amountPaise', 'endsAt', 'isActive'],
+    components: { views: { list: { Component: '/admin/views/CouponsList#CouponsList' } } },
     description:
       'Discount codes shoppers enter in the cart. Switch a code off rather than deleting it.',
   },
@@ -69,6 +79,7 @@ export const Coupons: CollectionConfig = {
           options: [
             { label: 'Percentage off', value: 'PERCENT' },
             { label: 'Fixed amount off', value: 'FLAT' },
+            { label: 'Free delivery', value: 'FREE_SHIPPING' },
           ],
           admin: { width: '34%' },
         },
@@ -123,6 +134,7 @@ export const Coupons: CollectionConfig = {
           admin: {
             width: '50%',
             description: 'Caps a percentage code, e.g. 10% up to ₹1,000.',
+            condition: (_, siblingData) => siblingData?.type !== 'FREE_SHIPPING',
           },
         }),
       ],
@@ -172,6 +184,43 @@ export const Coupons: CollectionConfig = {
           },
         },
       ],
+    },
+    {
+      name: 'appliesTo',
+      label: 'Applies to',
+      type: 'select',
+      defaultValue: 'CART',
+      options: [
+        { label: 'The whole order', value: 'CART' },
+        { label: 'Selected products, categories or brands', value: 'ITEMS' },
+      ],
+      admin: {
+        condition: (_, siblingData) => siblingData?.type !== 'FREE_SHIPPING',
+        description:
+          'For selected items, the discount is worked out on those items only. The minimum order still counts the whole cart.',
+      },
+    },
+    {
+      type: 'row',
+      admin: { condition: (_, siblingData) => siblingData?.appliesTo === 'ITEMS' && siblingData?.type !== 'FREE_SHIPPING' },
+      fields: [
+        { name: 'products', type: 'relationship', relationTo: 'products', hasMany: true, admin: { width: '34%' }, validate: validateScope },
+        {
+          name: 'categories',
+          type: 'relationship',
+          relationTo: 'categories',
+          hasMany: true,
+          admin: { width: '33%', description: 'Includes their sub-categories.' },
+        },
+        { name: 'brands', type: 'relationship', relationTo: 'brands', hasMany: true, admin: { width: '33%' } },
+      ],
+    },
+    {
+      name: 'firstOrderOnly',
+      label: 'First order only',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: { description: 'Only for signed-in customers who have never had a paid order.' },
     },
     { name: 'redemptions', type: 'join', collection: 'coupon-redemptions', on: 'coupon' },
   ],

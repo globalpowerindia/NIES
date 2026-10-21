@@ -114,7 +114,7 @@ export const CollectionShowcase = ({
                   </Link>
                   <p className="w-full text-center text-body1 font-medium text-balance text-dark-500">{item.name}</p>
                   <p className="text-label1 font-semibold text-dark-500">
-                    {formatCurrency(item.pricePaise, { showPaise: true })}
+                    {item.pricePaise > 0 ? formatCurrency(item.pricePaise, { showPaise: true }) : 'Price on request'}
                   </p>
                   <Link
                     href={item.href}

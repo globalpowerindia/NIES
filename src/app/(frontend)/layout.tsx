@@ -3,6 +3,7 @@ import Image from 'next/image'
 import React from 'react'
 
 import { CartToast } from '@/components/cart/CartToast'
+import { EnquiryProvider } from '@/components/enquiry/EnquireButton'
 import { Footer } from '@/components/layout/Footer'
 import { Header } from '@/components/layout/Header'
 import { fileUrlOf, hrefOf, mediaOf, type MediaInfo } from '@/lib/storefront/content'
@@ -74,7 +75,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           categories={categories}
           searchTiles={searchTiles}
         />
-        <div className="flex-1">{children}</div>
+        <EnquiryProvider whatsapp={whatsapp || null}>
+          <div className="flex-1">{children}</div>
+        </EnquiryProvider>
         <CartToast />
         <Footer
           siteName={settings.siteName}

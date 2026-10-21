@@ -16,13 +16,14 @@ const r2Host = process.env.R2_PUBLIC_URL ? new URL(process.env.R2_PUBLIC_URL) : 
 const r2Origin = r2Host?.origin ?? ''
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''}`,
+  `script-src 'self' 'unsafe-inline' https://checkout.razorpay.com${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com",
-  `img-src 'self' data: blob: https://i.ytimg.com ${r2Origin}`,
+  `img-src 'self' data: blob: https://i.ytimg.com https://*.razorpay.com ${r2Origin}`,
   `media-src 'self' blob: ${r2Origin}`,
-  'frame-src https://www.youtube-nocookie.com https://www.youtube.com',
-  "connect-src 'self' https://*.r2.cloudflarestorage.com",
+  // Razorpay's payment window is an iframe from api.razorpay.com.
+  'frame-src https://www.youtube-nocookie.com https://www.youtube.com https://api.razorpay.com https://checkout.razorpay.com',
+  "connect-src 'self' https://*.r2.cloudflarestorage.com https://api.razorpay.com https://lumberjack.razorpay.com",
   "form-action 'self' https://accounts.google.com",
   "frame-ancestors 'self'",
   "base-uri 'self'",

@@ -147,10 +147,12 @@ export interface Config {
   globals: {
     'home-page': HomePage;
     'site-settings': SiteSetting;
+    'checkout-settings': CheckoutSetting;
   };
   globalsSelect: {
     'home-page': HomePageSelect<false> | HomePageSelect<true>;
     'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
+    'checkout-settings': CheckoutSettingsSelect<false> | CheckoutSettingsSelect<true>;
   };
   locale: null;
   widgets: {
@@ -338,6 +340,10 @@ export interface Product {
    * Only Active products appear in the storefront.
    */
   status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+  /**
+   * On: customers can add it to the cart and pay. Off: they see "Enquire on WhatsApp" instead.
+   */
+  sellOnline?: boolean | null;
   sortOrder?: number | null;
   /**
    * Stored x100. Maintained from approved reviews.
@@ -746,6 +752,26 @@ export interface Order {
    * In rupees, GST inclusive.
    */
   grandTotalPaise: number;
+  paymentMethod?: 'RAZORPAY' | null;
+  razorpayOrderId?: string | null;
+  razorpayPaymentId?: string | null;
+  /**
+   * Unpaid by then, the order is cancelled and its stock released.
+   */
+  paymentExpiresAt?: string | null;
+  paidAt?: string | null;
+  coupon?: (number | null) | Coupon;
+  couponCode?: string | null;
+  /**
+   * A free-delivery code: what delivery would have cost.
+   */
+  deliveryDiscountPaise?: number | null;
+  /**
+   * What the delivery fee was charged on.
+   */
+  shippingWeightGrams?: number | null;
+  cart?: (number | null) | Cart;
+  confirmationEmailSentAt?: string | null;
   trackingCarrier?: string | null;
   trackingNumber?: string | null;
   shippedAt?: string | null;
@@ -805,32 +831,92 @@ export interface AuthIdentity {
   createdAt: string;
 }
 /**
+ * Discount codes shoppers enter in the cart. Switch a code off rather than deleting it.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
+ * via the `definition` "coupons".
  */
-export interface User {
+export interface Coupon {
   id: number;
-  name: string;
-  role: 'SUPER_ADMIN' | 'MANAGER' | 'STAFF';
+  /**
+   * Saved in capitals without spaces. Shoppers can type it either way.
+   */
+  code: string;
   isActive?: boolean | null;
+  /**
+   * For staff only, e.g. "Diwali 2026 newsletter".
+   */
+  description?: string | null;
+  type: 'PERCENT' | 'FLAT' | 'FREE_SHIPPING';
+  /**
+   * 1000 = 10%.
+   */
+  percentBps?: number | null;
+  /**
+   * In rupees.
+   */
+  amountPaise?: number | null;
+  /**
+   * Leave empty for no minimum.
+   */
+  minSubtotalPaise?: number | null;
+  /**
+   * Caps a percentage code, e.g. 10% up to ₹1,000.
+   */
+  maxDiscountPaise?: number | null;
+  /**
+   * Empty: valid now.
+   */
+  startsAt?: string | null;
+  /**
+   * Empty: never expires.
+   */
+  endsAt?: string | null;
+  /**
+   * Across all shoppers. Empty: unlimited.
+   */
+  usageLimit?: number | null;
+  /**
+   * Empty: unlimited. When set, shoppers must sign in to use the code.
+   */
+  perCustomerLimit?: number | null;
+  /**
+   * For selected items, the discount is worked out on those items only. The minimum order still counts the whole cart.
+   */
+  appliesTo?: ('CART' | 'ITEMS') | null;
+  products?: (number | Product)[] | null;
+  /**
+   * Includes their sub-categories.
+   */
+  categories?: (number | Category)[] | null;
+  brands?: (number | Brand)[] | null;
+  /**
+   * Only for signed-in customers who have never had a paid order.
+   */
+  firstOrderOnly?: boolean | null;
+  redemptions?: {
+    docs?: (number | CouponRedemption)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
   updatedAt: string;
   createdAt: string;
-  email: string;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
-  hash?: string | null;
-  loginAttempts?: number | null;
-  lockUntil?: string | null;
-  sessions?:
-    | {
-        id: string;
-        createdAt?: string | null;
-        expiresAt: string;
-      }[]
-    | null;
-  password?: string | null;
-  collection: 'users';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "coupon-redemptions".
+ */
+export interface CouponRedemption {
+  id: number;
+  coupon: number | Coupon;
+  order: number | Order;
+  customer?: (number | null) | Customer;
+  /**
+   * In rupees, GST inclusive.
+   */
+  discountPaise: number;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * Shoppers’ carts. Carts untouched for a day are flagged as abandoned but stay usable.
@@ -864,80 +950,6 @@ export interface Cart {
   createdAt: string;
 }
 /**
- * Discount codes shoppers enter in the cart. Switch a code off rather than deleting it.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "coupons".
- */
-export interface Coupon {
-  id: number;
-  /**
-   * Saved in capitals without spaces. Shoppers can type it either way.
-   */
-  code: string;
-  isActive?: boolean | null;
-  /**
-   * For staff only, e.g. "Diwali 2026 newsletter".
-   */
-  description?: string | null;
-  type: 'PERCENT' | 'FLAT';
-  /**
-   * 1000 = 10%.
-   */
-  percentBps?: number | null;
-  /**
-   * In rupees.
-   */
-  amountPaise?: number | null;
-  /**
-   * Leave empty for no minimum.
-   */
-  minSubtotalPaise?: number | null;
-  /**
-   * Caps a percentage code, e.g. 10% up to ₹1,000.
-   */
-  maxDiscountPaise?: number | null;
-  /**
-   * Empty: valid now.
-   */
-  startsAt?: string | null;
-  /**
-   * Empty: never expires.
-   */
-  endsAt?: string | null;
-  /**
-   * Across all shoppers. Empty: unlimited.
-   */
-  usageLimit?: number | null;
-  /**
-   * Empty: unlimited. When set, shoppers must sign in to use the code.
-   */
-  perCustomerLimit?: number | null;
-  redemptions?: {
-    docs?: (number | CouponRedemption)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "coupon-redemptions".
- */
-export interface CouponRedemption {
-  id: number;
-  coupon: number | Coupon;
-  order: number | Order;
-  customer?: (number | null) | Customer;
-  /**
-   * In rupees, GST inclusive.
-   */
-  discountPaise: number;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "cart-items".
  */
@@ -949,6 +961,34 @@ export interface CartItem {
   quantity: number;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users".
+ */
+export interface User {
+  id: number;
+  name: string;
+  role: 'SUPER_ADMIN' | 'MANAGER' | 'STAFF';
+  isActive?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
+  collection: 'users';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1303,6 +1343,7 @@ export interface ProductsSelect<T extends boolean = true> {
   name?: T;
   slug?: T;
   status?: T;
+  sellOnline?: T;
   sortOrder?: T;
   ratingAvg?: T;
   ratingCount?: T;
@@ -1557,6 +1598,17 @@ export interface OrdersSelect<T extends boolean = true> {
   sgstPaise?: T;
   igstPaise?: T;
   grandTotalPaise?: T;
+  paymentMethod?: T;
+  razorpayOrderId?: T;
+  razorpayPaymentId?: T;
+  paymentExpiresAt?: T;
+  paidAt?: T;
+  coupon?: T;
+  couponCode?: T;
+  deliveryDiscountPaise?: T;
+  shippingWeightGrams?: T;
+  cart?: T;
+  confirmationEmailSentAt?: T;
   trackingCarrier?: T;
   trackingNumber?: T;
   shippedAt?: T;
@@ -1608,6 +1660,11 @@ export interface CouponsSelect<T extends boolean = true> {
   endsAt?: T;
   usageLimit?: T;
   perCustomerLimit?: T;
+  appliesTo?: T;
+  products?: T;
+  categories?: T;
+  brands?: T;
+  firstOrderOnly?: T;
   redemptions?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -2266,6 +2323,46 @@ export interface SiteSetting {
   createdAt?: string | null;
 }
 /**
+ * Delivery is charged by the total weight of the order, using these slabs.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "checkout-settings".
+ */
+export interface CheckoutSetting {
+  id: number;
+  /**
+   * Each slab covers orders up to its weight. Prices include GST. Kerala orders use the first price, all other states the second.
+   */
+  shippingSlabs?:
+    | {
+        maxWeightKg: number;
+        /**
+         * In rupees, GST inclusive.
+         */
+        withinStatePaise: number;
+        /**
+         * In rupees, GST inclusive.
+         */
+        otherStatesPaise: number;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * In rupees, GST inclusive.
+   */
+  extraPerKgWithinStatePaise: number;
+  /**
+   * In rupees, GST inclusive.
+   */
+  extraPerKgOtherStatesPaise: number;
+  /**
+   * Enter each variant’s weight (Products → variant → Weight) so customers are charged correctly.
+   */
+  defaultWeightKg: number;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "home-page_select".
  */
@@ -2606,6 +2703,26 @@ export interface SiteSettingsSelect<T extends boolean = true> {
   whatsappNumber?: T;
   certifications?: T;
   paymentMethodsImage?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "checkout-settings_select".
+ */
+export interface CheckoutSettingsSelect<T extends boolean = true> {
+  shippingSlabs?:
+    | T
+    | {
+        maxWeightKg?: T;
+        withinStatePaise?: T;
+        otherStatesPaise?: T;
+        id?: T;
+      };
+  extraPerKgWithinStatePaise?: T;
+  extraPerKgOtherStatesPaise?: T;
+  defaultWeightKg?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

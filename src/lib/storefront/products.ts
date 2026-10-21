@@ -98,6 +98,7 @@ export const toProductCards = async (
             ? 'new'
             : undefined,
         inStock,
+        sellOnline: product.sellOnline === true,
       },
     ]
   })

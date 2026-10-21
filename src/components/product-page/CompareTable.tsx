@@ -3,7 +3,8 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import { AddToCartButton } from '@/components/cart/AddToCartButton'
-import { formatCurrency } from '@/lib/money'
+import { EnquireButton } from '@/components/enquiry/EnquireButton'
+import { cardPrice } from '@/components/product/ProductCard'
 import type { ProductPageData } from '@/lib/storefront/product-page'
 import { cn } from '@/lib/utils'
 
@@ -103,10 +104,15 @@ export const CompareTable = ({ compare }: { compare: Compare }) => {
                       {column.name}
                     </Link>
                   )}
-                  <p className="text-body2 font-semibold text-dark-500 lg:text-h6">
-                    {formatCurrency(column.pricePaise)}
-                  </p>
+                  <p className="text-body2 font-semibold text-dark-500 lg:text-h6">{cardPrice(column.pricePaise)}</p>
                 </div>
+                {!column.sellOnline ? (
+                  <EnquireButton
+                    productName={column.name}
+                    href={column.href}
+                    className="h-10 w-full px-2 text-[0.75rem] lg:h-[2.8125rem] lg:text-body2"
+                  />
+                ) : (
                 <AddToCartButton
                   productId={column.productId}
                   disabled={!column.inStock}
@@ -116,6 +122,7 @@ export const CompareTable = ({ compare }: { compare: Compare }) => {
                 >
                   {column.inStock ? 'Add to Cart' : 'Out Of Stock'}
                 </AddToCartButton>
+                )}
               </div>
             ))}
 

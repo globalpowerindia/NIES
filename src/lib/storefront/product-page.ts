@@ -55,6 +55,7 @@ export type GalleryVideo =
 export type CompareColumn = {
   productId: number
   inStock: boolean
+  sellOnline: boolean
   href: string
   name: string
   image: string
@@ -275,6 +276,7 @@ const buildCompare = async (payload: Payload, product: Product, defs: Map<number
       {
         productId: entry.id,
         inStock: priced.inStock,
+        sellOnline: entry.sellOnline === true,
         href: `/products/${entry.slug}`,
         name: entry.name,
         image: mediaOf(entry.images?.[0])?.url ?? PLACEHOLDER_IMAGE,
@@ -287,7 +289,10 @@ const buildCompare = async (payload: Payload, product: Product, defs: Map<number
           entry.ratingCount
             ? { label: 'Rating', value: (Number(entry.ratingAvg ?? 0) / 100).toFixed(1), isRating: true }
             : { label: 'Rating', value: 'No reviews yet' },
-          { label: 'Availability', value: priced.inStock ? 'In Stock' : 'Out Of Stock' },
+          {
+            label: 'Availability',
+            value: entry.sellOnline !== true ? 'On enquiry' : priced.inStock ? 'In Stock' : 'Out Of Stock',
+          },
         ],
         specs: Object.fromEntries(
           specRows(entry, defs, (def) => def.isCompare !== false).map((row) => [row.label, row.value]),

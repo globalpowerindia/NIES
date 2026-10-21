@@ -64,4 +64,6 @@ export const LIMITS = {
   newsletter: { limit: 5, windowSeconds: 60 * 60 },
   accountWrite: { limit: 30, windowSeconds: 60 },
   staffPasswordReset: { limit: 5, windowSeconds: 60 * 60 },
+  /** Placing an order opens a Razorpay order each time; a ceiling against scripted checkouts. */
+  checkout: { limit: 10, windowSeconds: 10 * 60 },
 } satisfies Record<string, RateLimit>

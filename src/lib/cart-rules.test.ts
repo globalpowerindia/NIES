@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  couponCoversLine,
   evaluateCoupon,
   MAX_LINE_QTY,
   mergeCartLines,
@@ -92,6 +93,7 @@ describe('evaluateCoupon', () => {
     ).toEqual({
       ok: true,
       discountPaise: 9_999,
+      freeShipping: false,
     })
   })
 
@@ -100,6 +102,7 @@ describe('evaluateCoupon', () => {
     expect(evaluateCoupon(rule, { subtotalPaise: 1_000_000, now: NOW, usage: GUEST })).toEqual({
       ok: true,
       discountPaise: 50_000,
+      freeShipping: false,
     })
   })
 
@@ -108,6 +111,7 @@ describe('evaluateCoupon', () => {
     expect(evaluateCoupon(rule, { subtotalPaise: 40_000, now: NOW, usage: GUEST })).toEqual({
       ok: true,
       discountPaise: 40_000,
+      freeShipping: false,
     })
   })
 
@@ -165,6 +169,55 @@ describe('evaluateCoupon', () => {
         usage: { total: 5, byCustomer: 1 },
       }),
     ).toMatchObject({ ok: false, reason: 'ALREADY_USED' })
+  })
+})
+
+describe('evaluateCoupon: scope, first order, free delivery', () => {
+  const cart = { subtotalPaise: 300_000, now: NOW, usage: SIGNED_IN }
+
+  it('takes a percentage only off the items the code covers', () => {
+    const rule = percent(1000, { appliesTo: 'ITEMS' })
+    expect(evaluateCoupon(rule, { ...cart, eligibleSubtotalPaise: 100_000 })).toEqual({
+      ok: true,
+      discountPaise: 10_000,
+      freeShipping: false,
+    })
+  })
+
+  it('never takes a flat amount beyond the covered items', () => {
+    const rule: CouponRule = { type: 'FLAT', amountPaise: 50_000, isActive: true, appliesTo: 'ITEMS' }
+    expect(evaluateCoupon(rule, { ...cart, eligibleSubtotalPaise: 20_000 })).toMatchObject({ discountPaise: 20_000 })
+  })
+
+  it('says so when nothing in the cart is covered', () => {
+    expect(evaluateCoupon(percent(1000, { appliesTo: 'ITEMS' }), { ...cart, eligibleSubtotalPaise: 0 })).toMatchObject({
+      ok: false,
+      reason: 'NOT_ELIGIBLE',
+    })
+  })
+
+  it('keeps a first-order code for customers with no paid orders', () => {
+    const rule = percent(1000, { firstOrderOnly: true })
+    expect(evaluateCoupon(rule, { ...cart, firstOrder: null })).toMatchObject({ ok: false, reason: 'SIGN_IN_REQUIRED' })
+    expect(evaluateCoupon(rule, { ...cart, firstOrder: false })).toMatchObject({ ok: false, reason: 'NOT_FIRST_ORDER' })
+    expect(evaluateCoupon(rule, { ...cart, firstOrder: true })).toMatchObject({ ok: true })
+  })
+
+  it('waives delivery instead of taking money off the items', () => {
+    const rule: CouponRule = { type: 'FREE_SHIPPING', isActive: true, minSubtotalPaise: 200_000 }
+    expect(evaluateCoupon(rule, cart)).toEqual({ ok: true, discountPaise: 0, freeShipping: true })
+    expect(evaluateCoupon(rule, { ...cart, subtotalPaise: 100_000 })).toMatchObject({ ok: false, reason: 'MIN_SUBTOTAL' })
+  })
+})
+
+describe('couponCoversLine', () => {
+  const scope = { productIds: [7], categoryIds: [3], brandIds: [9] }
+
+  it('covers a chosen product, a product under a chosen category (at any depth), or a chosen brand', () => {
+    expect(couponCoversLine(scope, { productId: 7, categoryIds: [1], brandId: null })).toBe(true)
+    expect(couponCoversLine(scope, { productId: 1, categoryIds: [12, 3], brandId: null })).toBe(true)
+    expect(couponCoversLine(scope, { productId: 1, categoryIds: [12], brandId: 9 })).toBe(true)
+    expect(couponCoversLine(scope, { productId: 1, categoryIds: [12], brandId: 4 })).toBe(false)
   })
 })
 

@@ -76,6 +76,18 @@ export const Products: CollectionConfig = {
       },
     },
     {
+      name: 'sellOnline',
+      label: 'Sell online',
+      type: 'checkbox',
+      defaultValue: false,
+      index: true,
+      admin: {
+        position: 'sidebar',
+        description:
+          'On: customers can add it to the cart and pay. Off: they see "Enquire on WhatsApp" instead.',
+      },
+    },
+    {
       name: 'readiness',
       type: 'ui',
       admin: {

@@ -3,6 +3,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 
 import { AddToCartButton } from '@/components/cart/AddToCartButton'
+import { EnquireButton } from '@/components/enquiry/EnquireButton'
 import { WishlistHeart } from '@/components/wishlist/WishlistHeart'
 import { formatCurrency } from '@/lib/money'
 import { cn } from '@/lib/utils'
@@ -19,8 +20,13 @@ export type ProductCardProps = {
   rating?: number
   badge?: 'new' | 'bestSeller'
   inStock?: boolean
+  /** False for products sold on enquiry only: WhatsApp instead of the cart. */
+  sellOnline?: boolean
   className?: string
 }
+
+/** Enquiry-only products often have no price set; never show those as ₹0. */
+export const cardPrice = (pricePaise: number) => (pricePaise > 0 ? formatCurrency(pricePaise) : 'Price on request')
 
 const discountPercent = (pricePaise: number, mrpPaise?: number): number | null => {
   if (!mrpPaise || mrpPaise <= pricePaise) return null
@@ -39,9 +45,12 @@ export const ProductCard = ({
   rating,
   badge,
   inStock = true,
+  sellOnline = false,
   className,
 }: ProductCardProps) => {
-  const discount = discountPercent(pricePaise, mrpPaise)
+  const discount = pricePaise > 0 ? discountPercent(pricePaise, mrpPaise) : null
+  // Stock only matters for what can be bought here.
+  const soldOut = sellOnline && !inStock
 
   return (
     <div
@@ -72,16 +81,21 @@ export const ProductCard = ({
             alt={imageAlt}
             fill
             sizes="(max-width: 768px) 50vw, 250px"
-            className={cn('object-contain', !inStock && 'opacity-40')}
+            className={cn('object-contain', soldOut && 'opacity-40')}
           />
-          {!inStock && (
+          {soldOut && (
             <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-red-500 px-3 py-0.5 text-body3 whitespace-nowrap text-light-100">
               Out Of Stock
             </span>
           )}
         </Link>
 
-        {inStock && (
+        {!sellOnline && (
+          <div className="absolute inset-x-4 bottom-4 flex opacity-0 transition-opacity duration-200 group-hover:opacity-100 focus-within:opacity-100">
+            <EnquireButton productName={label} href={href} className="flex-1" />
+          </div>
+        )}
+        {sellOnline && inStock && (
           <div className="absolute inset-x-4 bottom-4 flex items-center gap-[0.4375rem] opacity-0 transition-opacity duration-200 group-hover:opacity-100 focus-within:opacity-100">
             <AddToCartButton productId={productId} buyNow variant="blue" className="w-[10.9375rem] flex-1">
               Buy Now
@@ -110,10 +124,8 @@ export const ProductCard = ({
         <hr className="border-t border-neutral-300" />
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-label1 font-semibold text-dark-500">
-            {formatCurrency(pricePaise)}
-          </span>
-          {mrpPaise !== undefined && mrpPaise > pricePaise && (
+          <span className="text-label1 font-semibold text-dark-500">{cardPrice(pricePaise)}</span>
+          {pricePaise > 0 && mrpPaise !== undefined && mrpPaise > pricePaise && (
             <span className="text-label1 text-dark-300 line-through">
               {formatCurrency(mrpPaise)}
             </span>
@@ -131,12 +143,12 @@ export const ProductCard = ({
       <div className="mt-auto flex items-center gap-0 self-start rounded-full">
         <span className="grid size-5 place-items-center">
           <span
-            className={cn('size-2 rounded-full', inStock ? 'bg-green-400' : 'bg-brand-red-500')}
+            className={cn('size-2 rounded-full', !sellOnline ? 'bg-brand-blue-300' : inStock ? 'bg-green-400' : 'bg-brand-red-500')}
             aria-hidden
           />
         </span>
-        <span className={cn('text-body3', inStock ? 'text-green-400' : 'text-brand-red-500')}>
-          {inStock ? 'In Stock' : 'Out Of Stock'}
+        <span className={cn('text-body3', !sellOnline ? 'text-brand-blue-300' : inStock ? 'text-green-400' : 'text-brand-red-500')}>
+          {!sellOnline ? 'Available on enquiry' : inStock ? 'In Stock' : 'Out Of Stock'}
         </span>
       </div>
     </div>

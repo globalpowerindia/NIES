@@ -30,6 +30,10 @@ export const Nav = async ({ payload, user }: ServerProps) => {
           badgeTone: 'warning',
         },
         { label: 'Awaiting payment', href: '/admin/collections/orders?view=unpaid', badge: unpaid.totalDocs },
+        { label: 'Coupons', href: '/admin/collections/coupons' },
+        { label: 'Carts', href: '/admin/collections/carts' },
+        { label: 'Customers', href: '/admin/collections/customers' },
+        { label: 'Delivery & checkout', href: '/admin/globals/checkout-settings' },
       ],
     },
     {
@@ -74,6 +78,7 @@ export const Nav = async ({ payload, user }: ServerProps) => {
       items: [
         { label: 'Homepage', href: '/admin/globals/home-page' },
         { label: 'Header & footer', href: '/admin/globals/site-settings' },
+        { label: 'Search synonyms', href: '/admin/collections/search-synonyms' },
         { label: 'Newsletter subscribers', href: '/admin/collections/newsletter-subscribers' },
       ],
     },

@@ -47,7 +47,7 @@ export const mergeCartLines = (
 }
 
 export type CouponRule = {
-  type: 'PERCENT' | 'FLAT'
+  type: 'PERCENT' | 'FLAT' | 'FREE_SHIPPING'
   percentBps?: number | null
   amountPaise?: number | null
   maxDiscountPaise?: number | null
@@ -57,10 +57,28 @@ export type CouponRule = {
   usageLimit?: number | null
   perCustomerLimit?: number | null
   isActive?: boolean | null
+  /** Only for a customer who has never had a paid order. */
+  firstOrderOnly?: boolean | null
+  /** 'ITEMS': only the products, categories or brands chosen on the coupon get the discount. */
+  appliesTo?: 'CART' | 'ITEMS' | null
 }
 
-/** Redemptions so far. `byCustomer` is null for a guest, who can't be counted. */
+/**
+ * Uses so far: paid redemptions plus open checkouts still holding the code.
+ * `byCustomer` is null for a guest, who can't be counted.
+ */
 export type CouponUsage = { total: number; byCustomer: number | null }
+
+export type CouponScope = { productIds: number[]; categoryIds: number[]; brandIds: number[] }
+
+/** A cart line as a scoped coupon sees it. `categoryIds` is the product's category and every parent above it. */
+export type ScopedLine = { productId: number; categoryIds: number[]; brandId: number | null }
+
+/** Whether a coupon limited to some products, categories or brands covers this line. A parent category covers its sub-categories. */
+export const couponCoversLine = (scope: CouponScope, line: ScopedLine): boolean =>
+  scope.productIds.includes(line.productId) ||
+  line.categoryIds.some((id) => scope.categoryIds.includes(id)) ||
+  (line.brandId !== null && scope.brandIds.includes(line.brandId))
 
 export type CouponRejection =
   | 'INVALID'
@@ -70,9 +88,12 @@ export type CouponRejection =
   | 'USED_UP'
   | 'ALREADY_USED'
   | 'SIGN_IN_REQUIRED'
+  | 'NOT_FIRST_ORDER'
+  | 'NOT_ELIGIBLE'
 
 export type CouponCheck =
-  { ok: true; discountPaise: number } | { ok: false; reason: CouponRejection; message: string }
+  | { ok: true; discountPaise: number; freeShipping: boolean }
+  | { ok: false; reason: CouponRejection; message: string }
 
 export const INVALID_COUPON_MESSAGE = "This code isn't valid."
 
@@ -92,9 +113,18 @@ const reject = (reason: CouponRejection, message: string): CouponCheck => ({
  */
 export const evaluateCoupon = (
   rule: CouponRule,
-  cart: { subtotalPaise: number; now: Date; usage: CouponUsage },
+  cart: {
+    subtotalPaise: number
+    now: Date
+    usage: CouponUsage
+    /** What the covered lines cost, for a coupon limited to some items. Defaults to the whole subtotal. */
+    eligibleSubtotalPaise?: number
+    /** Whether this would be the customer's first paid order; null for a guest. */
+    firstOrder?: boolean | null
+  },
 ): CouponCheck => {
   const { subtotalPaise, now, usage } = cart
+  const eligible = rule.appliesTo === 'ITEMS' ? (cart.eligibleSubtotalPaise ?? 0) : subtotalPaise
   if (!rule.isActive) return reject('INVALID', INVALID_COUPON_MESSAGE)
   if (rule.startsAt && new Date(rule.startsAt) > now)
     return reject('NOT_STARTED', "This code isn't active yet.")
@@ -119,13 +149,23 @@ export const evaluateCoupon = (
       return reject('ALREADY_USED', "You've already used this code.")
     }
   }
+  if (rule.firstOrderOnly) {
+    if (cart.firstOrder === null || cart.firstOrder === undefined)
+      return reject('SIGN_IN_REQUIRED', 'Please sign in to use this code.')
+    if (!cart.firstOrder) return reject('NOT_FIRST_ORDER', 'This code is for your first order only.')
+  }
+  if (rule.appliesTo === 'ITEMS' && eligible <= 0) {
+    return reject('NOT_ELIGIBLE', "This code doesn't apply to the items in your cart.")
+  }
+
+  if (rule.type === 'FREE_SHIPPING') return { ok: true, discountPaise: 0, freeShipping: true }
 
   const raw =
     rule.type === 'PERCENT'
-      ? Math.floor((subtotalPaise * (rule.percentBps ?? 0)) / 10_000)
+      ? Math.floor((eligible * (rule.percentBps ?? 0)) / 10_000)
       : (rule.amountPaise ?? 0)
   const capped = rule.maxDiscountPaise ? Math.min(raw, rule.maxDiscountPaise) : raw
-  return { ok: true, discountPaise: Math.max(0, Math.min(capped, subtotalPaise)) }
+  return { ok: true, discountPaise: Math.max(0, Math.min(capped, eligible)), freeShipping: false }
 }
 
 /** Codes are typed by people: case and stray spaces don't matter. */

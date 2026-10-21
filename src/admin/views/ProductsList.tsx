@@ -11,6 +11,9 @@ const VIEWS: Record<string, string> = {
   archived: 'ARCHIVED',
 }
 
+/** Sold online or enquiry-only (WhatsApp), the `sellOnline` checkbox. */
+const SALE_VIEWS: Record<string, boolean> = { online: true, enquiry: false }
+
 const STATUS: Record<string, { label: string; tone: Tone }> = {
   ACTIVE: { label: 'Active', tone: 'success' },
   DRAFT: { label: 'Draft', tone: 'warning' },
@@ -54,17 +57,27 @@ export const ProductsList = async ({ payload, searchParams }: ListViewServerProp
   const countOf = (test: (stock: ProductStock) => boolean) => [...allStock.values()].filter(test).length
 
   const where = combineWhere(
-    VIEWS[view] ? { status: { equals: VIEWS[view] } } : STOCK_VIEWS[view] ? idsWhere(STOCK_VIEWS[view]) : undefined,
+    VIEWS[view]
+      ? { status: { equals: VIEWS[view] } }
+      : STOCK_VIEWS[view]
+        ? idsWhere(STOCK_VIEWS[view])
+        : view in SALE_VIEWS
+          ? SALE_VIEWS[view]
+            ? { sellOnline: { equals: true } }
+            : { sellOnline: { not_equals: true } }
+          : undefined,
     searchWhere(q, ['name', 'slug', 'hsnCode']),
   )
 
-  const [result, active, draft, archived, variants] = await Promise.all([
+  const [result, active, draft, archived, variants, online] = await Promise.all([
     payload.find({ collection: 'products', where, limit, page, sort: '-updatedAt', depth: 1 }),
     payload.count({ collection: 'products', where: { status: { equals: 'ACTIVE' } } }),
     payload.count({ collection: 'products', where: { status: { equals: 'DRAFT' } } }),
     payload.count({ collection: 'products', where: { status: { equals: 'ARCHIVED' } } }),
     payload.count({ collection: 'product-variants' }),
+    payload.count({ collection: 'products', where: { sellOnline: { equals: true } } }),
   ])
+  const total = active.totalDocs + draft.totalDocs + archived.totalDocs
 
   const rows: ListRow[] = result.docs.map((product) => {
     const status = STATUS[product.status] ?? STATUS.DRAFT
@@ -94,7 +107,13 @@ export const ProductsList = async ({ payload, searchParams }: ListViewServerProp
             }
           : { t: 'empty' },
         { t: 'text', v: product.hsnCode, sub: `${(product.gstRateBps / 100).toFixed(0)}% GST` },
-        { t: 'pill', v: status.label, tone: status.tone },
+        {
+          t: 'pills',
+          items: [
+            { v: status.label, tone: status.tone },
+            product.sellOnline ? { v: 'Sold online', tone: 'success' } : { v: 'Enquiry only', tone: 'neutral' },
+          ],
+        },
         { t: 'date', v: product.updatedAt },
       ],
     }
@@ -126,6 +145,8 @@ export const ProductsList = async ({ payload, searchParams }: ListViewServerProp
         { key: 'noprice', label: 'No price', count: countOf(STOCK_VIEWS.noprice) },
         { key: 'out', label: 'Out of stock', count: countOf(STOCK_VIEWS.out) },
         { key: 'low', label: 'Low stock', count: countOf(STOCK_VIEWS.low) },
+        { key: 'online', label: 'Sold online', count: online.totalDocs },
+        { key: 'enquiry', label: 'Enquiry only', count: total - online.totalDocs },
       ]}
       columns={[
         { header: 'Product' },
@@ -134,7 +155,7 @@ export const ProductsList = async ({ payload, searchParams }: ListViewServerProp
         { header: 'Price', align: 'right', width: 110 },
         { header: 'Stock', width: 190 },
         { header: 'Tax', width: 110 },
-        { header: 'Status', width: 110 },
+        { header: 'Status', width: 190 },
         { header: 'Updated', width: 140 },
       ]}
       rows={rows}

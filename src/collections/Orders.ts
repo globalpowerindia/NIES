@@ -1,9 +1,15 @@
-import { APIError, type CollectionBeforeChangeHook, type CollectionConfig } from 'payload'
+import {
+  APIError,
+  type CollectionAfterChangeHook,
+  type CollectionBeforeChangeHook,
+  type CollectionConfig,
+} from 'payload'
 
 import { bulkOrderStatus } from '@/admin/endpoints/bulkOrderStatus'
 import { isManager, isStaff, isSuperAdmin } from '@/access/roles'
 import { paiseField } from '@/fields/paise'
 import { LOCKED_ORDER_FIELDS, staffCanMoveOrder } from '@/lib/order-rules'
+import { releaseOrderStock } from '@/lib/order-stock'
 
 export const ORDER_STATUSES = [
   'PENDING_PAYMENT',
@@ -46,6 +52,14 @@ const enforceOrderRules: CollectionBeforeChangeHook = ({ data, originalDoc, oper
   return data
 }
 
+/** An unpaid order that is cancelled (by expiry, a retried checkout, or staff) gives its held stock back. */
+const releaseUnpaidStock: CollectionAfterChangeHook = async ({ doc, previousDoc, operation, req }) => {
+  if (operation === 'update' && previousDoc?.status === 'PENDING_PAYMENT' && doc.status === 'CANCELLED') {
+    await releaseOrderStock(req, doc.id)
+  }
+  return doc
+}
+
 export const Orders: CollectionConfig = {
   slug: 'orders',
   admin: {
@@ -64,7 +78,7 @@ export const Orders: CollectionConfig = {
     update: isManager,
     delete: isSuperAdmin,
   },
-  hooks: { beforeChange: [enforceOrderRules] },
+  hooks: { beforeChange: [enforceOrderRules], afterChange: [releaseUnpaidStock] },
   endpoints: [{ path: '/bulk-status', method: 'post', handler: bulkOrderStatus }],
   fields: [
     {
@@ -299,6 +313,72 @@ export const Orders: CollectionConfig = {
               ],
             },
             paiseField({ name: 'grandTotalPaise', label: 'Grand total', required: true }),
+          ],
+        },
+        {
+          label: 'Payment',
+          description: 'Written by checkout and Razorpay. Read-only: a payment is never edited by hand.',
+          fields: [
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'paymentMethod',
+                  type: 'select',
+                  defaultValue: 'RAZORPAY',
+                  options: [{ label: 'Razorpay (online)', value: 'RAZORPAY' }],
+                  admin: { width: '34%', readOnly: true },
+                },
+                { name: 'razorpayOrderId', type: 'text', unique: true, index: true, admin: { width: '33%', readOnly: true } },
+                { name: 'razorpayPaymentId', type: 'text', index: true, admin: { width: '33%', readOnly: true } },
+              ],
+            },
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'paymentExpiresAt',
+                  type: 'date',
+                  admin: {
+                    width: '50%',
+                    readOnly: true,
+                    date: { pickerAppearance: 'dayAndTime' },
+                    description: 'Unpaid by then, the order is cancelled and its stock released.',
+                  },
+                },
+                { name: 'paidAt', type: 'date', admin: { width: '50%', readOnly: true, date: { pickerAppearance: 'dayAndTime' } } },
+              ],
+            },
+            {
+              type: 'row',
+              fields: [
+                { name: 'coupon', type: 'relationship', relationTo: 'coupons', admin: { width: '50%', readOnly: true } },
+                { name: 'couponCode', type: 'text', admin: { width: '50%', readOnly: true } },
+              ],
+            },
+            paiseField({
+              name: 'deliveryDiscountPaise',
+              label: 'Delivery waived by coupon',
+              defaultValue: 0,
+              admin: { readOnly: true, description: 'A free-delivery code: what delivery would have cost.' },
+            }),
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'shippingWeightGrams',
+                  label: 'Parcel weight (g)',
+                  type: 'number',
+                  admin: { width: '50%', readOnly: true, description: 'What the delivery fee was charged on.' },
+                },
+                { name: 'cart', type: 'relationship', relationTo: 'carts', admin: { width: '50%', readOnly: true } },
+              ],
+            },
+            {
+              name: 'confirmationEmailSentAt',
+              type: 'date',
+              admin: { readOnly: true, date: { pickerAppearance: 'dayAndTime' } },
+            },
           ],
         },
         {

@@ -38,6 +38,7 @@ export const enforceIntegerMoney: PostgresSchemaHook = ({ extendTable, schema })
       sgstPaise: wholeNonNegative('sgst_paise'),
       igstPaise: wholeNonNegative('igst_paise'),
       grandTotalPaise: wholeNonNegative('grand_total_paise'),
+      deliveryDiscountPaise: wholeNonNegative('delivery_discount_paise'),
     }),
   })
 
@@ -47,6 +48,22 @@ export const enforceIntegerMoney: PostgresSchemaHook = ({ extendTable, schema })
       amountPaise: wholeNonNegative('amount_paise'),
       minSubtotalPaise: wholeNonNegative('min_subtotal_paise'),
       maxDiscountPaise: wholeNonNegative('max_discount_paise'),
+    }),
+  })
+
+  extendTable({
+    table: schema.tables.checkout_settings,
+    extraConfig: () => ({
+      extraPerKgWithinStatePaise: wholeNonNegative('extra_per_kg_within_state_paise'),
+      extraPerKgOtherStatesPaise: wholeNonNegative('extra_per_kg_other_states_paise'),
+    }),
+  })
+
+  extendTable({
+    table: schema.tables.checkout_settings_shipping_slabs,
+    extraConfig: () => ({
+      withinStatePaise: wholeNonNegative('within_state_paise'),
+      otherStatesPaise: wholeNonNegative('other_states_paise'),
     }),
   })
 

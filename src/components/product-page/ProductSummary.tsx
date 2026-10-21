@@ -10,6 +10,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
+import { cardPrice } from '@/components/product/ProductCard'
 import { formatCurrency } from '@/lib/money'
 import type { ProductPageData, SpecRow } from '@/lib/storefront/product-page'
 import { cn } from '@/lib/utils'
@@ -72,7 +73,8 @@ const discountPercent = (price: number, mrp: number) =>
 
 export const ProductSummary = ({ data, basePath }: { data: ProductPageData; basePath: string }) => {
   const { product, variant, options, rating } = data
-  const discount = discountPercent(variant.sellingPricePaise, variant.mrpPaise)
+  const discount = variant.sellingPricePaise > 0 ? discountPercent(variant.sellingPricePaise, variant.mrpPaise) : null
+  const sellOnline = product.sellOnline === true
 
   return (
     <div className="flex flex-col gap-3 lg:gap-6">
@@ -99,9 +101,7 @@ export const ProductSummary = ({ data, basePath }: { data: ProductPageData; base
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-h5 font-semibold text-dark-500 lg:text-h3">
-            {formatCurrency(variant.sellingPricePaise)}
-          </p>
+          <p className="text-h5 font-semibold text-dark-500 lg:text-h3">{cardPrice(variant.sellingPricePaise)}</p>
           {discount !== null && (
             <>
               <p className="text-body3 font-medium text-dark-300 line-through lg:text-h6">
@@ -149,11 +149,11 @@ export const ProductSummary = ({ data, basePath }: { data: ProductPageData; base
                     option.sku === variant.sku
                       ? 'border-brand-blue-500 bg-brand-blue-100 text-dark-500'
                       : 'border-brand-blue-200 bg-light-100 text-dark-400 hover:border-brand-blue-400',
-                    !option.inStock && 'opacity-60',
+                    sellOnline && !option.inStock && 'opacity-60',
                   )}
                 >
                   <span className="font-medium">{option.name}</span>
-                  <span>{option.inStock ? formatCurrency(option.pricePaise) : 'Out of stock'}</span>
+                  <span>{option.inStock || !sellOnline ? cardPrice(option.pricePaise) : 'Out of stock'}</span>
                 </Link>
               </li>
             ))}
@@ -210,7 +210,7 @@ export const ProductSummary = ({ data, basePath }: { data: ProductPageData; base
       )}
 
       <Divider />
-      <BuyRow name={product.name} variantId={variant.id} inStock={data.inStock} />
+      <BuyRow name={product.name} variantId={variant.id} inStock={data.inStock} sellOnline={sellOnline} href={basePath} />
       <Divider />
 
       <div className="flex flex-col">

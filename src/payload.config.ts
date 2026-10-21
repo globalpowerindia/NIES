@@ -1,4 +1,5 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
+import { resendAdapter } from '@payloadcms/email-resend'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { s3Storage } from '@payloadcms/storage-s3'
 import path from 'path'
@@ -31,10 +32,12 @@ import { StockMovements } from './collections/StockMovements'
 import { Users } from './collections/Users'
 import { WishlistItems } from './collections/WishlistItems'
 import { HomePage } from './globals/HomePage'
+import { CheckoutSettings } from './globals/CheckoutSettings'
 import { SiteSettings } from './globals/SiteSettings'
 import { env, r2 } from './lib/env'
 import { activeStaffRole } from './access/roles'
 import { siteUrl } from './lib/site-url'
+import { addDocumentCountersTable } from './lib/document-numbers'
 import { consoleEmailAdapter } from './lib/email-console'
 import { enforceCommerceInvariants } from './lib/commerce-constraints'
 import { addRateLimitTable } from './lib/rate-limit'
@@ -108,7 +111,7 @@ export default buildConfig({
     CustomerSessions,
     Users,
   ],
-  globals: [HomePage, SiteSettings],
+  globals: [HomePage, SiteSettings, CheckoutSettings],
   editor: lexicalEditor(),
   secret: env.PAYLOAD_SECRET,
   typescript: {
@@ -123,11 +126,23 @@ export default buildConfig({
     // the suite to 33 minutes and Neon started resetting connections
     // mid-introspection. Tests run against the schema dev has already pushed.
     push: process.env.ALLOW_SCHEMA_PUSH === 'true' && process.env.NODE_ENV === 'development',
-    afterSchemaInit: [enforceIntegerMoney, enforceCommerceInvariants, addSearchVector, addRateLimitTable],
+    afterSchemaInit: [
+      enforceIntegerMoney,
+      enforceCommerceInvariants,
+      addSearchVector,
+      addRateLimitTable,
+      addDocumentCountersTable,
+    ],
   }),
-  // Until a real provider is configured (Module 9), print emails so the
-  // verification and reset links are usable locally.
-  email: consoleEmailAdapter,
+  // Resend once its key is set; until then emails print to the terminal in
+  // development (and refuse to send in production).
+  email: env.RESEND_API_KEY
+    ? resendAdapter({
+        apiKey: env.RESEND_API_KEY,
+        defaultFromAddress: env.EMAIL_FROM_ADDRESS ?? 'orders@toolshypermarket.com',
+        defaultFromName: env.EMAIL_FROM_NAME ?? 'Tools Hypermarket',
+      })
+    : consoleEmailAdapter,
   sharp,
   plugins: [
     s3Storage({
