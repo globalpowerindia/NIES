@@ -22,12 +22,12 @@ const Option = ({
   checked: boolean
   onChange: () => void
 }) => (
-  <label className="flex min-h-10 cursor-pointer items-center gap-2 py-2 text-[12px] leading-5 text-dark-500">
+  <label className="flex min-h-10 cursor-pointer items-center gap-2 py-2 text-[0.75rem] leading-5 text-dark-500">
     <span className="grid size-6 shrink-0 place-items-center">
       <Checkbox
         checked={checked}
         onCheckedChange={onChange}
-        className="size-[18px] rounded-[2px] border-2 border-dark-500 bg-light-100 data-[state=checked]:border-dark-500 data-[state=checked]:bg-dark-500 data-[state=checked]:text-light-100"
+        className="size-[1.125rem] rounded-[0.125rem] border-2 border-dark-500 bg-light-100 data-[state=checked]:border-dark-500 data-[state=checked]:bg-dark-500 data-[state=checked]:text-light-100"
       />
     </span>
     {label}
@@ -35,7 +35,7 @@ const Option = ({
 )
 
 const tabClass =
-  'min-h-11 w-full rounded-[2px] px-3 text-left text-body3 text-dark-500 data-[state=active]:bg-neutral-200 focus-visible:outline-2 focus-visible:outline-brand-blue-500'
+  'min-h-11 w-full rounded-[0.125rem] px-3 text-left text-body3 text-dark-500 data-[state=active]:bg-neutral-200 focus-visible:outline-2 focus-visible:outline-brand-blue-500'
 
 export const MobileCatalogFilters = ({
   categories,
@@ -104,7 +104,7 @@ export const MobileCatalogFilters = ({
 
   return (
     <Dialog.Root open={open} onOpenChange={changeOpen}>
-      <Dialog.Trigger className="flex h-[37px] w-[100px] items-center gap-2.5 rounded-lg border-[0.5px] border-dark-400 px-2.5 text-body3 text-dark-500 focus-visible:outline-2 focus-visible:outline-brand-blue-500 lg:hidden">
+      <Dialog.Trigger className="flex h-[2.3125rem] w-[6.25rem] items-center gap-2.5 rounded-lg border-[0.5px] border-dark-400 px-2.5 text-body3 text-dark-500 focus-visible:outline-2 focus-visible:outline-brand-blue-500 lg:hidden">
         <SlidersHorizontal className="size-5" strokeWidth={1.5} aria-hidden />
         Filter
       </Dialog.Trigger>
@@ -114,7 +114,7 @@ export const MobileCatalogFilters = ({
           aria-describedby={undefined}
           className="fixed inset-0 z-[100] flex h-dvh flex-col bg-white pt-[env(safe-area-inset-top)] text-dark-500 outline-none"
         >
-          <header className="flex h-14 shrink-0 items-center justify-between pr-[18px] pl-[19px]">
+          <header className="flex h-14 shrink-0 items-center justify-between pr-[1.125rem] pl-[1.1875rem]">
             <div className="flex items-center gap-2">
               <Dialog.Close
                 aria-label="Back to products"
@@ -136,11 +136,11 @@ export const MobileCatalogFilters = ({
             value={active}
             onValueChange={setActive}
             orientation="vertical"
-            className="flex min-h-0 flex-1 pr-[18px] pl-[19px]"
+            className="flex min-h-0 flex-1 pr-[1.125rem] pl-[1.1875rem]"
           >
             <Tabs.List
               aria-label="Filter groups"
-              className="flex w-[132px] shrink-0 flex-col items-start gap-0 overflow-y-auto border-r border-neutral-600 pr-3 max-[359px]:w-[108px]"
+              className="flex w-[8.25rem] shrink-0 flex-col items-start gap-0 overflow-y-auto border-r border-neutral-600 pr-3 max-[359px]:w-[6.75rem]"
             >
               {categories && (
                 <Tabs.Trigger value="category" className={tabClass}>
@@ -256,7 +256,7 @@ export const MobileCatalogFilters = ({
               ))}
             </div>
           </Tabs.Root>
-          <div className="shrink-0 pt-5 pr-[18px] pb-[max(16px,env(safe-area-inset-bottom))] pl-[19px]">
+          <div className="shrink-0 pt-5 pr-[1.125rem] pb-[max(1rem,env(safe-area-inset-bottom))] pl-[1.1875rem]">
             <Button type="button" variant="blue" className="w-full" onClick={apply}>
               Apply
             </Button>

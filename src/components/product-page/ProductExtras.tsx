@@ -66,7 +66,7 @@ export const Applications = ({ title, items }: ProductPageData['applications']) 
               className="object-cover"
             />
           </div>
-          <p className="flex h-[38px] items-center justify-center rounded-b-xl bg-brand-blue-400 text-center text-label2 font-medium text-light-100 lg:h-auto lg:py-4 lg:text-h5">
+          <p className="flex h-[2.375rem] items-center justify-center rounded-b-xl bg-brand-blue-400 text-center text-label2 font-medium text-light-100 lg:h-auto lg:py-4 lg:text-h5">
             {item.label}
           </p>
         </li>

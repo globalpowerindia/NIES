@@ -24,7 +24,7 @@ export const CategoryZone = ({ eyebrow, title, description, categories }: Catego
 
     <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:grid-cols-2 md:gap-10 lg:grid-cols-3">
       {categories.map((category, index) => (
-        <article key={`${category.href}-${index}`} className="flex w-[274px] shrink-0 snap-start flex-col gap-3 md:w-auto">
+        <article key={`${category.href}-${index}`} className="flex w-[17.125rem] shrink-0 snap-start flex-col gap-3 md:w-auto">
           <Link href={category.href} className="relative block aspect-[500/260] w-full overflow-hidden rounded-2xl">
             <Image
               src={category.image}

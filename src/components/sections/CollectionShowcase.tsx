@@ -86,15 +86,15 @@ export const CollectionShowcase = ({
   const scrolls = scroll.pages > 1
 
   return (
-    <section className="flex flex-col gap-4 bg-light-400 md:gap-8 md:pt-20 md:pb-10 min-[1652px]:min-h-[980px]">
-      <SectionHeading eyebrow={eyebrow} title={title} description={description} className="gap-4 [&>p]:max-w-[792px]" />
+    <section className="flex flex-col gap-4 bg-light-400 md:gap-8 md:pt-20 md:pb-10 lg:min-h-[61.25rem]">
+      <SectionHeading eyebrow={eyebrow} title={title} description={description} className="gap-4 [&>p]:max-w-[49.5rem]" />
 
       <div className="flex flex-col items-center gap-4 md:gap-6 lg:flex-row">
-        <div className="relative h-[347px] w-full shrink-0 overflow-hidden rounded-2xl md:hidden lg:block lg:h-[612px] lg:w-[588px]">
+        <div className="relative h-[21.6875rem] w-full shrink-0 overflow-hidden rounded-2xl md:hidden lg:block lg:h-[38.25rem] lg:w-[36.75rem]">
           <Image src={featureImage} alt="" fill sizes="588px" className="object-cover" />
         </div>
 
-        <div className="flex w-full min-w-0 flex-1 flex-col items-center justify-center gap-4 lg:h-[644px]">
+        <div className="flex w-full min-w-0 flex-1 flex-col items-center justify-center gap-4 lg:h-[40.25rem]">
           <ul
             ref={trackRef}
             onScroll={update}
@@ -103,12 +103,12 @@ export const CollectionShowcase = ({
             {items.map((item, index) => (
               <Fragment key={item.href}>
                 {index > 0 && <li aria-hidden className="w-px shrink-0 self-stretch bg-neutral-300" />}
-                <li className="flex w-[237px] max-w-[85vw] shrink-0 snap-start flex-col items-center gap-4 pb-6 md:w-[371px]">
+                <li className="flex w-[14.8125rem] max-w-[85vw] shrink-0 snap-start flex-col items-center gap-4 pb-6 md:w-[23.1875rem]">
                   <Link
                     href={item.href}
-                    className="flex h-[254px] w-full items-center justify-center rounded-xl p-4 md:h-[300px] lg:h-[394px]"
+                    className="flex h-[15.875rem] w-full items-center justify-center rounded-xl p-4 md:h-[18.75rem] lg:h-[24.625rem]"
                   >
-                    <span className="relative block size-[190px] md:size-[252px]">
+                    <span className="relative block size-[11.875rem] md:size-[15.75rem]">
                       <Image src={item.imageUrl} alt={item.name} fill sizes="252px" className="object-contain" />
                     </span>
                   </Link>
@@ -139,8 +139,8 @@ export const CollectionShowcase = ({
                   aria-label={`Page ${page + 1}`}
                   onClick={() => goToPage(page)}
                   className={cn(
-                    'h-2 rounded-[13px] transition-all',
-                    page === scroll.page ? 'w-[34px] bg-dark-400' : 'w-[18px] bg-dark-100 hover:bg-dark-200',
+                    'h-2 rounded-[0.8125rem] transition-all',
+                    page === scroll.page ? 'w-[2.125rem] bg-dark-400' : 'w-[1.125rem] bg-dark-100 hover:bg-dark-200',
                   )}
                 />
               ))}

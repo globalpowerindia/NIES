@@ -70,8 +70,8 @@ export default async function ProductPage(props: PageProps<'/products/[slug]'>) 
           <Breadcrumbs items={crumbs} />
         </div>
 
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-[60px]">
-          <div className="w-full lg:sticky lg:top-6 lg:w-[53%] lg:max-w-[854px]">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-[3.75rem]">
+          <div className="w-full lg:sticky lg:top-6 lg:w-[53%] lg:max-w-[53.375rem]">
             <ProductGallery
               key={data.variant.id}
               productId={product.id}

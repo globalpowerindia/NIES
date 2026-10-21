@@ -15,7 +15,7 @@ const AttributeTable = ({ rows }: { rows: SpecRow[] }) => (
       <div key={row.key} className="grid grid-cols-[58%_1fr]">
         <dt
           className={cn(
-            'border-[0.5px] border-brand-blue-200 bg-light-400 px-3 py-2 text-[10px] leading-4 text-dark-500 lg:p-5 lg:text-body1',
+            'border-[0.5px] border-brand-blue-200 bg-light-400 px-3 py-2 text-[0.625rem] leading-4 text-dark-500 lg:p-5 lg:text-body1',
             index === 0 && 'rounded-tl-sm',
             index === rows.length - 1 && 'rounded-bl-sm',
           )}
@@ -24,7 +24,7 @@ const AttributeTable = ({ rows }: { rows: SpecRow[] }) => (
         </dt>
         <dd
           className={cn(
-            'border-[0.5px] border-dark-100 px-3 py-2 text-[10px] leading-4 font-medium break-words text-dark-500 lg:p-5 lg:text-body1',
+            'border-[0.5px] border-dark-100 px-3 py-2 text-[0.625rem] leading-4 font-medium break-words text-dark-500 lg:p-5 lg:text-body1',
             index === 0 && 'rounded-tr-sm',
             index === rows.length - 1 && 'rounded-br-sm',
           )}
@@ -44,14 +44,14 @@ export const ProductTabs = ({ attributes, sections }: Props) => {
         aria-label="Product sections"
         className="flex overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        <span className="rounded-t-xl bg-brand-blue-400 px-6 py-3 text-[12px] leading-5 font-medium whitespace-nowrap text-brand-blue-100 lg:px-8 lg:py-4 lg:text-h6">
+        <span className="rounded-t-xl bg-brand-blue-400 px-6 py-3 text-[0.75rem] leading-5 font-medium whitespace-nowrap text-brand-blue-100 lg:px-8 lg:py-4 lg:text-h6">
           Attributes
         </span>
         {sections.map((section) => (
           <Link
             key={section.id}
             href={`#${section.id}`}
-            className="rounded-t-sm px-6 py-3 text-[12px] leading-5 font-medium whitespace-nowrap text-dark-300 transition-colors hover:text-brand-blue-400 lg:px-8 lg:py-4 lg:text-h6"
+            className="rounded-t-sm px-6 py-3 text-[0.75rem] leading-5 font-medium whitespace-nowrap text-dark-300 transition-colors hover:text-brand-blue-400 lg:px-8 lg:py-4 lg:text-h6"
           >
             {section.label}
           </Link>
@@ -61,7 +61,7 @@ export const ProductTabs = ({ attributes, sections }: Props) => {
         <h2 id="attributes-heading" className="text-body3 font-medium text-dark-500 lg:text-h5">
           Key Attributes
         </h2>
-        <div className="flex flex-col gap-0 lg:gap-6 xl:flex-row">
+        <div className="flex flex-col gap-0 lg:flex-row lg:gap-6">
           <AttributeTable rows={attributes.slice(0, half)} />
           {attributes.length > half && <AttributeTable rows={attributes.slice(half)} />}
         </div>

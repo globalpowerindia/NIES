@@ -42,7 +42,7 @@ export const Header = ({
                 href={href}
                 target={download ? '_blank' : undefined}
                 rel={download ? 'noopener' : undefined}
-                className="flex items-center gap-[7px] text-body3 transition-opacity hover:opacity-80"
+                className="flex items-center gap-[0.4375rem] text-body3 transition-opacity hover:opacity-80"
               >
                 <Icon className="size-5" strokeWidth={1.5} />
                 {label}
@@ -62,7 +62,7 @@ export const Header = ({
             width={147}
             height={58}
             priority
-            className="h-[33px] w-[84px] object-contain md:h-[58px] md:w-auto"
+            className="h-[2.0625rem] w-[5.25rem] object-contain md:h-[3.625rem] md:w-auto"
           />
         </Link>
 

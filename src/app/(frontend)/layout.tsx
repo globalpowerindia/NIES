@@ -91,7 +91,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Chat with us on WhatsApp"
-            className="fixed right-4 bottom-6 z-40 grid size-[41px] place-items-center rounded-md bg-[#25d366] shadow-lg transition-transform hover:scale-105 md:right-6 md:size-[60px]"
+            className="fixed right-4 bottom-6 z-40 grid size-[2.5625rem] place-items-center rounded-md bg-[#25d366] shadow-lg transition-transform hover:scale-105 md:right-6 md:size-[3.75rem]"
           >
             <Image src="/icons/social-whatsapp.svg" alt="" width={34} height={34} className="brightness-0 invert" />
           </a>

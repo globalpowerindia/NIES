@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 export const ProductMobileBack = ({ fallback }: { fallback: string }) => {
   const router = useRouter()
   return (
-    <div className="flex h-[52px] items-center lg:hidden">
+    <div className="flex h-[3.25rem] items-center lg:hidden">
       <button
         type="button"
         onClick={() => {

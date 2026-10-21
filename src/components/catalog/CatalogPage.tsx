@@ -65,8 +65,8 @@ export const CatalogPage = async ({
 
   return (
     <main className="bg-light-400 pb-6">
-      <div className="container-page flex flex-col gap-[21px] pt-[14px] md:gap-6 md:pt-6">
-        <div className="relative flex h-[131px] items-center justify-center overflow-hidden rounded-2xl bg-brand-blue-500 md:h-[300px]">
+      <div className="container-page flex flex-col gap-[1.3125rem] pt-[0.875rem] md:gap-6 md:pt-6">
+        <div className="relative flex h-[8.1875rem] items-center justify-center overflow-hidden rounded-2xl bg-brand-blue-500 md:h-[18.75rem]">
           {banner && (
             <Image
               src={banner.url}
@@ -83,7 +83,7 @@ export const CatalogPage = async ({
         <div className="hidden lg:block"><Breadcrumbs items={breadcrumbs} /></div>
 
         <div className="flex flex-col gap-2.5 lg:flex-row lg:items-start lg:gap-7">
-          <aside className="w-full shrink-0 lg:w-[346px]">
+          <aside className="w-full shrink-0 lg:w-[21.625rem]">
             <CatalogFilters
               categories={categoryFilter}
               brands={listing.facets.brands}
@@ -101,7 +101,7 @@ export const CatalogPage = async ({
 
           <section aria-label="Products" className="flex min-w-0 flex-1 flex-col gap-2.5 md:gap-4">
             <div className="flex min-h-8 flex-wrap items-center justify-between gap-x-1 gap-y-2">
-              <p className="p-1 text-[12px] leading-6 font-medium text-dark-300 md:text-h6">
+              <p className="p-1 text-[0.75rem] leading-6 font-medium text-dark-300 md:text-h6">
                 Results for <span className="font-semibold text-dark-500">{title}</span>
                 <span className="sr-only md:not-sr-only md:ml-2 md:text-body3 md:font-normal md:text-dark-300"> ({listing.total})</span>
               </p>
@@ -111,7 +111,7 @@ export const CatalogPage = async ({
             {notice}
 
             {listing.cards.length > 0 ? (
-              <ul className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 min-[103.25rem]:grid-cols-4">
+              <ul className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
                 {listing.cards.map((card) => (
                   <li key={card.href} className="flex min-w-0">
                     <CatalogProductCard {...card} />

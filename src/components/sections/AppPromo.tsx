@@ -85,7 +85,7 @@ const StoreBadge = ({
     target="_blank"
     rel="noopener noreferrer"
     aria-label={label}
-    className="relative block h-[40px] w-[127px] shrink-0 overflow-hidden rounded-[6px] transition-opacity hover:opacity-90 md:h-[58px] md:w-[184px] md:rounded-[9px]"
+    className="relative block h-[2.5rem] w-[7.9375rem] shrink-0 overflow-hidden rounded-[0.375rem] transition-opacity hover:opacity-90 md:h-[3.625rem] md:w-[11.5rem] md:rounded-[0.5625rem]"
   >
     <Image
       src="/app-promo/store-badges.png"
@@ -140,9 +140,9 @@ export const AppPromo = ({ title, description, screenshot, googlePlayUrl, appSto
       </div>
     )}
 
-    <div className="relative flex flex-col items-center gap-5 px-8 pt-[62px] pb-[62px] text-center md:items-start md:py-16 md:text-left lg:absolute lg:top-[22.8%] lg:left-[15.56%] lg:w-[38.5%] lg:p-0">
+    <div className="relative flex flex-col items-center gap-5 px-8 pt-[3.875rem] pb-[3.875rem] text-center md:items-start md:py-16 md:text-left lg:absolute lg:top-[22.8%] lg:left-[15.56%] lg:w-[38.5%] lg:p-0">
       <div className="flex flex-col gap-6">
-        {title && <h2 className="text-h5 font-semibold text-light-100 md:text-h3 md:font-medium xl:text-title3">{title}</h2>}
+        {title && <h2 className="text-h5 font-semibold text-light-100 md:text-h3 md:font-medium lg:text-title3">{title}</h2>}
         {description && <p className="text-body3 text-brand-blue-200 md:text-body1">{description}</p>}
       </div>
       {(googlePlayUrl || appStoreUrl) && (

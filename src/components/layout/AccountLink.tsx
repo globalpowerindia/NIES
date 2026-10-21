@@ -76,7 +76,7 @@ export const AccountLink = () => {
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger className="group/account flex items-center gap-2 text-dark-500 outline-none hover:text-brand-blue-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue-500">
         <User className="size-8 lg:size-10" strokeWidth={1.5} />
-        <span className="hidden max-w-[140px] truncate text-body2 lg:inline">Hi, {name}</span>
+        <span className="hidden max-w-[8.75rem] truncate text-body2 lg:inline">Hi, {name}</span>
         <span className="sr-only lg:hidden">Your account</span>
         <ChevronDown
           className="hidden size-4 transition-transform group-data-[state=open]/account:rotate-180 lg:block"

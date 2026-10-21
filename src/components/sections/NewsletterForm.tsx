@@ -12,7 +12,7 @@ export const NewsletterForm = () => {
   const [state, action, pending] = useActionState(subscribeToNewsletter, initial)
 
   return (
-    <div className="flex w-full max-w-[529px] flex-col gap-2">
+    <div className="flex w-full max-w-[33.0625rem] flex-col gap-2">
       <form action={action} className="flex w-full flex-col items-stretch gap-2 md:flex-row md:gap-0">
         <Input
           type="email"
@@ -23,7 +23,7 @@ export const NewsletterForm = () => {
           aria-label="Email address"
           aria-describedby="newsletter-status"
           disabled={pending}
-          className="h-[52px] min-w-0 flex-none rounded-xl bg-light-100 px-6 py-4 text-body3 text-dark-500 outline-none placeholder:text-dark-400 md:h-auto md:flex-1 md:rounded-none md:rounded-l-xl"
+          className="h-[3.25rem] min-w-0 flex-none rounded-xl bg-light-100 px-6 py-4 text-body3 text-dark-500 outline-none placeholder:text-dark-400 md:h-auto md:flex-1 md:rounded-none md:rounded-l-xl"
         />
         {/* Honeypot for bots; hidden from people and assistive tech. */}
         <input type="text" name="company" tabIndex={-1} autoComplete="off" aria-hidden className="hidden" />

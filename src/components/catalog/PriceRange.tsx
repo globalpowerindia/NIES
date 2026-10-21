@@ -56,10 +56,10 @@ export const PriceRange = ({ bounds, value, onCommit }: Props) => {
         }}
         onValueCommit={([low, high]) => commit(low, high)}
         thumbLabels={['Minimum price', 'Maximum price']}
-        className="h-[17px]"
-        trackClassName="mx-[9px] h-[7px] overflow-visible rounded-[2px] bg-dark-100"
-        rangeClassName="-top-[0.5px] h-2 rounded-[2px] bg-brand-red-400"
-        thumbClassName="size-[18px] cursor-grab border-dark-200 bg-[radial-gradient(circle,var(--color-dark-100)_5px,var(--color-light-100)_5.5px)] active:cursor-grabbing"
+        className="h-[1.0625rem]"
+        trackClassName="mx-[0.5625rem] h-[0.4375rem] overflow-visible rounded-[0.125rem] bg-dark-100"
+        rangeClassName="-top-[0.5px] h-2 rounded-[0.125rem] bg-brand-red-400"
+        thumbClassName="size-[1.125rem] cursor-grab border-dark-200 bg-[radial-gradient(circle,var(--color-dark-100)_0.3125rem,var(--color-light-100)_0.34375rem)] active:cursor-grabbing"
       />
 
       <div className="flex items-center justify-between gap-2">
@@ -80,7 +80,7 @@ export const PriceRange = ({ bounds, value, onCommit }: Props) => {
               onKeyDown={(event) => {
                 if (event.key === 'Enter') commitTyped(parse(event.currentTarget.value))
               }}
-              className="h-10 w-[88px] rounded-[2px] border-[0.5px] border-neutral-600 bg-light-100 text-center text-body3 text-dark-500 focus:border-brand-blue-500 focus:outline-none"
+              className="h-10 w-[5.5rem] rounded-[0.125rem] border-[0.5px] border-neutral-600 bg-light-100 text-center text-body3 text-dark-500 focus:border-brand-blue-500 focus:outline-none"
             />
           </Label>
         ))}

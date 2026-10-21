@@ -45,53 +45,53 @@
   --color-yellow-400: #ffe07d;
   --color-yellow-600: #b39945;
 
-  --text-title3: 56px;
-  --text-title3--line-height: 68px;
-  --text-title3--letter-spacing: -0.6px;
+  --text-title3: 3.5rem;
+  --text-title3--line-height: 4.25rem;
+  --text-title3--letter-spacing: -0.0375rem;
 
-  --text-h2: 48px;
-  --text-h2--line-height: 58px;
-  --text-h2--letter-spacing: -0.4px;
+  --text-h2: 3rem;
+  --text-h2--line-height: 3.625rem;
+  --text-h2--letter-spacing: -0.025rem;
 
-  --text-h3: 40px;
-  --text-h3--line-height: 48px;
-  --text-h3--letter-spacing: -0.3px;
+  --text-h3: 2.5rem;
+  --text-h3--line-height: 3rem;
+  --text-h3--letter-spacing: -0.01875rem;
 
-  --text-h4: 32px;
-  --text-h4--line-height: 38px;
-  --text-h4--letter-spacing: -0.2px;
+  --text-h4: 2rem;
+  --text-h4--line-height: 2.375rem;
+  --text-h4--letter-spacing: -0.0125rem;
 
-  --text-h5: 24px;
-  --text-h5--line-height: 30px;
-  --text-h5--letter-spacing: -0.15px;
+  --text-h5: 1.5rem;
+  --text-h5--line-height: 1.875rem;
+  --text-h5--letter-spacing: -0.009375rem;
 
-  --text-h6: 20px;
-  --text-h6--line-height: 24px;
+  --text-h6: 1.25rem;
+  --text-h6--line-height: 1.5rem;
   --text-h6--letter-spacing: 0px;
 
-  --text-body1: 18px;
-  --text-body1--line-height: 28px;
+  --text-body1: 1.125rem;
+  --text-body1--line-height: 1.75rem;
 
-  --text-body2: 16px;
-  --text-body2--line-height: 24px;
+  --text-body2: 1rem;
+  --text-body2--line-height: 1.5rem;
 
-  --text-body3: 14px;
-  --text-body3--line-height: 20px;
+  --text-body3: 0.875rem;
+  --text-body3--line-height: 1.25rem;
 
-  --text-label1: 16px;
-  --text-label1--line-height: 22px;
-  --text-label1--letter-spacing: -0.18px;
+  --text-label1: 1rem;
+  --text-label1--line-height: 1.375rem;
+  --text-label1--letter-spacing: -0.01125rem;
 
-  --text-label2: 14px;
-  --text-label2--line-height: 20px;
-  --text-label2--letter-spacing: -0.16px;
+  --text-label2: 0.875rem;
+  --text-label2--line-height: 1.25rem;
+  --text-label2--letter-spacing: -0.01rem;
 
-  --text-label3: 12px;
-  --text-label3--line-height: 16px;
-  --text-label3--letter-spacing: -0.12px;
+  --text-label3: 0.75rem;
+  --text-label3--line-height: 1rem;
+  --text-label3--letter-spacing: -0.0075rem;
 
-  --text-caption1: 10px;
-  --text-caption1--line-height: 12px;
+  --text-caption1: 0.625rem;
+  --text-caption1--line-height: 0.75rem;
 
   --animate-ticker: ticker 9s ease-in-out infinite;
   --animate-marquee: marquee 40s linear infinite;
@@ -113,14 +113,14 @@
   }
   33%,
   61% {
-    transform: translateY(-20px);
+    transform: translateY(-1.25rem);
   }
   66%,
   94% {
-    transform: translateY(-40px);
+    transform: translateY(-2.5rem);
   }
   100% {
-    transform: translateY(-60px);
+    transform: translateY(-3.75rem);
   }
 }
 
@@ -136,6 +136,17 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  /* Fluid scale: on laptops and up the root size follows the viewport so the
+   * 1920px Figma composition fits any width (16px at 1920, 10.67px at 1280).
+   * Everything sized in rem scales with it; borders stay in px. Media queries
+   * keep resolving rem against the browser default, so breakpoints don't move.
+   */
+  @media (width >= 64rem) {
+    html {
+      font-size: calc(100vw / 120);
+    }
+  }
+
   body {
     background-color: var(--color-light-400);
     color: var(--color-dark-500);
@@ -144,10 +155,12 @@
 }
 
 @utility container-page {
-  /* Side gutters grow with the screen; content still caps at the Figma 1620px. */
+  /* Side gutters grow with the screen; content still caps at the Figma 1620px.
+   * From lg the root size scales, so one gutter keeps the composition in proportion.
+   */
   --page-gutter: 1rem;
   width: 100%;
-  max-width: calc(1620px + 2 * var(--page-gutter));
+  max-width: calc(101.25rem + 2 * var(--page-gutter));
   margin-inline: auto;
   padding-inline: var(--page-gutter);
 
@@ -155,9 +168,6 @@
     --page-gutter: 1.5rem;
   }
   @media (width >= 64rem) {
-    --page-gutter: 2.5rem;
-  }
-  @media (width >= 80rem) {
     --page-gutter: 4rem;
   }
 }

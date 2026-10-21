@@ -66,7 +66,7 @@ export const ProductCard = ({
           <WishlistHeart productId={productId} label={label} iconClassName="size-7" />
         </div>
 
-        <Link href={href} className="relative block size-[170px] max-w-full self-center md:aspect-square md:size-auto md:w-full">
+        <Link href={href} className="relative block size-[10.625rem] max-w-full self-center md:aspect-square md:size-auto md:w-full">
           <Image
             src={imageUrl}
             alt={imageAlt}
@@ -82,8 +82,8 @@ export const ProductCard = ({
         </Link>
 
         {inStock && (
-          <div className="absolute inset-x-4 bottom-4 flex items-center gap-[7px] opacity-0 transition-opacity duration-200 group-hover:opacity-100 focus-within:opacity-100">
-            <AddToCartButton productId={productId} buyNow variant="blue" className="w-[175px] flex-1">
+          <div className="absolute inset-x-4 bottom-4 flex items-center gap-[0.4375rem] opacity-0 transition-opacity duration-200 group-hover:opacity-100 focus-within:opacity-100">
+            <AddToCartButton productId={productId} buyNow variant="blue" className="w-[10.9375rem] flex-1">
               Buy Now
             </AddToCartButton>
             <AddToCartButton productId={productId} variant="red" size="icon" aria-label={`Add ${label} to cart`}>
@@ -119,7 +119,7 @@ export const ProductCard = ({
             </span>
           )}
           {discount !== null && (
-            <span className="flex h-[22px] items-center gap-1 whitespace-nowrap text-label2 font-medium text-brand-blue-300">
+            <span className="flex h-[1.375rem] items-center gap-1 whitespace-nowrap text-label2 font-medium text-brand-blue-300">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/icons/offer.svg" alt="" width={20} height={20} className="size-5" />
               {discount}% off

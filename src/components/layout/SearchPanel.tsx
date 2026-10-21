@@ -104,14 +104,14 @@ export const SearchPanel = ({ recents, tiles, onPick, onClear }: SearchPanelProp
             <li key={`${tile.label}-${tile.href}`}>
               <Link
                 href={tile.href}
-                className="flex h-[87px] items-center gap-2 rounded-lg border-[0.5px] border-light-600 bg-light-500 pt-1 pr-4 pb-2 pl-2 transition-colors hover:border-brand-blue-300"
+                className="flex h-[5.4375rem] items-center gap-2 rounded-lg border-[0.5px] border-light-600 bg-light-500 pt-1 pr-4 pb-2 pl-2 transition-colors hover:border-brand-blue-300"
               >
                 <Image
                   src={tile.image.url}
                   alt={tile.image.alt || tile.label}
                   width={57}
                   height={57}
-                  className="size-[57px] shrink-0 object-contain"
+                  className="size-[3.5625rem] shrink-0 object-contain"
                 />
                 <span className="text-body2 font-medium whitespace-nowrap text-dark-500">{tile.label}</span>
               </Link>

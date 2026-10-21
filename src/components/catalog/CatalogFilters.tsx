@@ -45,14 +45,14 @@ const VISIBLE_CATEGORIES = 7
 
 /** The Figma box: 18px, square-cornered, filled dark when ticked. */
 const BOX =
-  'size-[18px] rounded-[2px] border-2 border-dark-500 bg-light-100 group-hover/option:not-data-checked:border-brand-blue-500 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue-500 data-checked:border-dark-500 data-checked:bg-dark-500 data-checked:text-light-100 [&_svg]:stroke-[3.5]'
+  'size-[1.125rem] rounded-[0.125rem] border-2 border-dark-500 bg-light-100 group-hover/option:not-data-checked:border-brand-blue-500 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue-500 data-checked:border-dark-500 data-checked:bg-dark-500 data-checked:text-light-100 [&_svg]:stroke-[3.5]'
 
 /** A link row's box only shows state; the link itself is what is pressed. */
 const LinkBox = ({ checked }: { checked: boolean }) => (
   <span aria-hidden className="grid size-6 shrink-0 place-items-center">
     <span
       className={cn(
-        'grid size-[18px] place-items-center rounded-[2px] border-2 border-dark-500 transition-colors',
+        'grid size-[1.125rem] place-items-center rounded-[0.125rem] border-2 border-dark-500 transition-colors',
         checked ? 'bg-dark-500' : 'bg-light-100 group-hover/option:border-brand-blue-500',
       )}
     >

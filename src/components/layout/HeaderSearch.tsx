@@ -82,14 +82,14 @@ export const HeaderSearch = ({ tiles }: { tiles: TopMovingTile[] }) => {
   const hasPanel = typing ? suggestions.length > 0 : recents.length > 0 || tiles.length > 0
 
   return (
-    <div ref={root} className="relative order-3 mt-4 w-full md:order-none md:mt-0 md:max-w-[873px] md:flex-1">
+    <div ref={root} className="relative order-3 mt-4 w-full md:order-none md:mt-0 md:max-w-[54.5625rem] md:flex-1">
       <form
         action="/search"
         onSubmit={(event) => {
           event.preventDefault()
           go(input.current?.value ?? '')
         }}
-        className="flex h-[51px] w-full items-center justify-between rounded-xl border-[0.5px] border-dark-200 bg-brand-blue-100 py-3 pr-2.5 pl-4 md:h-[58px]"
+        className="flex h-[3.1875rem] w-full items-center justify-between rounded-xl border-[0.5px] border-dark-200 bg-brand-blue-100 py-3 pr-2.5 pl-4 md:h-[3.625rem]"
       >
         <Input
           ref={input}

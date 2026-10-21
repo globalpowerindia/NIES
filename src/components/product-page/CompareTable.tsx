@@ -13,7 +13,7 @@ type Compare = NonNullable<ProductPageData['compare']>
 
 const GroupHeading = ({ children }: { children: ReactNode }) => (
   <div className="col-span-full bg-brand-blue-100 p-2 lg:p-4">
-    <p className="sticky left-4 inline-block text-[12px] font-semibold text-brand-blue-500 lg:text-h6">
+    <p className="sticky left-4 inline-block text-[0.75rem] font-semibold text-brand-blue-500 lg:text-h6">
       {children}
     </p>
   </div>
@@ -34,8 +34,8 @@ const Cell = ({
       shaded ? 'bg-light-300' : 'bg-light-100',
     )}
   >
-    <span className="text-[10px] leading-4 text-dark-300 lg:text-body3">{label}</span>
-    <span className="text-[12px] leading-5 font-medium text-dark-500 lg:text-body2">
+    <span className="text-[0.625rem] leading-4 text-dark-300 lg:text-body3">{label}</span>
+    <span className="text-[0.75rem] leading-5 font-medium text-dark-500 lg:text-body2">
       {children}
     </span>
   </div>
@@ -57,14 +57,14 @@ export const CompareTable = ({ compare }: { compare: Compare }) => {
     >
       <h2
         id="compare-heading"
-        className="text-[12px] leading-5 font-medium text-dark-500 lg:text-body2 lg:text-h5"
+        className="text-[0.75rem] leading-5 font-medium text-dark-500 lg:text-body2 lg:text-h5"
       >
         Similar Products to Compare
       </h2>
       <div className="overflow-hidden rounded-lg border-[0.5px] border-brand-blue-200 bg-brand-blue-100">
-        <HorizontalScroller label="Product comparison" arrowTop="147px">
+        <HorizontalScroller label="Product comparison" arrowTop="9.1875rem">
           <div
-            className="grid min-w-full [--comparison-column:171px] lg:[--comparison-column:260px]"
+            className="grid min-w-full [--comparison-column:10.6875rem] lg:[--comparison-column:16.25rem]"
             style={grid}
           >
             {columns.map((column) => (
@@ -78,7 +78,7 @@ export const CompareTable = ({ compare }: { compare: Compare }) => {
                 <Link
                   href={column.href}
                   className={cn(
-                    'relative h-[139px] lg:h-[206px] overflow-hidden rounded-sm',
+                    'relative h-[8.6875rem] lg:h-[12.875rem] overflow-hidden rounded-sm',
                     column.isCurrent ? 'bg-light-100' : 'bg-neutral-200',
                   )}
                 >
@@ -92,13 +92,13 @@ export const CompareTable = ({ compare }: { compare: Compare }) => {
                 </Link>
                 <div className="flex flex-col gap-2">
                   {column.isCurrent ? (
-                    <p className="text-[12px] leading-5 text-dark-500 lg:text-body2">
+                    <p className="text-[0.75rem] leading-5 text-dark-500 lg:text-body2">
                       {column.name} <span className="sr-only">(this product)</span>
                     </p>
                   ) : (
                     <Link
                       href={column.href}
-                      className="text-[12px] leading-5 text-dark-500 lg:text-body2 hover:underline"
+                      className="text-[0.75rem] leading-5 text-dark-500 lg:text-body2 hover:underline"
                     >
                       {column.name}
                     </Link>
@@ -111,7 +111,7 @@ export const CompareTable = ({ compare }: { compare: Compare }) => {
                   productId={column.productId}
                   disabled={!column.inStock}
                   variant="blue"
-                  className="h-10 w-full px-2 text-[12px] lg:h-[45px] lg:text-body2"
+                  className="h-10 w-full px-2 text-[0.75rem] lg:h-[2.8125rem] lg:text-body2"
                   aria-label={`Add ${column.name} to cart`}
                 >
                   {column.inStock ? 'Add to Cart' : 'Out Of Stock'}
