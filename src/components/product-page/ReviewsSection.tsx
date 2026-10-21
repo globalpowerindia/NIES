@@ -12,8 +12,8 @@ const Stars = ({ filled }: { filled: number }) => (
         key={index}
         className={
           index <= filled
-            ? 'size-[18px] fill-green-400 stroke-green-400'
-            : 'size-[18px] stroke-green-400'
+            ? 'size-[1.125rem] fill-green-400 stroke-green-400'
+            : 'size-[1.125rem] stroke-green-400'
         }
         strokeWidth={1.5}
       />
@@ -54,7 +54,7 @@ export const ReviewsSection = ({
           <div className="flex flex-col items-start gap-1 self-start lg:items-center lg:self-auto">
             <p className="flex items-center py-1 pr-4 pl-2">
               <Star
-                className="size-10 fill-green-400 lg:size-[59px] stroke-green-400"
+                className="size-10 fill-green-400 lg:size-[3.6875rem] stroke-green-400"
                 aria-hidden
               />
               <span className="text-h3 font-semibold lg:text-h2 text-dark-500">
@@ -75,7 +75,7 @@ export const ReviewsSection = ({
                 <li key={row.stars} className="flex items-center gap-3">
                   <span className="sr-only">{row.stars} stars:</span>
                   <Stars filled={row.stars} />
-                  <span className="relative h-3 w-full min-w-24 bg-[#d9d9d9] lg:w-[353px]">
+                  <span className="relative h-3 w-full min-w-24 bg-[#d9d9d9] lg:w-[22.0625rem]">
                     <span
                       className="absolute inset-y-0 left-0 bg-green-400"
                       style={{ width: `${percent}%` }}
@@ -94,14 +94,14 @@ export const ReviewsSection = ({
               <p className="text-body2 font-semibold text-dark-500 lg:text-h6">
                 Review this product
               </p>
-              <p className="text-[12px] leading-5 text-dark-300 lg:text-body1">
+              <p className="text-[0.75rem] leading-5 text-dark-300 lg:text-body1">
                 Share your thoughts with other customers
               </p>
             </div>
             <ButtonLink
               href={loginHref}
               variant="blue"
-              className="h-10 w-[228px] text-body3 lg:h-[50px] lg:text-body2"
+              className="h-10 w-[14.25rem] text-body3 lg:h-[3.125rem] lg:text-body2"
             >
               Write a Review
             </ButtonLink>
@@ -115,7 +115,7 @@ export const ReviewsSection = ({
               {reviews.map((review) => (
                 <li
                   key={review.id}
-                  className="flex w-[85vw] max-w-[691px] shrink-0 snap-start flex-col gap-7 rounded-2xl border-[0.5px] border-brand-blue-200 bg-light-500 p-6"
+                  className="flex w-[85vw] max-w-[43.1875rem] shrink-0 snap-start flex-col gap-7 rounded-2xl border-[0.5px] border-brand-blue-200 bg-light-500 p-6"
                 >
                   <div className="flex items-center justify-between gap-7">
                     <RatingBadge value={review.rating} className="text-body2" />

@@ -7,7 +7,7 @@ import { AddToCartButton } from '@/components/cart/AddToCartButton'
 import { MAX_LINE_QTY as MAX_QTY } from '@/lib/cart-rules'
 
 const stepper =
-  'grid size-8 place-items-center rounded-full border-[0.5px] border-brand-blue-200 bg-brand-blue-100 text-dark-500 transition-colors hover:bg-brand-blue-200 disabled:opacity-40 lg:size-[50px]'
+  'grid size-8 place-items-center rounded-full border-[0.5px] border-brand-blue-200 bg-brand-blue-100 text-dark-500 transition-colors hover:bg-brand-blue-200 disabled:opacity-40 lg:size-[3.125rem]'
 
 /** Quantity and the two purchase buttons, for the variant on show. */
 export const BuyRow = ({
@@ -22,7 +22,7 @@ export const BuyRow = ({
   const [qty, setQty] = useState(1)
 
   return (
-    <div className="flex min-h-10 flex-col gap-4 min-[103.25rem]:flex-row min-[103.25rem]:items-center">
+    <div className="flex min-h-10 flex-col gap-4 lg:flex-row lg:items-center">
       <div className="flex items-center gap-4">
         <span className="text-body3 font-medium text-dark-500 lg:text-body1">Qty</span>
         <div className="flex items-center gap-3">
@@ -54,9 +54,9 @@ export const BuyRow = ({
         </div>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-50 bg-light-400 px-4 pt-2 pb-[max(16px,env(safe-area-inset-bottom))] shadow-[0_-2px_12px_#0000000a] lg:static lg:flex-1 lg:bg-transparent lg:p-0 lg:shadow-none">
+      <div className="fixed inset-x-0 bottom-0 z-50 bg-light-400 px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-2px_12px_#0000000a] lg:static lg:flex-1 lg:bg-transparent lg:p-0 lg:shadow-none">
         {inStock ? (
-          <div className="mx-auto flex w-full max-w-[700px] gap-2 lg:max-w-none">
+          <div className="mx-auto flex w-full max-w-[43.75rem] gap-2 lg:max-w-none">
             <AddToCartButton
               variantId={variantId}
               quantity={qty}

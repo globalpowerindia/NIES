@@ -60,7 +60,7 @@ export const ProductCarousel = ({
             <ProductCard
               key={product.href}
               {...product}
-              className="w-[258px] shrink-0 snap-start md:w-[298px]"
+              className="w-[16.125rem] shrink-0 snap-start md:w-[18.625rem]"
             />
           ))}
         </div>

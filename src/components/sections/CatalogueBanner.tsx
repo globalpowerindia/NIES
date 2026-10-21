@@ -14,11 +14,11 @@ export type CatalogueBannerProps = {
 }
 
 export const CatalogueBanner = ({ title, description, buttonLabel, href, isDownload, image }: CatalogueBannerProps) => (
-  <section className="-mx-4 flex flex-col-reverse overflow-hidden md:mx-0 md:rounded-2xl lg:flex-row">
-    <div className="flex flex-1 items-center bg-brand-blue-100 px-4 py-10 md:px-8 md:py-20 lg:px-[150px]">
-      <div className="flex w-full max-w-[450px] flex-col gap-6">
-        <h2 className="max-w-[260px] text-h5 font-semibold text-balance text-dark-500 md:max-w-none md:text-h3 md:font-medium">{title}</h2>
-        {description && <p className="text-[12px] leading-4 text-dark-400 md:text-body3">{description}</p>}
+  <section className="-mx-4 flex flex-col-reverse overflow-hidden md:mx-0 md:rounded-2xl lg:grid lg:grid-cols-2">
+    <div className="flex min-w-0 flex-1 items-center bg-brand-blue-100 px-4 py-10 md:px-8 md:py-20 lg:px-[18.5185%]">
+      <div className="flex w-full max-w-[28.125rem] flex-col gap-6">
+        <h2 className="max-w-[16.25rem] text-h5 font-semibold text-balance text-dark-500 md:max-w-none md:text-h3 md:font-medium">{title}</h2>
+        {description && <p className="text-[0.75rem] leading-4 text-dark-400 md:text-body3">{description}</p>}
         {href && (
           <ButtonLink
             href={href}
@@ -33,7 +33,7 @@ export const CatalogueBanner = ({ title, description, buttonLabel, href, isDownl
         )}
       </div>
     </div>
-    <div className="relative min-h-[260px] flex-1 lg:min-h-[404px]">
+    <div className="relative min-h-[16.25rem] flex-1 lg:min-h-[25.25rem]">
       <Image src={image.url} alt={image.alt} fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover" />
     </div>
   </section>

@@ -53,7 +53,7 @@ export const HorizontalScroller = ({
         onClick={() => scroll(-1)}
         aria-label="Scroll left"
         style={{ top: arrowTop }}
-        className={cn(arrow, 'left-2 -translate-y-1/2 lg:left-[280px]', edges.start && 'pointer-events-none opacity-0')}
+        className={cn(arrow, 'left-2 -translate-y-1/2 lg:left-[17.5rem]', edges.start && 'pointer-events-none opacity-0')}
       >
         <ChevronLeft className="size-6" />
       </button>

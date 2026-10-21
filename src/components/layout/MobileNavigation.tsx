@@ -23,7 +23,7 @@ export const MobileNavigation = ({ categories }: { categories: { label: string; 
       </summary>
       <nav
         aria-label="Mobile navigation"
-        className="absolute inset-x-4 top-[65px] z-[60] flex max-h-[70vh] flex-col overflow-y-auto rounded-xl border border-neutral-300 bg-light-100 p-3 shadow-lg"
+        className="absolute inset-x-4 top-[4.0625rem] z-[60] flex max-h-[70vh] flex-col overflow-y-auto rounded-xl border border-neutral-300 bg-light-100 p-3 shadow-lg"
         onClick={(event) => {
           if ((event.target as HTMLElement).closest('a') && disclosure.current) disclosure.current.open = false
         }}

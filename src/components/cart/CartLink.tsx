@@ -16,7 +16,7 @@ export const CartLink = () => {
       {count > 0 && (
         <span
           aria-hidden
-          className="absolute -top-1 -right-1 grid h-[22px] min-w-[22px] place-items-center rounded-full bg-brand-red-500 px-1 text-caption1 font-medium text-light-100"
+          className="absolute -top-1 -right-1 grid h-[1.375rem] min-w-[1.375rem] place-items-center rounded-full bg-brand-red-500 px-1 text-caption1 font-medium text-light-100"
         >
           {count > 99 ? '99+' : count}
         </span>

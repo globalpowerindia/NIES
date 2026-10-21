@@ -74,12 +74,12 @@ export const Footer = ({
             alt={siteName}
             width={147}
             height={58}
-            className="h-[58px] w-auto object-contain"
+            className="h-[3.625rem] w-auto object-contain"
           />
         </Link>
 
         {(columns.length ? columns : DEFAULT_LINK_COLUMNS).map((column) => (
-          <div key={column.heading} className="hidden flex-col gap-[11px] md:flex">
+          <div key={column.heading} className="hidden flex-col gap-[0.6875rem] md:flex">
             <p className="px-3 text-body1 font-medium text-dark-500">{column.heading}</p>
             <ul className="flex flex-col justify-center">
               {column.links.map((link) => (
@@ -103,7 +103,7 @@ export const Footer = ({
                 {column.heading}
                 <ChevronDown className="size-6 transition-transform group-open:rotate-180" aria-hidden />
               </summary>
-              <ul className="pt-[11px]">
+              <ul className="pt-[0.6875rem]">
                 {column.links.map((link) => (
                   <li key={`${link.label}-${link.href}`}>
                     <Link href={link.href} className="block px-5 py-4 text-body2 text-dark-500 hover:text-brand-red-500">{link.label}</Link>
@@ -116,9 +116,9 @@ export const Footer = ({
 
         <hr className="w-full border-t border-neutral-300 md:hidden" />
 
-        <div className="flex flex-col gap-[11px]">
+        <div className="flex flex-col gap-[0.6875rem]">
           <p className="px-3 text-body1 font-medium text-dark-500">Follow Us On</p>
-          <ul className="flex h-[55px] items-center gap-7 px-2.5">
+          <ul className="flex h-[3.4375rem] items-center gap-7 px-2.5">
             {socials.map(({ platform, url }) => {
               const social = SOCIAL_ICONS[platform]
               return (
@@ -135,7 +135,7 @@ export const Footer = ({
                       alt=""
                       width={social.width}
                       height={social.height}
-                      style={{ width: social.width, height: social.height }}
+                      style={{ width: `${social.width / 16}rem`, height: `${social.height / 16}rem` }}
                     />
                   </a>
                 </li>
@@ -149,7 +149,7 @@ export const Footer = ({
 
       <div className="flex flex-col items-center gap-5 rounded-2xl bg-white p-3 md:flex-row md:flex-wrap md:justify-between md:gap-6 md:bg-light-100">
         <a href={`tel:${tollFreeNumber.replace(/[^\d+]/g, '')}`} className="flex items-center gap-2">
-          <span className="grid h-[49px] w-[50px] shrink-0 place-items-center rounded-full bg-brand-blue-400 text-light-100 md:h-full md:min-h-[64px] md:w-[70px]">
+          <span className="grid h-[3.0625rem] w-[3.125rem] shrink-0 place-items-center rounded-full bg-brand-blue-400 text-light-100 md:h-full md:min-h-[4rem] md:w-[4.375rem]">
             <Phone className="size-6" strokeWidth={1.5} />
           </span>
           <span className="flex flex-col items-start">
@@ -187,7 +187,7 @@ export const Footer = ({
               alt={paymentImage.alt || 'Accepted payment methods'}
               width={316}
               height={37}
-              className="h-auto w-[316px] max-w-full object-contain"
+              className="h-auto w-[19.75rem] max-w-full object-contain"
             />
           </div>
         )}
@@ -197,7 +197,7 @@ export const Footer = ({
 
       <div className="flex flex-col items-center gap-2 md:flex-row md:flex-wrap md:justify-between md:gap-4">
         <p className="flex items-center gap-1 text-body3 text-dark-500">
-          <Copyright className="size-[18px]" strokeWidth={1.5} />
+          <Copyright className="size-[1.125rem]" strokeWidth={1.5} />
           <span>
             {new Date().getFullYear()} <span className="text-brand-red-500">{siteName}</span> . All Rights
             Reserved

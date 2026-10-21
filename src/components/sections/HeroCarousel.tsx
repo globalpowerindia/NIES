@@ -30,7 +30,7 @@ export const HeroCarousel = ({ slides }: { slides: BannerData[] }) => {
     <section
       aria-roledescription="carousel"
       aria-label="Featured products"
-      className="relative aspect-[358/164] w-full overflow-hidden rounded-xl md:rounded-2xl md:aspect-[1620/600] md:min-h-[240px]"
+      className="relative aspect-[358/164] w-full overflow-hidden rounded-xl [container-type:inline-size] md:rounded-2xl md:aspect-[1620/600] md:min-h-[15rem]"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}

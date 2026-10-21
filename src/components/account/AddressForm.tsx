@@ -169,7 +169,7 @@ export const AddressForm = ({ id, initial }: { id?: number; initial: AddressForm
             >
               <RadioGroupItem
                 value={option.value}
-                className="grid size-5 place-items-center rounded-[3px] border-2 border-dark-400 bg-transparent focus-visible:ring-0 data-checked:border-dark-500 data-checked:bg-dark-500 data-checked:text-light-100"
+                className="grid size-5 place-items-center rounded-[0.1875rem] border-2 border-dark-400 bg-transparent focus-visible:ring-0 data-checked:border-dark-500 data-checked:bg-dark-500 data-checked:text-light-100"
               >
                 <Check className="size-3.5" strokeWidth={3} />
               </RadioGroupItem>

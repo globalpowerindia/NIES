@@ -66,10 +66,10 @@ export const ProductGallery = ({
   const current = items[active] ?? items[0]
 
   return (
-    <div className="flex flex-col-reverse gap-[13px] lg:flex-row lg:gap-4">
+    <div className="flex flex-col-reverse gap-[0.8125rem] lg:flex-row lg:gap-4">
       {items.length > 1 && (
         <ul
-          className="flex gap-2.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:max-h-[724px] lg:flex-col lg:gap-5 lg:overflow-y-auto"
+          className="flex gap-2.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:max-h-[45.25rem] lg:flex-col lg:gap-5 lg:overflow-y-auto"
           aria-label="Product images and videos"
         >
           {items.map((item, index) => (
@@ -93,7 +93,7 @@ export const ProductGallery = ({
                 }
                 aria-pressed={index === active}
                 className={cn(
-                  'relative block h-[86px] w-[82px] overflow-hidden rounded-xl bg-light-100 lg:h-[166px] lg:w-[156px]',
+                  'relative block h-[5.375rem] w-[5.125rem] overflow-hidden rounded-xl bg-light-100 lg:h-[10.375rem] lg:w-[9.75rem]',
                   index === active
                     ? 'border-[0.5px] border-dark-500'
                     : 'border-[0.5px] border-transparent hover:border-dark-200',
@@ -106,7 +106,7 @@ export const ProductGallery = ({
         </ul>
       )}
 
-      <div className="relative h-[299px] w-full overflow-hidden rounded-xl bg-light-100 lg:aspect-[682/724] lg:h-auto lg:flex-1">
+      <div className="relative h-[18.6875rem] w-full overflow-hidden rounded-xl bg-light-100 lg:aspect-[682/724] lg:h-auto lg:flex-1">
         {!current ? (
           <span className="grid h-full place-items-center text-body3 text-dark-300">
             No product image available
@@ -118,7 +118,7 @@ export const ProductGallery = ({
             fill
             priority
             sizes="(max-width: 1024px) 100vw, 682px"
-            className="object-contain px-[min(13.8%,50px)] pt-[34px] pb-2 lg:p-[7.5%_7.5%_10%]"
+            className="object-contain px-[min(13.8%,3.125rem)] pt-[2.125rem] pb-2 lg:p-[7.5%_7.5%_10%]"
           />
         ) : current.kind === 'youtube' ? (
           <div className="absolute inset-0 grid place-items-center bg-dark-500">
@@ -148,7 +148,7 @@ export const ProductGallery = ({
             productId={productId}
             label={name}
             className="absolute top-3 right-3 lg:top-5 lg:right-5"
-            iconClassName="size-5 lg:size-[45px]"
+            iconClassName="size-5 lg:size-[2.8125rem]"
             strokeWidth={1.25}
           />
         )}

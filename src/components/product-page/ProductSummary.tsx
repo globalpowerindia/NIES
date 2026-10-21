@@ -44,7 +44,7 @@ const Section = ({
 const SpecList = ({ rows, className }: { rows: SpecRow[]; className?: string }) => (
   <dl
     className={cn(
-      'grid grid-cols-[auto_auto_1fr] items-start gap-x-2 text-[12px] leading-5 lg:gap-x-5 lg:text-body1',
+      'grid grid-cols-[auto_auto_1fr] items-start gap-x-2 text-[0.75rem] leading-5 lg:gap-x-5 lg:text-body1',
       className,
     )}
   >
@@ -63,7 +63,7 @@ const SpecList = ({ rows, className }: { rows: SpecRow[]; className?: string }) 
 const Prose = ({ data }: { data: RichTextData }) => (
   <RichText
     data={data}
-    className="flex flex-col gap-3 text-[12px] leading-5 text-dark-400 lg:text-body1 [&_a]:text-brand-blue-400 [&_a]:underline [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6"
+    className="flex flex-col gap-3 text-[0.75rem] leading-5 text-dark-400 lg:text-body1 [&_a]:text-brand-blue-400 [&_a]:underline [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6"
   />
 )
 
@@ -108,7 +108,7 @@ export const ProductSummary = ({ data, basePath }: { data: ProductPageData; base
                 <span className="sr-only">MRP </span>
                 {formatCurrency(variant.mrpPaise)}
               </p>
-              <p className="flex h-[22px] items-center gap-1 text-[12px] font-medium lg:text-label1 text-brand-blue-300">
+              <p className="flex h-[1.375rem] items-center gap-1 text-[0.75rem] font-medium lg:text-label1 text-brand-blue-300">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/icons/offer.svg" alt="" width={20} height={20} className="size-5" />
                 {discount}% off
@@ -162,18 +162,18 @@ export const ProductSummary = ({ data, basePath }: { data: ProductPageData; base
       )}
 
       {data.accessories.length > 0 && (
-        <div className="flex flex-col gap-5 rounded-[20px] border-[0.5px] border-brand-blue-200 bg-brand-blue-100 p-5">
+        <div className="flex flex-col gap-5 rounded-[1.25rem] border-[0.5px] border-brand-blue-200 bg-brand-blue-100 p-5">
           <div className="flex flex-col gap-2">
-            <p className="relative h-[30px] w-[169px]">
+            <p className="relative h-[1.875rem] w-[10.5625rem]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/icons/free-ribbon.svg"
                 alt=""
                 width={210.501}
                 height={34.5}
-                className="absolute top-0 left-0 h-[34.5px] w-[210.5px] max-w-none"
+                className="absolute top-0 left-0 h-[2.15625rem] w-[13.15625rem] max-w-none"
               />
-              <span className="absolute top-1 left-[15.83px] bg-linear-to-r from-white to-[#ffea31] bg-clip-text text-h6 font-medium whitespace-nowrap text-transparent">
+              <span className="absolute top-1 left-[0.989375rem] bg-linear-to-r from-white to-[#ffea31] bg-clip-text text-h6 font-medium whitespace-nowrap text-transparent">
                 Free with purchase
               </span>
             </p>
@@ -182,23 +182,23 @@ export const ProductSummary = ({ data, basePath }: { data: ProductPageData; base
           <ul className="flex flex-wrap gap-3 lg:gap-5">
             {data.accessories.map((item) => (
               <li key={item.name} className="flex items-center gap-2 lg:gap-4">
-                <span className="relative grid h-14 w-16 lg:h-[86px] lg:w-[109px] shrink-0 place-items-center rounded-xl bg-brand-blue-200 p-2 lg:p-5">
+                <span className="relative grid h-14 w-16 lg:h-[5.375rem] lg:w-[6.8125rem] shrink-0 place-items-center rounded-xl bg-brand-blue-200 p-2 lg:p-5">
                   {item.image && (
                     <Image
                       src={item.image.url}
                       alt=""
                       width={69}
                       height={56}
-                      className="h-10 w-auto max-w-12 lg:h-[56px] lg:max-w-[69px] object-contain mix-blend-multiply"
+                      className="h-10 w-auto max-w-12 lg:h-[3.5rem] lg:max-w-[4.3125rem] object-contain mix-blend-multiply"
                     />
                   )}
                 </span>
                 <span className="flex flex-col">
-                  <span className="text-[12px] font-medium text-dark-500 lg:text-body1">
+                  <span className="text-[0.75rem] font-medium text-dark-500 lg:text-body1">
                     {item.name}
                   </span>
                   {item.quantity && (
-                    <span className="text-[12px] text-dark-400 lg:text-label1">
+                    <span className="text-[0.75rem] text-dark-400 lg:text-label1">
                       {item.quantity}
                     </span>
                   )}
@@ -219,7 +219,7 @@ export const ProductSummary = ({ data, basePath }: { data: ProductPageData; base
             {product.description ? (
               <Prose data={product.description as RichTextData} />
             ) : (
-              <p className="text-[12px] leading-5 text-dark-400 lg:text-body1">
+              <p className="text-[0.75rem] leading-5 text-dark-400 lg:text-body1">
                 {product.shortDesc}
               </p>
             )}
@@ -253,7 +253,7 @@ export const ProductSummary = ({ data, basePath }: { data: ProductPageData; base
             {product.warrantyInfo ? (
               <Prose data={product.warrantyInfo as RichTextData} />
             ) : (
-              <p className="text-[12px] leading-5 text-dark-400 lg:text-body1">
+              <p className="text-[0.75rem] leading-5 text-dark-400 lg:text-body1">
                 {product.warrantyMonths} months manufacturer warranty against manufacturing defects.
               </p>
             )}
