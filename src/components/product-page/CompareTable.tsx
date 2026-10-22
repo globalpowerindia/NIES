@@ -58,7 +58,7 @@ export const CompareTable = ({ compare }: { compare: Compare }) => {
     >
       <h2
         id="compare-heading"
-        className="text-[0.75rem] leading-5 font-medium text-dark-500 lg:text-body2 lg:text-h5"
+        className="text-body2 font-medium text-dark-500 lg:text-h5"
       >
         Similar Products to Compare
       </h2>

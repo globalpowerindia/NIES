@@ -2,6 +2,7 @@ import { unstable_cache } from 'next/cache'
 import type { Payload } from 'payload'
 import { cache } from 'react'
 
+import { summarizeReviewRatings } from '@/lib/review-ratings'
 import { CACHE_VERSION, STOREFRONT_CACHE } from '@/lib/revalidate'
 import { fileUrlOf, mediaOf, type MediaInfo } from '@/lib/storefront/content'
 import { loadPricing, PLACEHOLDER_IMAGE, relId } from '@/lib/storefront/products'
@@ -163,10 +164,7 @@ const loadProductPage = async (slug: string, variantSku?: string) => {
     ...(product.countryOfOrigin ? [{ key: 'origin', label: 'Country of Origin', value: product.countryOfOrigin }] : []),
   ]
 
-  const distribution = [5, 4, 3, 2, 1].map((stars) => ({
-    stars,
-    count: ratings.docs.filter((review) => Math.round(Number(review.rating)) === stars).length,
-  }))
+  const rating = summarizeReviewRatings(ratings.docs)
 
   const compare = await buildCompare(payload, product, defs)
 
@@ -192,11 +190,7 @@ const loadProductPage = async (slug: string, variantSku?: string) => {
     parentCategory,
     summarySpecs: specRows(product, defs, (def) => Boolean(def.isSummary)),
     attributes,
-    rating: {
-      average: product.ratingCount ? Number(product.ratingAvg ?? 0) / 100 : 0,
-      count: Number(product.ratingCount ?? 0),
-      distribution,
-    },
+    rating,
     reviews: reviews.docs.map<ReviewCard>((review) => ({
       id: review.id,
       authorName: review.authorName,
@@ -229,7 +223,7 @@ const loadProductPage = async (slug: string, variantSku?: string) => {
 
 /** Cached per product and variant until the catalogue or its reviews change. */
 export const getProductPage = cache(
-  unstable_cache(loadProductPage, ['product-page', CACHE_VERSION], STOREFRONT_CACHE),
+  unstable_cache(loadProductPage, ['product-page', 'review-summary-v2', CACHE_VERSION], STOREFRONT_CACHE),
 )
 
 export type ProductPageData = NonNullable<Awaited<ReturnType<typeof getProductPage>>>

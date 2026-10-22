@@ -23,6 +23,7 @@ import { Inventory } from './collections/Inventory'
 import { Media } from './collections/Media'
 import { NewsletterSubscribers } from './collections/NewsletterSubscribers'
 import { Orders } from './collections/Orders'
+import { Pages } from './collections/Pages'
 import { Products } from './collections/Products'
 import { ProductVariants } from './collections/ProductVariants'
 import { Reviews } from './collections/Reviews'
@@ -109,6 +110,7 @@ export default buildConfig({
     AuthIdentities,
     OtpChallenges,
     CustomerSessions,
+    Pages,
     Users,
   ],
   globals: [HomePage, SiteSettings, CheckoutSettings],

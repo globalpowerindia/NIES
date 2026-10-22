@@ -110,6 +110,20 @@ export const SiteSettings: GlobalConfig = {
           ],
         },
         {
+          label: 'Downloads',
+          description:
+            'The PDFs behind /catalogue and /price-list (the top-bar links and the homepage catalogue banner). Upload under Library → Datasheets.',
+          fields: [
+            {
+              type: 'row',
+              fields: [
+                { name: 'catalogueFile', label: 'Product catalogue (PDF)', type: 'upload', relationTo: 'datasheets', admin: { width: '50%' } },
+                { name: 'priceListFile', label: 'Price list (PDF)', type: 'upload', relationTo: 'datasheets', admin: { width: '50%' } },
+              ],
+            },
+          ],
+        },
+        {
           label: 'Footer',
           fields: [
             {

@@ -218,6 +218,19 @@ export const Products: CollectionConfig = {
             { name: 'keyFeatures', type: 'richText' },
             { name: 'warrantyInfo', type: 'richText', label: 'Warranty information' },
             {
+              type: 'collapsible',
+              label: 'Product page tabs',
+              admin: {
+                initCollapsed: true,
+                description: 'Each one adds a tab beside Attributes and Description on the product page. Leave empty to hide the tab.',
+              },
+              fields: [
+                { name: 'idealFor', type: 'richText', label: 'Ideal for' },
+                { name: 'safetyInfo', type: 'richText', label: 'Safety information' },
+                { name: 'maintenanceTips', type: 'richText', label: 'Maintenance tips' },
+              ],
+            },
+            {
               name: 'userManual',
               type: 'upload',
               relationTo: 'datasheets',

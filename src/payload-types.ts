@@ -90,6 +90,7 @@ export interface Config {
     'auth-identities': AuthIdentity;
     'otp-challenges': OtpChallenge;
     'customer-sessions': CustomerSession;
+    pages: Page;
     users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -134,6 +135,7 @@ export interface Config {
     'auth-identities': AuthIdentitiesSelect<false> | AuthIdentitiesSelect<true>;
     'otp-challenges': OtpChallengesSelect<false> | OtpChallengesSelect<true>;
     'customer-sessions': CustomerSessionsSelect<false> | CustomerSessionsSelect<true>;
+    pages: PagesSelect<false> | PagesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -424,6 +426,51 @@ export interface Product {
     };
     [k: string]: unknown;
   } | null;
+  idealFor?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  safetyInfo?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  maintenanceTips?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
   /**
    * PDF shown under "User Manual" on the product page.
    */
@@ -577,12 +624,70 @@ export interface ProductVariant {
 export interface Review {
   id: number;
   product: number | Product;
+  /**
+   * Set automatically for customer submissions.
+   */
+  customer?: (number | null) | Customer;
   authorName: string;
   rating: number;
+  /**
+   * Verified against a delivered, paid order when submitted.
+   */
   verifiedPurchase?: boolean | null;
   title?: string | null;
   body?: string | null;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Shoppers. Staff accounts live under Users.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customers".
+ */
+export interface Customer {
+  id: number;
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+  /**
+   * E.164, e.g. +919876543210.
+   */
+  phone?: string | null;
+  /**
+   * Set only when the customer proves this address: an emailed code, or Google. Gates account linking.
+   */
+  emailVerifiedAt?: string | null;
+  /**
+   * Set only by a correct SMS code. Gates account linking.
+   */
+  phoneVerifiedAt?: string | null;
+  status: 'ACTIVE' | 'BLOCKED';
+  identities?: {
+    docs?: (number | AuthIdentity)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  acceptsMarketing?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * How each customer signs in. Created by the login flows, not by hand.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "auth-identities".
+ */
+export interface AuthIdentity {
+  id: number;
+  provider: 'PHONE_OTP' | 'EMAIL_OTP' | 'GOOGLE';
+  /**
+   * E.164 phone, email, or Google subject id.
+   */
+  providerAccountId: string;
+  customer: number | Customer;
+  lastUsedAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -776,57 +881,6 @@ export interface Order {
   trackingNumber?: string | null;
   shippedAt?: string | null;
   notes?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * Shoppers. Staff accounts live under Users.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "customers".
- */
-export interface Customer {
-  id: number;
-  firstName?: string | null;
-  lastName?: string | null;
-  email?: string | null;
-  /**
-   * E.164, e.g. +919876543210.
-   */
-  phone?: string | null;
-  /**
-   * Set only when the customer proves this address: an emailed code, or Google. Gates account linking.
-   */
-  emailVerifiedAt?: string | null;
-  /**
-   * Set only by a correct SMS code. Gates account linking.
-   */
-  phoneVerifiedAt?: string | null;
-  status: 'ACTIVE' | 'BLOCKED';
-  identities?: {
-    docs?: (number | AuthIdentity)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  acceptsMarketing?: boolean | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * How each customer signs in. Created by the login flows, not by hand.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "auth-identities".
- */
-export interface AuthIdentity {
-  id: number;
-  provider: 'PHONE_OTP' | 'EMAIL_OTP' | 'GOOGLE';
-  /**
-   * E.164 phone, email, or Google subject id.
-   */
-  providerAccountId: string;
-  customer: number | Customer;
-  lastUsedAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1121,6 +1175,45 @@ export interface CustomerSession {
   createdAt: string;
 }
 /**
+ * Shown at the site root, e.g. a page with slug "privacy" is /privacy. Link them from Header & Footer.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages".
+ */
+export interface Page {
+  id: number;
+  title: string;
+  /**
+   * Generated from title when left blank. Changing it breaks existing links.
+   */
+  slug: string;
+  /**
+   * Off: the page shows "not found" to visitors.
+   */
+  isPublished?: boolean | null;
+  /**
+   * One or two sentences for search results.
+   */
+  metaDescription?: string | null;
+  content: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -1235,6 +1328,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'customer-sessions';
         value: number | CustomerSession;
+      } | null)
+    | ({
+        relationTo: 'pages';
+        value: number | Page;
       } | null)
     | ({
         relationTo: 'users';
@@ -1364,6 +1461,9 @@ export interface ProductsSelect<T extends boolean = true> {
   description?: T;
   keyFeatures?: T;
   warrantyInfo?: T;
+  idealFor?: T;
+  safetyInfo?: T;
+  maintenanceTips?: T;
   userManual?: T;
   category?: T;
   brand?: T;
@@ -1438,6 +1538,7 @@ export interface ProductVariantsSelect<T extends boolean = true> {
  */
 export interface ReviewsSelect<T extends boolean = true> {
   product?: T;
+  customer?: T;
   authorName?: T;
   rating?: T;
   verifiedPurchase?: T;
@@ -1781,6 +1882,19 @@ export interface CustomerSessionsSelect<T extends boolean = true> {
   customer?: T;
   expiresAt?: T;
   revokedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages_select".
+ */
+export interface PagesSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  isPublished?: T;
+  metaDescription?: T;
+  content?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2284,6 +2398,8 @@ export interface SiteSetting {
         id?: string | null;
       }[]
     | null;
+  catalogueFile?: (number | null) | Datasheet;
+  priceListFile?: (number | null) | Datasheet;
   footerColumns?:
     | {
         heading: string;
@@ -2672,6 +2788,8 @@ export interface SiteSettingsSelect<T extends boolean = true> {
             };
         id?: T;
       };
+  catalogueFile?: T;
+  priceListFile?: T;
   footerColumns?:
     | T
     | {

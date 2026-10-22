@@ -78,6 +78,7 @@ export const Nav = async ({ payload, user }: ServerProps) => {
       items: [
         { label: 'Homepage', href: '/admin/globals/home-page' },
         { label: 'Header & footer', href: '/admin/globals/site-settings' },
+        { label: 'Pages', href: '/admin/collections/pages' },
         { label: 'Search synonyms', href: '/admin/collections/search-synonyms' },
         { label: 'Newsletter subscribers', href: '/admin/collections/newsletter-subscribers' },
       ],

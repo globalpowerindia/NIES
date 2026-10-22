@@ -127,7 +127,8 @@ const cardsInOrder = async (payload: Payload, ids: number[]): Promise<ProductCar
  * prices from the default variant (else the first by sort order, as
  * `pickVariant`), so that is the variant that has to be discounted.
  */
-const offerProductIds = async (payload: Payload, limit: number): Promise<number[]> => {
+/** Active products whose price is below MRP. Also the /offers listing. */
+export const offerProductIds = async (payload: Payload, limit: number): Promise<number[]> => {
   const result = await payload.db.drizzle.execute(sql`
     SELECT p.id
     FROM products p

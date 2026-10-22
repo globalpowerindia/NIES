@@ -4,6 +4,9 @@ import * as migration_20261006_064405_rate_limits from './20261006_064405_rate_l
 import * as migration_20261021_090246_checkout from './20261021_090246_checkout';
 import * as migration_20261021_091444_sell_online from './20261021_091444_sell_online';
 import * as migration_20261021_094910_coupon_rules from './20261021_094910_coupon_rules';
+import * as migration_20261021_100646_content_pages from './20261021_100646_content_pages';
+import * as migration_20261021_101913_product_tabs from './20261021_101913_product_tabs';
+import * as migration_20261021_112739_customer_reviews from './20261021_112739_customer_reviews';
 
 export const migrations = [
   {
@@ -34,6 +37,21 @@ export const migrations = [
   {
     up: migration_20261021_094910_coupon_rules.up,
     down: migration_20261021_094910_coupon_rules.down,
-    name: '20261021_094910_coupon_rules'
+    name: '20261021_094910_coupon_rules',
+  },
+  {
+    up: migration_20261021_100646_content_pages.up,
+    down: migration_20261021_100646_content_pages.down,
+    name: '20261021_100646_content_pages',
+  },
+  {
+    up: migration_20261021_101913_product_tabs.up,
+    down: migration_20261021_101913_product_tabs.down,
+    name: '20261021_101913_product_tabs',
+  },
+  {
+    up: migration_20261021_112739_customer_reviews.up,
+    down: migration_20261021_112739_customer_reviews.down,
+    name: '20261021_112739_customer_reviews'
   },
 ];

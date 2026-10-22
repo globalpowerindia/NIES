@@ -51,15 +51,6 @@ export default async function ProductPage(props: PageProps<'/products/[slug]'>) 
     { label: product.name },
   ]
 
-  const sections = [
-    { id: 'reviews', label: 'Reviews' },
-    ...(data.brochure ? [{ id: 'supplier-description', label: 'Description' }] : []),
-    ...(data.compare ? [{ id: 'compare', label: 'Similar Product Comparison' }] : []),
-    ...(data.applications.items.length
-      ? [{ id: 'applications', label: data.applications.title }]
-      : []),
-  ]
-
   return (
     <main className={`${styles.page} bg-light-400 pb-6`}>
       <div className="container-page">
@@ -85,10 +76,9 @@ export default async function ProductPage(props: PageProps<'/products/[slug]'>) 
           </div>
         </div>
 
-        <ProductTabs attributes={data.attributes} sections={sections} />
+        <ProductTabs attributes={data.attributes} product={product} />
         <ReviewsSection
           data={data}
-          loginHref={`/login?next=${encodeURIComponent(`${basePath}#reviews`)}`}
         />
         {data.brochure && <SupplierBrochure brochure={data.brochure} />}
         {data.compare && <CompareTable compare={data.compare} />}

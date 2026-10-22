@@ -22,6 +22,7 @@
     "search:reindex": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env src/seed/reindex-search.ts",
     "import:catalogue": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env src/seed/import-catalogue.ts",
     "seed:orders": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env src/seed/orders.ts",
+    "seed:pages": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env src/seed/pages.ts",
     "seed:storefront": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file=.env src/seed/storefront.ts",
     "typecheck": "next typegen && tsc --noEmit",
     "test:db:migrate": "cross-env NODE_OPTIONS=--no-deprecation tsx --env-file-if-exists=.env tests/helpers/migrate-test-db.ts"

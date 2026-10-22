@@ -13,14 +13,15 @@ const DEFAULT_LINK_COLUMNS = [
       { label: 'Privacy Policy', href: '/privacy' },
       { label: 'Return Policy', href: '/returns' },
       { label: 'Terms & Conditions', href: '/terms' },
+      { label: 'Contact Us', href: '/contact' },
     ],
   },
   {
     heading: 'Top Categories',
     links: [
-      { label: 'Gold Power Tools', href: '/category/gold-power-tools' },
+      { label: 'Global Power Tools', href: '/brand/global-power' },
       { label: 'HCC Power Tools', href: '/category/hcc-power-tools' },
-      { label: 'Cordless Tools', href: '/category/cordless-tools' },
+      { label: 'Cordless Tools', href: '/search?q=cordless' },
       { label: 'Pressure Wash', href: '/category/pressure-wash' },
       { label: 'Welding Machines', href: '/category/welding-machines' },
       { label: 'Air Compressor', href: '/category/air-compressor' },

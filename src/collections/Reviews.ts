@@ -1,6 +1,8 @@
-import type { CollectionAfterChangeHook, CollectionAfterDeleteHook, CollectionConfig, PayloadRequest } from 'payload'
+import type { Access, CollectionAfterChangeHook, CollectionAfterDeleteHook, CollectionConfig, PayloadRequest } from 'payload'
 
 import { activeStaffRole, isManager, isStaff } from '@/access/roles'
+import { sql } from 'drizzle-orm'
+import { transactionDB } from '@/lib/transaction'
 
 const relId = (value: unknown): number | undefined =>
   typeof value === 'number' ? value : (value as { id?: number } | null | undefined)?.id
@@ -8,6 +10,12 @@ const relId = (value: unknown): number | undefined =>
 /** Recomputes the rating shown on cards and the product page from approved reviews only. */
 const refreshProductRating = async (req: PayloadRequest, productId: number | undefined) => {
   if (!productId) return
+  // Serialize aggregate updates, including moderation and deletion, so two
+  // simultaneous reviews cannot leave a stale product rating behind.
+  if (await req.transactionID) {
+    const db = await transactionDB(req)
+    await db.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${`reviews:product:${productId}`}, 0))`)
+  }
   const approved = await req.payload.find({
     collection: 'reviews',
     where: { and: [{ product: { equals: productId } }, { status: { equals: 'APPROVED' } }] },
@@ -44,19 +52,30 @@ export const Reviews: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
     group: 'Catalog',
-    defaultColumns: ['title', 'product', 'rating', 'status', 'createdAt'],
+    defaultColumns: ['title', 'product', 'authorName', 'rating', 'verifiedPurchase', 'status', 'createdAt'],
     description: 'Only approved reviews appear on the storefront and count towards the rating.',
   },
   access: {
     // The public sees approved reviews only; staff see the moderation queue.
-    read: ({ req }) => (activeStaffRole(req.user) ? true : { status: { equals: 'APPROVED' } }),
+    read: ({ req }): ReturnType<Access> => (activeStaffRole(req.user) ? true : { and: [{ status: { equals: 'APPROVED' } }, { 'product.status': { equals: 'ACTIVE' } }] }),
     create: isStaff,
     update: isStaff,
     delete: isManager,
   },
   hooks: { afterChange: [afterChange], afterDelete: [afterDelete] },
+  indexes: [{ fields: ['customer', 'product'], unique: true }],
   fields: [
     { name: 'product', type: 'relationship', relationTo: 'products', required: true, index: true },
+    {
+      name: 'customer',
+      type: 'relationship',
+      relationTo: 'customers',
+      index: true,
+      // Legacy/staff reviews may have no account. Never expose an account ID
+      // or populated customer details through the public Reviews API.
+      access: { read: ({ req }) => Boolean(activeStaffRole(req.user)) },
+      admin: { readOnly: true, description: 'Set automatically for customer submissions.' },
+    },
     {
       type: 'row',
       fields: [
@@ -67,18 +86,19 @@ export const Reviews: CollectionConfig = {
           required: true,
           min: 1,
           max: 5,
+          validate: (value: unknown) => (typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 5) || 'Choose a whole-star rating from 1 to 5.',
           admin: { width: '25%', step: 1 },
         },
         {
           name: 'verifiedPurchase',
           type: 'checkbox',
           defaultValue: false,
-          admin: { width: '25%' },
+          admin: { width: '25%', readOnly: true, description: 'Verified against a delivered, paid order when submitted.' },
         },
       ],
     },
-    { name: 'title', type: 'text' },
-    { name: 'body', type: 'textarea' },
+    { name: 'title', type: 'text', maxLength: 120 },
+    { name: 'body', type: 'textarea', maxLength: 2500 },
     {
       name: 'status',
       type: 'select',
