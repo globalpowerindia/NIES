@@ -235,7 +235,7 @@ export interface Category {
 export interface Media {
   id: number;
   /**
-   * Describes the image or video for screen readers and search engines.
+   * Describes the image, video or 3D model for screen readers and search engines.
    */
   alt: string;
   prefix?: string | null;
@@ -385,6 +385,21 @@ export interface Product {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Upload a self-contained GLB with embedded textures, up to 25 MB (under 5 MB recommended). Export without Draco, Meshopt or KTX2 compression. Adds a smooth, draggable 3D tile alongside any uploaded 360° photo sequence.
+   */
+  model3d?: (number | null) | Media;
+  /**
+   * Views around the actual product, all the same size, center and lighting. Use 72–180 evenly spaced frames for smoother dragging; up to 180 are supported. Upload them all at once: they are put in file-name order (01, 02 … 36). Shown as a "360°" tile in the gallery.
+   */
+  spin?: {
+    frames?: (number | Media)[] | null;
+    autoRotate?: boolean | null;
+    /**
+     * Tick if the product turns the opposite way to the drag.
+     */
+    reverse?: boolean | null;
+  };
   /**
    * One or two lines for search results and sharing previews.
    */
@@ -1553,6 +1568,14 @@ export interface ProductsSelect<T extends boolean = true> {
         url?: T;
         file?: T;
         id?: T;
+      };
+  model3d?: T;
+  spin?:
+    | T
+    | {
+        frames?: T;
+        autoRotate?: T;
+        reverse?: T;
       };
   shortDesc?: T;
   description?: T;

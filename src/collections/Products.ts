@@ -7,6 +7,9 @@ import { isPriced, loadProductStock } from '@/lib/product-stock'
 import { youTubeId } from '@/lib/video'
 import { revalidateStorefront, revalidateStorefrontOnDelete } from '@/lib/revalidate'
 import { fillSearchDocument } from '@/lib/search-document'
+import { prepareProductModel } from '@/lib/product-model'
+import { prepareSpin } from '@/lib/spin'
+import { SPIN_MAX_FRAMES } from '@/lib/spin-rules'
 
 /**
  * Staff can't switch a product to Active until it has a price: an active
@@ -49,7 +52,7 @@ export const Products: CollectionConfig = {
   hooks: {
     afterChange: [revalidateStorefront],
     afterDelete: [revalidateStorefrontOnDelete],
-    beforeChange: [fillSearchDocument, requirePriceToActivate],
+    beforeChange: [fillSearchDocument, requirePriceToActivate, prepareSpin, prepareProductModel],
   },
   fields: [
     // Denormalised search text, by full-text weight. Hidden: written by
@@ -204,6 +207,55 @@ export const Products: CollectionConfig = {
                   },
                   validate: (value: unknown, { siblingData }: { siblingData: { source?: string } }) =>
                     siblingData?.source !== 'upload' || value ? true : 'Choose or upload a video file.',
+                },
+              ],
+            },
+            {
+              name: 'model3d',
+              label: '3D model (.glb)',
+              type: 'upload',
+              relationTo: 'media',
+              filterOptions: { mimeType: { equals: 'model/gltf-binary' } },
+              admin: {
+                description: 'Upload a self-contained GLB with embedded textures, up to 25 MB (under 5 MB recommended). Export without Draco, Meshopt or KTX2 compression. Adds a smooth, draggable 3D tile alongside any uploaded 360° photo sequence.',
+              },
+            },
+            {
+              name: 'spin',
+              label: '360° view',
+              type: 'group',
+              admin: {
+                description:
+                  'Views around the actual product, all the same size, center and lighting. Use 72–180 evenly spaced frames for smoother dragging; up to 180 are supported. Upload them all at once: they are put in file-name order (01, 02 … 36). Shown as a "360°" tile in the gallery.',
+              },
+              fields: [
+                {
+                  name: 'frames',
+                  label: 'Turntable photos',
+                  type: 'upload',
+                  relationTo: 'media',
+                  hasMany: true,
+                  maxRows: SPIN_MAX_FRAMES,
+                  filterOptions: { mimeType: { contains: 'image' } },
+                },
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'autoRotate',
+                      label: 'Turn slowly on its own until the shopper touches it',
+                      type: 'checkbox',
+                      defaultValue: true,
+                      admin: { width: '50%' },
+                    },
+                    {
+                      name: 'reverse',
+                      label: 'Reverse the drag direction',
+                      type: 'checkbox',
+                      defaultValue: false,
+                      admin: { width: '50%', description: 'Tick if the product turns the opposite way to the drag.' },
+                    },
+                  ],
                 },
               ],
             },

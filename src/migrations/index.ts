@@ -11,6 +11,8 @@ import * as migration_20261023_042948_payload_3_91_upgrade from './20261023_0429
 import * as migration_20261023_043644_order_cancel_reason from './20261023_043644_order_cancel_reason';
 import * as migration_20261023_051903_staff_audit_log from './20261023_051903_staff_audit_log';
 import * as migration_20261023_060455_staff_roles from './20261023_060455_staff_roles';
+import * as migration_20261023_065728_product_360_view from './20261023_065728_product_360_view';
+import * as migration_20261023_084941_product_3d_model from './20261023_084941_product_3d_model';
 
 export const migrations = [
   {
@@ -76,6 +78,16 @@ export const migrations = [
   {
     up: migration_20261023_060455_staff_roles.up,
     down: migration_20261023_060455_staff_roles.down,
-    name: '20261023_060455_staff_roles'
+    name: '20261023_060455_staff_roles',
+  },
+  {
+    up: migration_20261023_065728_product_360_view.up,
+    down: migration_20261023_065728_product_360_view.down,
+    name: '20261023_065728_product_360_view',
+  },
+  {
+    up: migration_20261023_084941_product_3d_model.up,
+    down: migration_20261023_084941_product_3d_model.down,
+    name: '20261023_084941_product_3d_model'
   },
 ];

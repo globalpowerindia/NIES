@@ -68,6 +68,8 @@ export default async function ProductPage(props: PageProps<'/products/[slug]'>) 
               productId={product.id}
               images={data.images}
               videos={data.videos}
+              spin={data.spin}
+              modelUrl={data.modelUrl}
               name={product.name}
             />
           </div>

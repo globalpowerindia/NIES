@@ -1,15 +1,25 @@
 'use client'
 
-import { Play } from 'lucide-react'
+import { Play, Rotate3d } from 'lucide-react'
 import Image from 'next/image'
+import dynamic from 'next/dynamic'
 import { useState } from 'react'
 
+import { ProductSpin } from '@/components/product-page/ProductSpin'
 import { WishlistHeart } from '@/components/wishlist/WishlistHeart'
 import type { MediaInfo } from '@/lib/storefront/content'
-import type { GalleryVideo } from '@/lib/storefront/product-page'
+import type { GalleryVideo, ProductSpinData } from '@/lib/storefront/product-page'
 import { cn } from '@/lib/utils'
 
-type Item = { kind: 'image'; image: MediaInfo } | GalleryVideo
+const ProductModel = dynamic(() => import('./ProductModel').then((module) => module.ProductModel), {
+  ssr: false,
+})
+
+type Item =
+  | { kind: 'model'; url: string }
+  | { kind: 'image'; image: MediaInfo }
+  | { kind: 'spin'; spin: ProductSpinData }
+  | GalleryVideo
 
 const PlayBadge = () => (
   <span className="absolute inset-0 grid place-items-center">
@@ -20,6 +30,32 @@ const PlayBadge = () => (
 )
 
 const Thumb = ({ item }: { item: Item }) => {
+  if (item.kind === 'model')
+    return (
+      <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-dark-500">
+        <Rotate3d className="size-8" aria-hidden />
+        3D
+      </span>
+    )
+  if (item.kind === 'spin') {
+    return (
+      <>
+        <Image
+          src={item.spin.frames[0].src}
+          alt=""
+          fill
+          sizes="156px"
+          className="object-contain p-1.5 opacity-60 lg:p-2"
+        />
+        <span className="absolute inset-0 grid place-items-center">
+          <span className="flex items-center gap-1 rounded-full bg-dark-500/75 px-2 py-1 text-[0.75rem] font-semibold text-light-100 lg:px-2.5 lg:text-body3">
+            <Rotate3d className="size-3.5 lg:size-4" aria-hidden />
+            360°
+          </span>
+        </span>
+      </>
+    )
+  }
   if (item.kind === 'image') {
     return (
       <Image
@@ -54,14 +90,26 @@ export const ProductGallery = ({
   productId,
   images,
   videos = [],
+  spin = null,
+  modelUrl = null,
   name,
 }: {
   productId: number
   images: MediaInfo[]
   videos?: GalleryVideo[]
+  spin?: ProductSpinData | null
+  modelUrl?: string | null
   name: string
 }) => {
-  const items: Item[] = [...images.map((image) => ({ kind: 'image' as const, image })), ...videos]
+  const imageItems: Item[] = images.map((image) => ({ kind: 'image' as const, image }))
+  // Right after the main photo, where it's seen before scrolling the thumbnails.
+  const items: Item[] = [
+    ...imageItems.slice(0, 1),
+    ...(modelUrl ? [{ kind: 'model' as const, url: modelUrl }] : []),
+    ...(spin ? [{ kind: 'spin' as const, spin }] : []),
+    ...imageItems.slice(1),
+    ...videos,
+  ]
   const [active, setActive] = useState(0)
   const current = items[active] ?? items[0]
 
@@ -77,9 +125,11 @@ export const ProductGallery = ({
               key={
                 item.kind === 'image'
                   ? item.image.url
-                  : item.kind === 'youtube'
-                    ? item.id
-                    : item.url
+                  : item.kind === 'spin'
+                    ? 'spin'
+                    : item.kind === 'youtube'
+                      ? item.id
+                      : item.url
               }
               className="shrink-0"
             >
@@ -89,7 +139,11 @@ export const ProductGallery = ({
                 aria-label={
                   item.kind === 'image'
                     ? `Show image ${index + 1} of ${items.length}`
-                    : `Play video: ${item.title}`
+                    : item.kind === 'spin'
+                      ? 'Show the 360° view'
+                      : item.kind === 'model'
+                        ? 'Show the 3D model'
+                        : `Play video: ${item.title}`
                 }
                 aria-pressed={index === active}
                 className={cn(
@@ -120,6 +174,10 @@ export const ProductGallery = ({
             sizes="(max-width: 1024px) 100vw, 682px"
             className="object-contain px-[min(13.8%,3.125rem)] pt-[2.125rem] pb-2 lg:p-[7.5%_7.5%_10%]"
           />
+        ) : current.kind === 'model' ? (
+          <ProductModel key={current.url} src={current.url} name={name} />
+        ) : current.kind === 'spin' ? (
+          <ProductSpin spin={current.spin} name={name} />
         ) : current.kind === 'youtube' ? (
           <div className="absolute inset-0 grid place-items-center bg-dark-500">
             <iframe
@@ -143,7 +201,7 @@ export const ProductGallery = ({
             <source src={current.url} type={current.mimeType} />
           </video>
         )}
-        {current?.kind === 'image' && (
+        {(current?.kind === 'image' || current?.kind === 'spin' || current?.kind === 'model') && (
           <WishlistHeart
             productId={productId}
             label={name}
