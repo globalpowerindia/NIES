@@ -1,11 +1,34 @@
-import { APIError, type CollectionConfig } from 'payload'
+import { APIError, type CollectionAfterChangeHook, type CollectionConfig } from 'payload'
 
 import { isStaff } from '@/access/roles'
 import { applyStockChange, ensureInventory, MOVEMENT_TYPES, type MovementType } from '@/lib/inventory'
-import { revalidateStorefront } from '@/lib/revalidate'
+import { purgeStorefront } from '@/lib/revalidate'
 
 const relId = (value: unknown): number | undefined =>
   typeof value === 'number' ? value : (value as { id?: number } | null | undefined)?.id
+
+/**
+ * The storefront shows stock only as in or out of stock, so a movement that
+ * leaves that unchanged (most order holds, releases and sales) has nothing to
+ * refresh. Purging on each one would empty the whole page cache on every
+ * checkout. A change of state does purge everything: product cards in the
+ * cached listings show it too.
+ */
+const revalidateIfAvailabilityChanged: CollectionAfterChangeHook = async ({ doc, operation, req }) => {
+  if (operation !== 'create') return doc
+  const rule = MOVEMENT_TYPES[doc.type as MovementType]
+  const after = Number(doc.onHandAfter) - Number(doc.reservedAfter)
+  const before = after - (rule.onHand - rule.reserved) * Number(doc.quantity)
+  if (before > 0 === after > 0) return doc
+
+  const inventoryId = relId(doc.inventory)
+  const inventory = inventoryId
+    ? await req.payload.findByID({ collection: 'inventory', id: inventoryId, depth: 0, select: { allowBackorder: true }, req, disableErrors: true })
+    : null
+  // A backordered variant is on sale whatever the count.
+  if (!inventory?.allowBackorder) purgeStorefront(req.context)
+  return doc
+}
 
 /**
  * Append-only stock ledger. Rows can't be edited or deleted; a mistake is
@@ -60,7 +83,7 @@ export const StockMovements: CollectionConfig = {
         return data
       },
     ],
-    afterChange: [revalidateStorefront],
+    afterChange: [revalidateIfAvailabilityChanged],
   },
   fields: [
     {

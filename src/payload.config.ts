@@ -114,6 +114,14 @@ export default buildConfig({
     Users,
   ],
   globals: [HomePage, SiteSettings, CheckoutSettings],
+  onInit: async (payload) => {
+    // A server's own disk doesn't survive a redeploy, and files on it are served from this origin.
+    if (process.env.NODE_ENV === 'production' && !r2PublicUrl) {
+      payload.logger.warn('R2 is not configured: uploads are stored on local disk and served from this site. Set R2_* and R2_PUBLIC_URL.')
+    }
+  },
+  // The admin and the storefront use REST only; an unused GraphQL API is attack surface for nothing.
+  graphQL: { disable: true },
   editor: lexicalEditor(),
   secret: env.PAYLOAD_SECRET,
   typescript: {

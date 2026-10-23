@@ -16,7 +16,8 @@ export const Media: CollectionConfig = {
   upload: {
     externalFileHeaderFilter: () => ({}),
     // Product videos live here too; Payload only makes the resized copies below for images.
-    mimeTypes: ['image/*', 'video/mp4', 'video/webm', 'video/quicktime'],
+    // Named types, never `image/*`: that admits SVG, which is a document that can run script.
+    mimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'video/mp4', 'video/webm'],
     imageSizes: [
       { name: 'thumbnail', width: 400, height: 400, position: 'centre' },
       { name: 'card', width: 768 },

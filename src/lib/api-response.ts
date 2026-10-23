@@ -23,11 +23,14 @@ export const invalid = (error: ZodError): NextResponse =>
     Object.fromEntries(error.issues.map((issue) => [issue.path.join('.') || 'form', issue.message])),
   )
 
-/** Bounded streaming read: Content-Length is only a hint, never the enforcement. */
-export const readJson = async (request: Request): Promise<unknown> => {
-  if (request.headers.get('content-type')?.split(';')[0].trim() !== 'application/json') return null
-  const maxBytes = 16 * 1024
-  if (Number(request.headers.get('content-length')) > maxBytes || !request.body) return null
+/**
+ * The body as text, or null once it passes `maxBytes`. A streaming read:
+ * Content-Length is only a hint, never the enforcement, and nothing past the
+ * limit is buffered.
+ */
+export const readText = async (request: Request, maxBytes: number): Promise<string | null> => {
+  if (Number(request.headers.get('content-length')) > maxBytes) return null
+  if (!request.body) return ''
   const reader = request.body.getReader()
   const decoder = new TextDecoder()
   let length = 0
@@ -40,10 +43,22 @@ export const readJson = async (request: Request): Promise<unknown> => {
       if (length > maxBytes) { await reader.cancel(); return null }
       text += decoder.decode(value, { stream: true })
     }
-    return JSON.parse(text + decoder.decode())
+    return text + decoder.decode()
   } catch {
     return null
   } finally {
     reader.releaseLock()
+  }
+}
+
+/** A small JSON body, or null for anything else. */
+export const readJson = async (request: Request): Promise<unknown> => {
+  if (request.headers.get('content-type')?.split(';')[0].trim() !== 'application/json') return null
+  const text = await readText(request, 16 * 1024)
+  if (!text) return null
+  try {
+    return JSON.parse(text)
+  } catch {
+    return null
   }
 }

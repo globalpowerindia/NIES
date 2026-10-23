@@ -39,9 +39,11 @@ export const POST = async (request: Request): Promise<NextResponse> => {
   const { productId } = parsed.data
 
   const payload = await getPayloadClient()
+  // Active only: a draft's id must not be savable, or even confirmable as existing.
   const product = await payload.count({
     collection: 'products',
-    where: { id: { equals: productId } },
+    where: { and: [{ id: { equals: productId } }, { status: { equals: 'ACTIVE' } }] },
+    overrideAccess: true,
   })
   if (!product.totalDocs) return fail(404, 'That product is no longer available.')
 

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 
+import { readText } from '@/lib/api-response'
 import { confirmPayment } from '@/lib/checkout'
 import { razorpayKeys, verifyWebhookSignature } from '@/lib/razorpay'
 import { getPayloadClient } from '@/lib/storefront/queries'
@@ -20,8 +21,8 @@ export const POST = async (request: Request): Promise<NextResponse> => {
   const keys = razorpayKeys()
   if (!keys?.webhookSecret) return NextResponse.json({ ok: false }, { status: 503 })
 
-  const rawBody = await request.text()
-  if (rawBody.length > 256 * 1024) return NextResponse.json({ ok: false }, { status: 413 })
+  const rawBody = await readText(request, 256 * 1024)
+  if (rawBody === null) return NextResponse.json({ ok: false }, { status: 413 })
   const signature = request.headers.get('x-razorpay-signature') ?? ''
   if (!verifyWebhookSignature(keys.webhookSecret, rawBody, signature)) {
     return NextResponse.json({ ok: false }, { status: 400 })
