@@ -7,8 +7,9 @@ import type { Product, ProductVariant } from '@/payload-types'
 
 export const PLACEHOLDER_IMAGE = '/products/sample-drill.png'
 
-export const relId = (value: unknown): number | undefined =>
-  typeof value === 'number' ? value : (value as { id?: number } | null | undefined)?.id
+import { relId } from '@/lib/relations'
+
+export { relId }
 
 /** The variant a card prices from: the one marked default, else the first by sort order. */
 export const pickVariant = (variants: ProductVariant[]): ProductVariant | undefined =>

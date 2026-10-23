@@ -15,6 +15,7 @@ import {
   type StockLevel,
 } from '@/lib/cart-rules'
 import { computeCartTotals, DEFAULT_GST_RATE_BPS, SELLER_STATE_CODE } from '@/lib/money'
+import { relIds } from '@/lib/relations'
 import { mediaOf } from '@/lib/storefront/content'
 import { pickVariant, PLACEHOLDER_IMAGE, relId } from '@/lib/storefront/products'
 import { inTransaction, transactionDB } from '@/lib/transaction'
@@ -327,9 +328,6 @@ const isFirstOrder = async (payload: Payload, customerId: number | null, req?: P
         req,
       })).totalDocs === 0
     : null
-
-const relIds = (values: unknown): number[] =>
-  Array.isArray(values) ? values.map(relId).filter((id): id is number => id !== undefined) : []
 
 /** Each category with every parent above it, for "this category and its sub-categories". */
 const categoryAncestry = async (payload: Payload): Promise<Map<number, number[]>> => {

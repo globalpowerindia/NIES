@@ -2,10 +2,8 @@ import type { CollectionConfig } from 'payload'
 
 import { isManager, isStaff } from '@/access/roles'
 import { stockStatusOf } from '@/lib/inventory'
+import { relId } from '@/lib/relations'
 import { revalidateStorefront, revalidateStorefrontOnDelete } from '@/lib/revalidate'
-
-const relId = (value: unknown): number | undefined =>
-  typeof value === 'number' ? value : (value as { id?: number } | null | undefined)?.id
 
 /**
  * One row per variant. Counts are read-only here: they change only through a

@@ -1,6 +1,8 @@
 import { sql } from 'drizzle-orm'
 import { APIError, type PayloadRequest } from 'payload'
 
+import { transactionDB } from '@/lib/transaction'
+
 export const STOCK_STATUSES = ['IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK'] as const
 export type StockStatus = (typeof STOCK_STATUSES)[number]
 
@@ -24,18 +26,6 @@ export type MovementType = keyof typeof MOVEMENT_TYPES
 export const stockStatusOf = (available: number, lowStockThreshold: number): StockStatus =>
   available <= 0 ? 'OUT_OF_STOCK' : available <= lowStockThreshold ? 'LOW_STOCK' : 'IN_STOCK'
 
-type DrizzleLike = { execute: (query: ReturnType<typeof sql>) => Promise<{ rows: Record<string, unknown>[] }> }
-type DrizzleAdapterLike = {
-  drizzle: DrizzleLike
-  sessions?: Record<string | number, { db: DrizzleLike } | undefined>
-}
-
-/** The drizzle handle for the request's open transaction, so the stock update commits or rolls back with the movement row. */
-const dbFor = async (req: PayloadRequest): Promise<DrizzleLike> => {
-  const adapter = req.payload.db as unknown as DrizzleAdapterLike
-  const id = req.transactionID ? await req.transactionID : undefined
-  return (id !== undefined && adapter.sessions?.[id]?.db) || adapter.drizzle
-}
 
 export type StockBalance = { onHand: number; reserved: number; status: StockStatus }
 
@@ -51,7 +41,8 @@ export const applyStockChange = async (
   onHandDelta: number,
   reservedDelta: number,
 ): Promise<StockBalance> => {
-  const db = await dbFor(req)
+  // The request's own transaction, so the count commits or rolls back with the movement row.
+  const db = await transactionDB(req)
   const result = await db.execute(sql`
     UPDATE "inventory"
     SET

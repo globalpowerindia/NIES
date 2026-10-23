@@ -2,10 +2,8 @@ import { APIError, type CollectionAfterChangeHook, type CollectionConfig } from 
 
 import { isStaff } from '@/access/roles'
 import { applyStockChange, ensureInventory, MOVEMENT_TYPES, type MovementType } from '@/lib/inventory'
+import { relId } from '@/lib/relations'
 import { purgeStorefront } from '@/lib/revalidate'
-
-const relId = (value: unknown): number | undefined =>
-  typeof value === 'number' ? value : (value as { id?: number } | null | undefined)?.id
 
 /**
  * The storefront shows stock only as in or out of stock, so a movement that

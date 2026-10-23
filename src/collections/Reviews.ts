@@ -2,10 +2,8 @@ import type { Access, CollectionAfterChangeHook, CollectionAfterDeleteHook, Coll
 
 import { activeStaffRole, isManager, isStaff } from '@/access/roles'
 import { sql } from 'drizzle-orm'
+import { relId } from '@/lib/relations'
 import { transactionDB } from '@/lib/transaction'
-
-const relId = (value: unknown): number | undefined =>
-  typeof value === 'number' ? value : (value as { id?: number } | null | undefined)?.id
 
 /** Recomputes the rating shown on cards and the product page from approved reviews only. */
 const refreshProductRating = async (req: PayloadRequest, productId: number | undefined) => {
