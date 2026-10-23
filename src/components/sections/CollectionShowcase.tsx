@@ -43,7 +43,8 @@ export const CollectionShowcase = ({
 
   const update = useCallback(() => {
     const track = trackRef.current
-    if (!track) return
+    // A hidden or not-yet-laid-out track has no width to page against.
+    if (!track || track.clientWidth === 0) return
     const scrollable = Math.max(0, track.scrollWidth - track.clientWidth)
     const pages = Math.max(1, Math.ceil(track.scrollWidth / track.clientWidth - 0.05))
     // The final page is clamped to the end of the track, rather than a full
