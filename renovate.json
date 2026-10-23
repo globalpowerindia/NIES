@@ -1,0 +1,25 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", "helpers:pinGitHubActionDigests"],
+  "timezone": "Asia/Kolkata",
+  "schedule": ["before 9am on monday"],
+  "minimumReleaseAge": "7 days",
+  "rangeStrategy": "pin",
+  "vulnerabilityAlerts": { "enabled": true, "minimumReleaseAge": null, "schedule": ["at any time"] },
+  "packageRules": [
+    {
+      "description": "Payload's packages must move together, or the admin and the database adapter drift apart.",
+      "matchPackageNames": ["payload", "@payloadcms/**"],
+      "groupName": "payload"
+    },
+    {
+      "description": "Next and its ESLint config share a version.",
+      "matchPackageNames": ["next", "eslint-config-next"],
+      "groupName": "next"
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions"
+    }
+  ]
+}
