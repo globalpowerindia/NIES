@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { isStaff, isSuperAdmin } from '@/access/roles'
+import { allow } from '@/access/roles'
 
 /**
  * One variant in a cart. Price is deliberately not stored: the cart always
@@ -15,10 +15,10 @@ export const CartItems: CollectionConfig = {
     defaultColumns: ['cart', 'variant', 'quantity', 'updatedAt'],
   },
   access: {
-    read: isStaff,
+    read: allow('carts', 'read'),
     create: () => false,
     update: () => false,
-    delete: isSuperAdmin,
+    delete: allow('carts', 'delete'),
   },
   // Adding the same variant twice changes one line, enforced by the database
   // rather than a read-then-write race between two quick clicks.

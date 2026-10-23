@@ -1,6 +1,6 @@
 import { APIError, type CollectionAfterChangeHook, type CollectionConfig } from 'payload'
 
-import { isStaff } from '@/access/roles'
+import { allow } from '@/access/roles'
 import { applyStockChange, ensureInventory, MOVEMENT_TYPES, type MovementType } from '@/lib/inventory'
 import { relId } from '@/lib/relations'
 import { purgeStorefront } from '@/lib/revalidate'
@@ -41,8 +41,8 @@ export const StockMovements: CollectionConfig = {
     components: { views: { list: { Component: '/admin/views/StockMovementsList#StockMovementsList' } } },
   },
   access: {
-    read: isStaff,
-    create: isStaff,
+    read: allow('stock-movements', 'read'),
+    create: allow('stock-movements', 'create'),
     update: () => false,
     delete: () => false,
   },

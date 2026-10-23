@@ -4,6 +4,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import config from '@/payload.config'
 import type { Category, Product } from '@/payload-types'
 
+import { createStaff } from '../helpers/staff'
+
 // Razorpay is the only thing faked: its keys, and the network calls behind them.
 const razorpay = vi.hoisted(() => ({ orders: 0, payments: [] as { id: string; status: string; amount: number }[] }))
 vi.mock('@/lib/razorpay', async (importOriginal) => ({
@@ -279,17 +281,12 @@ describe('Checkout', () => {
     const f = await fixture(5)
     const placed = await place(f)
     if (!placed.ok) throw new Error(placed.error)
-    const manager = await payload.create({
-      collection: 'users',
-      data: { email: `checkout-manager-${stamp}@example.test`, password: `pw-${stamp}-Aa1!`, name: 'Checkout test', role: 'MANAGER', isActive: true },
-      overrideAccess: true,
-    })
-    created.push({ collection: 'users', id: manager.id })
+    const { user: manager } = await createStaff(payload, 'Manager', created, { prefix: 'checkout-manager' })
     await payload.update({
       collection: 'orders',
       id: placed.order.orderId,
       data: { status: 'CANCELLED' },
-      user: { ...manager, collection: 'users' },
+      user: manager,
       overrideAccess: false,
     })
     expect((await orderOf(placed.order.orderId)).cancelReason).toBe('STAFF')

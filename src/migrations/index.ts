@@ -10,6 +10,7 @@ import * as migration_20261021_112739_customer_reviews from './20261021_112739_c
 import * as migration_20261023_042948_payload_3_91_upgrade from './20261023_042948_payload_3_91_upgrade';
 import * as migration_20261023_043644_order_cancel_reason from './20261023_043644_order_cancel_reason';
 import * as migration_20261023_051903_staff_audit_log from './20261023_051903_staff_audit_log';
+import * as migration_20261023_060455_staff_roles from './20261023_060455_staff_roles';
 
 export const migrations = [
   {
@@ -70,6 +71,11 @@ export const migrations = [
   {
     up: migration_20261023_051903_staff_audit_log.up,
     down: migration_20261023_051903_staff_audit_log.down,
-    name: '20261023_051903_staff_audit_log'
+    name: '20261023_051903_staff_audit_log',
+  },
+  {
+    up: migration_20261023_060455_staff_roles.up,
+    down: migration_20261023_060455_staff_roles.down,
+    name: '20261023_060455_staff_roles'
   },
 ];

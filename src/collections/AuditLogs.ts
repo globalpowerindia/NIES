@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
-import { activeStaffRole, isSuperAdmin } from '@/access/roles'
+import { isSuperAdminUser } from '@/access/permissions'
+import { isSuperAdmin } from '@/access/roles'
 import { AUDIT_ACTIONS } from '@/lib/audit'
 
 /**
@@ -16,7 +17,7 @@ export const AuditLogs: CollectionConfig = {
     useAsTitle: 'documentTitle',
     defaultColumns: ['createdAt', 'userEmail', 'action', 'entity', 'documentTitle', 'ip'],
     description: 'Every change staff make in the admin, and every staff sign-in. Read-only.',
-    hidden: ({ user }) => activeStaffRole(user) !== 'SUPER_ADMIN',
+    hidden: ({ user }) => !isSuperAdminUser(user),
   },
   access: {
     read: isSuperAdmin,

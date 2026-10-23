@@ -5,26 +5,20 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import config from '@/payload.config'
 
+import { createStaff } from '../helpers/staff'
+
 /**
  * The access rules that the generated REST/GraphQL API enforces. Each case
  * runs with `overrideAccess: false`, which is what an HTTP request gets.
  */
 
 let payload: Payload
-const cleanup: { collection: 'users' | 'customers' | 'products' | 'categories' | 'orders'; id: number }[] = []
+const cleanup: { collection: 'users' | 'roles' | 'customers' | 'products' | 'categories' | 'orders'; id: number }[] = []
 
 const tag = () => `${Date.now()}-${randomBytes(3).toString('hex')}`
 
-const staff = async (role: 'SUPER_ADMIN' | 'MANAGER' | 'STAFF', isActive: boolean) => {
-  const password = randomBytes(18).toString('base64url')
-  const user = await payload.create({
-    collection: 'users',
-    data: { email: `access-${tag()}@example.test`, password, name: 'Access test', role, isActive },
-    overrideAccess: true,
-  })
-  cleanup.push({ collection: 'users', id: user.id })
-  return { user: { ...user, collection: 'users' as const }, password }
-}
+const staff = (kind: 'SUPER_ADMIN' | 'MANAGER' | 'STAFF', isActive: boolean) =>
+  createStaff(payload, kind === 'MANAGER' ? 'Manager' : kind === 'STAFF' ? 'Staff' : kind, cleanup, { isActive, prefix: 'access' })
 
 describe('Access rules', () => {
   beforeAll(async () => {

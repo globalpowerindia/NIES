@@ -1,6 +1,7 @@
 import type { CollectionConfig, TextField, TextFieldSingleValidation } from 'payload'
 
-import { isManager, isStaff, isSuperAdmin } from '@/access/roles'
+import { can } from '@/access/permissions'
+import { allow } from '@/access/roles'
 import { slugFrom } from '@/fields/slug'
 import { revalidateStorefront, revalidateStorefrontOnDelete } from '@/lib/revalidate'
 
@@ -31,11 +32,11 @@ export const Pages: CollectionConfig = {
     description: 'Shown at the site root, e.g. a page with slug "privacy" is /privacy. Link them from Header & Footer.',
   },
   access: {
-    // Visitors only ever see published pages; staff see drafts too.
-    read: (args) => (isStaff(args) ? true : { isPublished: { equals: true } }),
-    create: isManager,
-    update: isManager,
-    delete: isSuperAdmin,
+    // Visitors only ever see published pages; staff who may view pages see drafts too.
+    read: ({ req }) => (can(req.user, 'pages', 'read') ? true : { isPublished: { equals: true } }),
+    create: allow('pages', 'create'),
+    update: allow('pages', 'update'),
+    delete: allow('pages', 'delete'),
   },
   hooks: { afterChange: [revalidateStorefront], afterDelete: [revalidateStorefrontOnDelete] },
   fields: [

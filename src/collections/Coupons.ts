@@ -1,6 +1,6 @@
 import type { CollectionConfig, NumberFieldSingleValidation, Validate } from 'payload'
 
-import { isManager, isStaff, isSuperAdmin } from '@/access/roles'
+import { allow } from '@/access/roles'
 import { paiseField } from '@/fields/paise'
 import { normaliseCouponCode } from '@/lib/cart-rules'
 
@@ -30,10 +30,10 @@ export const Coupons: CollectionConfig = {
       'Discount codes shoppers enter in the cart. Switch a code off rather than deleting it.',
   },
   access: {
-    read: isStaff,
-    create: isManager,
-    update: isManager,
-    delete: isSuperAdmin,
+    read: allow('coupons', 'read'),
+    create: allow('coupons', 'create'),
+    update: allow('coupons', 'update'),
+    delete: allow('coupons', 'delete'),
   },
   fields: [
     {

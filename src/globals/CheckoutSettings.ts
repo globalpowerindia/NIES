@@ -1,6 +1,7 @@
 import type { GlobalConfig } from 'payload'
 
-import { anyone, isManager } from '@/access/roles'
+import { can } from '@/access/permissions'
+import { allow, anyone } from '@/access/roles'
 import { paiseField } from '@/fields/paise'
 
 /**
@@ -12,12 +13,14 @@ export const CheckoutSettings: GlobalConfig = {
   slug: 'checkout-settings',
   label: 'Delivery & Checkout',
   admin: {
+    // Read publicly by the storefront; in the admin, only for roles that may change it.
+    hidden: ({ user }) => !can(user, 'checkout-settings', 'update'),
     group: 'Commerce',
     description: 'Delivery is charged by the total weight of the order, using these slabs.',
   },
   access: {
     read: anyone,
-    update: isManager,
+    update: allow('checkout-settings', 'update'),
   },
   fields: [
     {

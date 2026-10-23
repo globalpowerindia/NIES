@@ -28,6 +28,7 @@ import { Pages } from './collections/Pages'
 import { Products } from './collections/Products'
 import { ProductVariants } from './collections/ProductVariants'
 import { Reviews } from './collections/Reviews'
+import { Roles } from './collections/Roles'
 import { SearchSynonyms } from './collections/SearchSynonyms'
 import { SpecDefinitions } from './collections/SpecDefinitions'
 import { StockMovements } from './collections/StockMovements'
@@ -37,7 +38,7 @@ import { HomePage } from './globals/HomePage'
 import { CheckoutSettings } from './globals/CheckoutSettings'
 import { SiteSettings } from './globals/SiteSettings'
 import { env, r2 } from './lib/env'
-import { activeStaffRole } from './access/roles'
+import { can } from './access/permissions'
 import { withAudit, withGlobalAudit } from './lib/audit'
 import { siteUrl } from './lib/site-url'
 import { addDocumentCountersTable } from './lib/document-numbers'
@@ -114,6 +115,7 @@ export default buildConfig({
     OtpChallenges,
     CustomerSessions,
     Pages,
+    Roles,
     Users,
   ].map(withAudit).concat(AuditLogs),
   globals: [HomePage, SiteSettings, CheckoutSettings].map(withGlobalAudit),
@@ -163,7 +165,7 @@ export default buildConfig({
       alwaysInsertFields: true,
       // Large files (videos, big photos) can't pass through a Vercel function,
       // so once R2's CORS allows it the browser uploads them directly.
-      clientUploads: env.R2_CLIENT_UPLOADS === 'true' ? { access: ({ req }) => Boolean(activeStaffRole(req.user)) } : false,
+      clientUploads: env.R2_CLIENT_UPLOADS === 'true' ? { access: ({ req, collectionSlug }) => can(req.user, collectionSlug === 'datasheets' ? 'datasheets' : 'media', 'create') } : false,
       collections: { media: r2Files, datasheets: r2Files },
       bucket: r2?.bucket ?? '',
       config: {

@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { isStaff, isSuperAdmin } from '@/access/roles'
+import { allow, isSuperAdmin } from '@/access/roles'
 import { paiseField } from '@/fields/paise'
 
 /**
@@ -17,9 +17,10 @@ export const CouponRedemptions: CollectionConfig = {
     defaultColumns: ['coupon', 'order', 'customer', 'discountPaise', 'createdAt'],
   },
   access: {
-    read: isStaff,
+    read: allow('coupons', 'read'),
     create: () => false,
     update: () => false,
+    // Removing a use would hand back a limited code's allowance.
     delete: isSuperAdmin,
   },
   // One redemption per order, however many times payment confirmation arrives.

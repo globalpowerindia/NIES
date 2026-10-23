@@ -6,6 +6,7 @@ type PaiseFieldOptions = {
   required?: boolean
   defaultValue?: number
   admin?: NumberField['admin']
+  access?: NumberField['access']
 }
 
 /**
@@ -26,8 +27,10 @@ export const paiseField = ({
   required,
   defaultValue,
   admin,
+  access,
 }: PaiseFieldOptions): NumberField => ({
   name,
+  ...(access && { access }),
   type: 'number',
   label,
   required,

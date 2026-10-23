@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { isManager, isStaff } from '@/access/roles'
+import { allow } from '@/access/roles'
 import { stockStatusOf } from '@/lib/inventory'
 import { relId } from '@/lib/relations'
 import { revalidateStorefront, revalidateStorefrontOnDelete } from '@/lib/revalidate'
@@ -19,9 +19,9 @@ export const Inventory: CollectionConfig = {
     components: { views: { list: { Component: '/admin/views/InventoryList#InventoryList' } } },
   },
   access: {
-    read: isStaff,
-    create: isManager,
-    update: isManager,
+    read: allow('inventory', 'read'),
+    create: allow('inventory', 'create'),
+    update: allow('inventory', 'update'),
     delete: () => false,
   },
   hooks: {

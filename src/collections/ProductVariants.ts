@@ -1,10 +1,12 @@
 import type { CollectionConfig } from 'payload'
 
-import { publishedVariants, isManager, isSuperAdmin } from '@/access/roles'
+import { allow, pricesField, publishedVariants } from '@/access/roles'
 import { paiseField } from '@/fields/paise'
 import { ensureInventory } from '@/lib/inventory'
 import { revalidateStorefront, revalidateStorefrontOnDelete } from '@/lib/revalidate'
 import { refreshOnVariantChange } from '@/lib/search-refresh'
+
+const PRICE_ACCESS = { create: pricesField, update: pricesField }
 
 export const ProductVariants: CollectionConfig = {
   slug: 'product-variants',
@@ -17,9 +19,9 @@ export const ProductVariants: CollectionConfig = {
   },
   access: {
     read: publishedVariants,
-    create: isManager,
-    update: isManager,
-    delete: isSuperAdmin,
+    create: allow('product-variants', 'create'),
+    update: allow('product-variants', 'update'),
+    delete: allow('product-variants', 'delete'),
   },
   hooks: {
     beforeValidate: [
@@ -139,12 +141,14 @@ export const ProductVariants: CollectionConfig = {
     {
       type: 'row',
       fields: [
-        paiseField({ name: 'mrpPaise', label: 'MRP', required: true, admin: { width: '50%' } }),
+        // Prices need the role's price permission as well as edit rights here.
+        paiseField({ name: 'mrpPaise', label: 'MRP', required: true, admin: { width: '50%' }, access: PRICE_ACCESS }),
         paiseField({
           name: 'sellingPricePaise',
           label: 'Selling price',
           required: true,
           admin: { width: '50%' },
+          access: PRICE_ACCESS,
         }),
       ],
     },

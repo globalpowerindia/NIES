@@ -1,6 +1,6 @@
 import { APIError, type CollectionBeforeChangeHook, type CollectionConfig, type Field, type NumberFieldSingleValidation } from 'payload'
 
-import { publishedProducts, isManager, isSuperAdmin } from '@/access/roles'
+import { allow, pricesField, publishedProducts } from '@/access/roles'
 import { slugFrom } from '@/fields/slug'
 import { DEFAULT_GST_RATE_BPS, GST_RATES_BPS } from '@/lib/money'
 import { isPriced, loadProductStock } from '@/lib/product-stock'
@@ -42,9 +42,9 @@ export const Products: CollectionConfig = {
   },
   access: {
     read: publishedProducts,
-    create: isManager,
-    update: isManager,
-    delete: isSuperAdmin,
+    create: allow('products', 'create'),
+    update: allow('products', 'update'),
+    delete: allow('products', 'delete'),
   },
   hooks: {
     afterChange: [revalidateStorefront],
@@ -415,6 +415,8 @@ export const Products: CollectionConfig = {
                 description: 'Basis points. 1800 is 18%. Allowed: 0, 500, 1200, 1800, 2800.',
               },
               validate: validateGstRate,
+              // GST changes what the customer pays: it needs the role's price permission.
+              access: { create: pricesField, update: pricesField },
             },
             { name: 'warrantyMonths', type: 'number', defaultValue: 6, min: 0 },
           ],

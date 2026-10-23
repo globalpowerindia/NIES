@@ -1,17 +1,17 @@
 import type { CollectionConfig } from 'payload'
 
-import { anyone, isManager, isStaff } from '@/access/roles'
+import { allow, anyone, hiddenUnless } from '@/access/roles'
 import { revalidateStorefront, revalidateStorefrontOnDelete } from '@/lib/revalidate'
 
 export const Media: CollectionConfig = {
   slug: 'media',
   hooks: { afterChange: [revalidateStorefront], afterDelete: [revalidateStorefrontOnDelete] },
-  admin: { group: 'Catalog' },
+  admin: { hidden: hiddenUnless('media'), group: 'Catalog' },
   access: {
     read: anyone,
-    create: isStaff,
-    update: isStaff,
-    delete: isManager,
+    create: allow('media', 'create'),
+    update: allow('media', 'update'),
+    delete: allow('media', 'delete'),
   },
   upload: {
     externalFileHeaderFilter: () => ({}),

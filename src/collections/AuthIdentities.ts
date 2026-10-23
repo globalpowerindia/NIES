@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { isStaff, isSuperAdmin } from '@/access/roles'
+import { allow, isSuperAdmin } from '@/access/roles'
 
 export const AUTH_PROVIDERS = ['PHONE_OTP', 'EMAIL_OTP', 'GOOGLE'] as const
 
@@ -31,7 +31,7 @@ export const AuthIdentities: CollectionConfig = {
     description: 'How each customer signs in. Created by the login flows, not by hand.',
   },
   access: {
-    read: isStaff,
+    read: allow('auth-identities', 'read'),
     // Created and updated only through the Local API in our own auth handlers,
     // which bypasses access control. Nothing in the admin should forge one.
     create: () => false,

@@ -1,6 +1,7 @@
 import type { Access, CollectionAfterChangeHook, CollectionAfterDeleteHook, CollectionConfig, PayloadRequest } from 'payload'
 
-import { activeStaffRole, isManager, isStaff } from '@/access/roles'
+import { can } from '@/access/permissions'
+import { allow } from '@/access/roles'
 import { sql } from 'drizzle-orm'
 import { relId } from '@/lib/relations'
 import { transactionDB } from '@/lib/transaction'
@@ -54,11 +55,11 @@ export const Reviews: CollectionConfig = {
     description: 'Only approved reviews appear on the storefront and count towards the rating.',
   },
   access: {
-    // The public sees approved reviews only; staff see the moderation queue.
-    read: ({ req }): ReturnType<Access> => (activeStaffRole(req.user) ? true : { and: [{ status: { equals: 'APPROVED' } }, { 'product.status': { equals: 'ACTIVE' } }] }),
-    create: isStaff,
-    update: isStaff,
-    delete: isManager,
+    // The public sees approved reviews only; staff who may view reviews see the moderation queue.
+    read: ({ req }): ReturnType<Access> => (can(req.user, 'reviews', 'read') ? true : { and: [{ status: { equals: 'APPROVED' } }, { 'product.status': { equals: 'ACTIVE' } }] }),
+    create: allow('reviews', 'create'),
+    update: allow('reviews', 'update'),
+    delete: allow('reviews', 'delete'),
   },
   hooks: { afterChange: [afterChange], afterDelete: [afterDelete] },
   indexes: [{ fields: ['customer', 'product'], unique: true }],
@@ -71,7 +72,7 @@ export const Reviews: CollectionConfig = {
       index: true,
       // Legacy/staff reviews may have no account. Never expose an account ID
       // or populated customer details through the public Reviews API.
-      access: { read: ({ req }) => Boolean(activeStaffRole(req.user)) },
+      access: { read: ({ req }) => can(req.user, 'reviews', 'read') },
       admin: { readOnly: true, description: 'Set automatically for customer submissions.' },
     },
     {

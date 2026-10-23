@@ -6,7 +6,7 @@ import {
 } from 'payload'
 
 import { bulkOrderStatus } from '@/admin/endpoints/bulkOrderStatus'
-import { isManager, isStaff, isSuperAdmin } from '@/access/roles'
+import { allow, isSuperAdmin } from '@/access/roles'
 import { paiseField } from '@/fields/paise'
 import { LOCKED_ORDER_FIELDS, staffCanMoveOrder } from '@/lib/order-rules'
 import { releaseOrderStock } from '@/lib/order-stock'
@@ -86,9 +86,10 @@ export const Orders: CollectionConfig = {
     },
   },
   access: {
-    read: isStaff,
-    create: isManager,
-    update: isManager,
+    read: allow('orders', 'read'),
+    create: allow('orders', 'create'),
+    update: allow('orders', 'update'),
+    // Tax records: only a super admin, and never through the role grid.
     delete: isSuperAdmin,
   },
   hooks: { beforeChange: [enforceOrderRules], afterChange: [releaseUnpaidStock] },

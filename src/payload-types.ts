@@ -91,6 +91,7 @@ export interface Config {
     'otp-challenges': OtpChallenge;
     'customer-sessions': CustomerSession;
     pages: Page;
+    roles: Role;
     users: User;
     'audit-logs': AuditLog;
     'payload-kv': PayloadKv;
@@ -110,6 +111,9 @@ export interface Config {
     };
     customers: {
       identities: 'auth-identities';
+    };
+    roles: {
+      members: 'users';
     };
   };
   collectionsSelect: {
@@ -137,6 +141,7 @@ export interface Config {
     'otp-challenges': OtpChallengesSelect<false> | OtpChallengesSelect<true>;
     'customer-sessions': CustomerSessionsSelect<false> | CustomerSessionsSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
+    roles: RolesSelect<false> | RolesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'audit-logs': AuditLogsSelect<false> | AuditLogsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
@@ -1031,7 +1036,14 @@ export interface CartItem {
 export interface User {
   id: number;
   name: string;
-  role: 'SUPER_ADMIN' | 'MANAGER' | 'STAFF';
+  /**
+   * Can do everything, including managing staff, roles and the audit log. Keep this to one or two people.
+   */
+  isSuperAdmin?: boolean | null;
+  /**
+   * What they can see and do. Edit roles under Settings → Roles.
+   */
+  role?: (number | null) | Role;
   isActive?: boolean | null;
   updatedAt: string;
   createdAt: string;
@@ -1052,6 +1064,40 @@ export interface User {
     | null;
   password?: string | null;
   collection: 'users';
+}
+/**
+ * What each kind of staff user can see and do. Super admins can always do everything.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "roles".
+ */
+export interface Role {
+  id: number;
+  name: string;
+  /**
+   * What this role is for, for whoever assigns it.
+   */
+  description?: string | null;
+  grants?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Variant MRP and selling price, product GST rate, and category delivery charges. Without it, those fields are read-only even where the section can be edited.
+   */
+  canEditPrices?: boolean | null;
+  members?: {
+    docs?: (number | User)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1375,6 +1421,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'pages';
         value: number | Page;
+      } | null)
+    | ({
+        relationTo: 'roles';
+        value: number | Role;
       } | null)
     | ({
         relationTo: 'users';
@@ -1950,10 +2000,24 @@ export interface PagesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "roles_select".
+ */
+export interface RolesSelect<T extends boolean = true> {
+  name?: T;
+  description?: T;
+  grants?: T;
+  canEditPrices?: T;
+  members?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
+  isSuperAdmin?: T;
   role?: T;
   isActive?: T;
   updatedAt?: T;

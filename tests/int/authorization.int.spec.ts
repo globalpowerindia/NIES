@@ -7,6 +7,8 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import config from '@/payload.config'
 import type { Category, Customer, Product } from '@/payload-types'
 
+import { createStaff } from '../helpers/staff'
+
 /**
  * Authorization through the same entry points a browser uses: the storefront
  * route handlers and pages, and Payload's REST API with a staff token. The
@@ -23,7 +25,7 @@ const { default: OrderComplete } = await import('@/app/(frontend)/checkout/compl
 let payload: Payload
 const site = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 const tag = () => `${Date.now()}-${randomBytes(3).toString('hex')}`
-const cleanup: { collection: 'users' | 'customers' | 'products' | 'categories' | 'orders' | 'addresses'; id: number }[] = []
+const cleanup: { collection: 'users' | 'roles' | 'customers' | 'products' | 'categories' | 'orders' | 'addresses'; id: number }[] = []
 
 const addressData = { fullName: 'Asha Menon', phone: '9876543210', line1: '12 MG Road', line2: 'Ravipuram', city: 'Kochi', pincode: '682016', stateCode: '32' as const, type: 'HOME' as const }
 
@@ -50,16 +52,10 @@ const customer = async () => {
   return doc
 }
 
-const staff = async (role: 'MANAGER' | 'STAFF') => {
-  const password = randomBytes(18).toString('base64url')
-  const user = await payload.create({
-    collection: 'users',
-    data: { email: `authz-${tag()}@example.test`, password, name: 'Authz test', role, isActive: true },
-    overrideAccess: true,
-  })
-  cleanup.push({ collection: 'users', id: user.id })
+const staff = async (kind: Parameters<typeof createStaff>[1]) => {
+  const { user, password, role } = await createStaff(payload, kind, cleanup, { prefix: 'authz' })
   const { token } = await payload.login({ collection: 'users', data: { email: user.email, password } })
-  return { user, token: token! }
+  return { user, token: token!, role }
 }
 
 describe('Authorization over HTTP', () => {
@@ -139,22 +135,23 @@ describe('Authorization over HTTP', () => {
   })
 
   describe('staff roles', () => {
-    it('does not let STAFF make themselves an admin', async () => {
-      const { user, token } = await staff('STAFF')
-      const response = await rest('PATCH', `users/${user.id}`, token, { role: 'SUPER_ADMIN' })
+    it('does not let STAFF make themselves a super admin', async () => {
+      const { user, token } = await staff('Staff')
+      const response = await rest('PATCH', `users/${user.id}`, token, { isSuperAdmin: true })
       expect(response.status).toBe(403)
-      expect((await payload.findByID({ collection: 'users', id: user.id, overrideAccess: true })).role).toBe('STAFF')
+      expect((await payload.findByID({ collection: 'users', id: user.id, overrideAccess: true })).isSuperAdmin).toBe(false)
     })
 
-    it('does not let a MANAGER change anyone’s role', async () => {
-      const { user, token } = await staff('MANAGER')
-      const response = await rest('PATCH', `users/${user.id}`, token, { role: 'SUPER_ADMIN' })
-      expect(response.status).toBe(403)
-      expect((await payload.findByID({ collection: 'users', id: user.id, overrideAccess: true })).role).toBe('MANAGER')
+    it('does not let a MANAGER change anyone’s role, or edit roles', async () => {
+      const { user, token, role } = await staff('Manager')
+      expect((await rest('PATCH', `users/${user.id}`, token, { isSuperAdmin: true })).status).toBe(403)
+      expect((await rest('PATCH', `roles/${role!.id}`, token, { grants: { orders: ['read', 'update'] }, canEditPrices: true })).status).toBe(403)
+      expect((await rest('GET', 'roles', token)).status).toBe(403)
+      expect((await payload.findByID({ collection: 'users', id: user.id, overrideAccess: true })).isSuperAdmin).toBe(false)
     })
 
     it('does not let STAFF change a price or create a coupon', async () => {
-      const { token } = await staff('STAFF')
+      const { token } = await staff('Staff')
       const category = await payload.create({ collection: 'categories', data: { name: `Authz ${tag()}` } as Category, overrideAccess: true })
       cleanup.push({ collection: 'categories', id: category.id })
       const product = await payload.create({

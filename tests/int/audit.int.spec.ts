@@ -5,23 +5,17 @@ import { getPayload, type Payload } from 'payload'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import config from '@/payload.config'
-import type { Category, Product, User } from '@/payload-types'
+import type { Category, Product } from '@/payload-types'
+
+import { createStaff } from '../helpers/staff'
 
 let payload: Payload
 const site = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 const tag = () => `${Date.now()}-${randomBytes(3).toString('hex')}`
-const cleanup: { collection: 'users' | 'products' | 'categories'; id: number }[] = []
+const cleanup: { collection: 'users' | 'roles' | 'products' | 'categories'; id: number }[] = []
 
-const staff = async (role: User['role']) => {
-  const password = randomBytes(18).toString('base64url')
-  const user = await payload.create({
-    collection: 'users',
-    data: { email: `audit-${tag()}@example.test`, password, name: 'Audit test', role, isActive: true },
-    overrideAccess: true,
-  })
-  cleanup.push({ collection: 'users', id: user.id })
-  return { user: { ...user, collection: 'users' as const }, password }
-}
+const staff = (kind: 'SUPER_ADMIN' | 'MANAGER' | 'STAFF') =>
+  createStaff(payload, kind === 'MANAGER' ? 'Manager' : kind === 'STAFF' ? 'Staff' : kind, cleanup, { prefix: 'audit' })
 
 const entries = async (where: Record<string, unknown>) =>
   (await payload.find({ collection: 'audit-logs', where: where as never, sort: '-createdAt', overrideAccess: true, pagination: false })).docs

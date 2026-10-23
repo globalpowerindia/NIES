@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { anyone, isManager, isSuperAdmin } from '@/access/roles'
+import { allow, anyone, hiddenUnless } from '@/access/roles'
 import { revalidateStorefront, revalidateStorefrontOnDelete } from '@/lib/revalidate'
 
 export const SpecDefinitions: CollectionConfig = {
@@ -8,6 +8,7 @@ export const SpecDefinitions: CollectionConfig = {
   hooks: { afterChange: [revalidateStorefront], afterDelete: [revalidateStorefrontOnDelete] },
   labels: { singular: 'Spec Definition', plural: 'Spec Definitions' },
   admin: {
+    hidden: hiddenUnless('spec-definitions'),
     useAsTitle: 'label',
     group: 'Catalog',
     defaultColumns: ['label', 'key', 'unit', 'type', 'group', 'isFilter'],
@@ -19,9 +20,9 @@ export const SpecDefinitions: CollectionConfig = {
   },
   access: {
     read: anyone,
-    create: isManager,
-    update: isManager,
-    delete: isSuperAdmin,
+    create: allow('spec-definitions', 'create'),
+    update: allow('spec-definitions', 'update'),
+    delete: allow('spec-definitions', 'delete'),
   },
   fields: [
     {

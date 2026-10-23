@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { isManager, isStaff } from '@/access/roles'
+import { allow } from '@/access/roles'
 
 /**
  * Sign-ups from the storefront newsletter form. Written only by the server
@@ -16,10 +16,10 @@ export const NewsletterSubscribers: CollectionConfig = {
     defaultColumns: ['email', 'status', 'source', 'createdAt'],
   },
   access: {
-    read: isStaff,
+    read: allow('newsletter-subscribers', 'read'),
     create: () => false,
-    update: isStaff,
-    delete: isManager,
+    update: allow('newsletter-subscribers', 'update'),
+    delete: allow('newsletter-subscribers', 'delete'),
   },
   fields: [
     { name: 'email', type: 'email', required: true, unique: true, index: true },

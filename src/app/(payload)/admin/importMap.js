@@ -34,6 +34,7 @@ import { InventoryList as InventoryList_5d56bc2e3872b7879aff01e95db4f32c } from 
 import { StockMovementsList as StockMovementsList_6bd1338c5b306a7fa96da9372946c5c3 } from '../../../admin/views/StockMovementsList'
 import { OrdersList as OrdersList_5d6bed559100f816229134e5933cc150 } from '../../../admin/views/OrdersList'
 import { CouponsList as CouponsList_8d9e368d47db834ee206b9b9ed13518d } from '../../../admin/views/CouponsList'
+import { PermissionGrid as PermissionGrid_e6180bd9fec25929f767683a791d0f5d } from '../../../admin/components/PermissionGrid'
 import { UsersList as UsersList_be66208309d3f44cc5d4176d5be03012 } from '../../../admin/views/UsersList'
 import { Nav as Nav_4e2fd1f2ddee185304cca245e07e098e } from '../../../admin/components/Nav'
 import { Icon as Icon_fde206bfba86c5e4225a034862628d02 } from '../../../admin/components/Icon'
@@ -79,6 +80,7 @@ export const importMap = {
   "/admin/views/StockMovementsList#StockMovementsList": StockMovementsList_6bd1338c5b306a7fa96da9372946c5c3,
   "/admin/views/OrdersList#OrdersList": OrdersList_5d6bed559100f816229134e5933cc150,
   "/admin/views/CouponsList#CouponsList": CouponsList_8d9e368d47db834ee206b9b9ed13518d,
+  "/admin/components/PermissionGrid#PermissionGrid": PermissionGrid_e6180bd9fec25929f767683a791d0f5d,
   "/admin/views/UsersList#UsersList": UsersList_be66208309d3f44cc5d4176d5be03012,
   "/admin/components/Nav#Nav": Nav_4e2fd1f2ddee185304cca245e07e098e,
   "/admin/components/Icon#Icon": Icon_fde206bfba86c5e4225a034862628d02,

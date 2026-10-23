@@ -1,6 +1,6 @@
 import type { PayloadHandler } from 'payload'
 import { z } from 'zod'
-import { activeStaffRole } from '@/access/roles'
+import { can } from '@/access/permissions'
 
 const bodySchema = z.object({
   ids: z.array(z.string().min(1)).min(1).max(200),
@@ -12,8 +12,7 @@ const bodySchema = z.object({
  * Mounted at POST /api/orders/bulk-status.
  */
 export const bulkOrderStatus: PayloadHandler = async (req) => {
-  const role = activeStaffRole(req.user)
-  if (!role || !['SUPER_ADMIN', 'MANAGER'].includes(role)) {
+  if (!can(req.user, 'orders', 'update')) {
     return Response.json({ error: 'Not permitted.' }, { status: 403 })
   }
 
