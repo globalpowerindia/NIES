@@ -46,14 +46,16 @@ export type DocumentSeries = keyof typeof SERIES
 export const nextDocumentNumber = async (db: TransactionDB, series: DocumentSeries, at: Date): Promise<string> => {
   const { prefix, column } = SERIES[series]
   const stem = `${prefix}-${financialYearCode(at)}-`
+  // Typed, or Postgres binds the parameter as text and runs the regex form of substring().
+  const from = sql`${stem.length + 1}::integer`
   const result = await db.execute(sql`
     INSERT INTO document_counters (key, value)
     VALUES (
       ${stem},
       1 + COALESCE((
-        SELECT MAX(CAST(substring(${column} FROM ${stem.length + 1}) AS integer))
+        SELECT MAX(CAST(substring(${column} FROM ${from}) AS integer))
         FROM orders
-        WHERE ${column} LIKE ${`${stem}%`} AND substring(${column} FROM ${stem.length + 1}) ~ '^[0-9]+$'
+        WHERE ${column} LIKE ${`${stem}%`} AND substring(${column} FROM ${from}) ~ '^[0-9]+$'
       ), 0)
     )
     ON CONFLICT (key) DO UPDATE SET value = document_counters.value + 1
