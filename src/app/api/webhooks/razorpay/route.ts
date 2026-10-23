@@ -4,7 +4,7 @@ import { confirmPayment } from '@/lib/checkout'
 import { razorpayKeys, verifyWebhookSignature } from '@/lib/razorpay'
 import { getPayloadClient } from '@/lib/storefront/queries'
 
-type PaymentEntity = { id: string; order_id: string; amount: number; status: string }
+type PaymentEntity = { id: string; order_id: string; amount: number; currency: string; status: string }
 type WebhookEvent = { event: string; payload?: { payment?: { entity?: PaymentEntity } } }
 
 /**
@@ -37,6 +37,11 @@ export const POST = async (request: Request): Promise<NextResponse> => {
   const payment = event.payload?.payment?.entity
   if ((event.event === 'payment.captured' || event.event === 'order.paid') && payment?.order_id && payment.status === 'captured') {
     const payload = await getPayloadClient()
+    // Orders are opened in INR only; paise in any other currency are not the amount due.
+    if (payment.currency !== 'INR') {
+      payload.logger.error({ event: event.event, payment: payment.id, currency: payment.currency }, 'Razorpay webhook in an unexpected currency')
+      return NextResponse.json({ ok: true })
+    }
     const result = await confirmPayment(payload, {
       razorpayOrderId: payment.order_id,
       razorpayPaymentId: payment.id,

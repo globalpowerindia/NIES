@@ -51,6 +51,10 @@ export const createRazorpayOrder = (
 
 export type RazorpayPayment = { id: string; order_id: string; amount: number; currency: string; status: string }
 
+/** One payment as Razorpay has it now: whether it was captured, for which order, and for how much. */
+export const fetchPayment = (keys: RazorpayKeys, paymentId: string): Promise<RazorpayPayment> =>
+  call(keys, `/payments/${encodeURIComponent(paymentId)}`)
+
 /** Every attempt on an order, for reconciling before an unpaid order is given up on. */
 export const fetchOrderPayments = async (keys: RazorpayKeys, razorpayOrderId: string): Promise<RazorpayPayment[]> =>
   (await call<{ items: RazorpayPayment[] }>(keys, `/orders/${encodeURIComponent(razorpayOrderId)}/payments`)).items
