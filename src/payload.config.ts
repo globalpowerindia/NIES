@@ -17,6 +17,7 @@ import { AuthIdentities } from './collections/AuthIdentities'
 import { CustomerSessions } from './collections/CustomerSessions'
 import { OtpChallenges } from './collections/OtpChallenges'
 import { Addresses } from './collections/Addresses'
+import { AuditLogs } from './collections/AuditLogs'
 import { Customers } from './collections/Customers'
 import { Datasheets } from './collections/Datasheets'
 import { Inventory } from './collections/Inventory'
@@ -37,6 +38,7 @@ import { CheckoutSettings } from './globals/CheckoutSettings'
 import { SiteSettings } from './globals/SiteSettings'
 import { env, r2 } from './lib/env'
 import { activeStaffRole } from './access/roles'
+import { withAudit, withGlobalAudit } from './lib/audit'
 import { siteUrl } from './lib/site-url'
 import { addDocumentCountersTable } from './lib/document-numbers'
 import { consoleEmailAdapter } from './lib/email-console'
@@ -86,6 +88,7 @@ export default buildConfig({
       },
     },
   },
+  // Every collection but the log itself records staff changes; see src/lib/audit.ts.
   collections: [
     Categories,
     Brands,
@@ -112,8 +115,8 @@ export default buildConfig({
     CustomerSessions,
     Pages,
     Users,
-  ],
-  globals: [HomePage, SiteSettings, CheckoutSettings],
+  ].map(withAudit).concat(AuditLogs),
+  globals: [HomePage, SiteSettings, CheckoutSettings].map(withGlobalAudit),
   onInit: async (payload) => {
     // A server's own disk doesn't survive a redeploy, and files on it are served from this origin.
     if (process.env.NODE_ENV === 'production' && !r2PublicUrl) {

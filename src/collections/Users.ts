@@ -1,4 +1,4 @@
-import { APIError, type CollectionConfig } from 'payload'
+import { APIError, type CollectionConfig, type PayloadRequest } from 'payload'
 
 import {
   canAccessAdminUI,
@@ -7,6 +7,7 @@ import {
   isSuperAdminField,
   STAFF_ROLE_OPTIONS,
 } from '@/access/roles'
+import { writeAudit } from '@/lib/audit'
 import { LIMITS, rateLimit } from '@/lib/rate-limit'
 import { clientIp } from '@/lib/request-ip'
 
@@ -29,11 +30,29 @@ export const Users: CollectionConfig = {
         const result = await rateLimit(req.payload, key, LIMITS.staffPasswordReset)
         if (!result.ok) throw new APIError('Too many reset requests. Please try again later.', 429)
       }
+      await writeAudit(req.payload, req, { action: 'PASSWORD_RESET_REQUESTED', entity: 'users', email })
       return args
     }],
     beforeLogin: [({ user }) => {
       if (user.isActive !== true) throw new APIError('Invalid credentials.', 401)
       return user
+    }],
+    afterLogin: [async ({ req, user }) => {
+      await writeAudit(req.payload, { ...req, user: { ...user, collection: 'users' } } as PayloadRequest, {
+        action: 'LOGIN',
+        entity: 'users',
+        documentId: user.id,
+        documentTitle: user.email,
+      })
+    }],
+    // Wrong password, unknown email, locked or disabled account: one row each, with the email tried.
+    // Matched by endpoint and status, not error class: production builds minify class names.
+    afterError: [async ({ error, req }) => {
+      const path = new URL(req.url ?? '/', 'http://local').pathname
+      if (!path.endsWith('/users/login') || !(error instanceof APIError && error.status === 401)) return
+      const email = String((req.data as { email?: unknown } | undefined)?.email ?? '').toLowerCase().slice(0, 254)
+      await writeAudit(req.payload, req, { action: 'LOGIN_FAILED', entity: 'users', email: email || null, changes: { reason: error.message.slice(0, 200) } }, false)
+        .catch((err) => req.payload.logger.error({ err }, 'Could not record a failed staff sign-in'))
     }],
     beforeChange: [({ data, originalDoc }) => {
       if (data.isActive === false || (data.role && originalDoc && data.role !== originalDoc.role)) data.sessions = []
