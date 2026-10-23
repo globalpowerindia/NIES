@@ -192,4 +192,67 @@ describe('Coupons', () => {
     const result = await applyCoupon(payload, next, welcome.code)
     expect(result).toMatchObject({ ok: false, error: 'This code is for your first order only.' })
   })
+
+  const redemptionsOf = async (couponId: number) =>
+    (await payload.count({ collection: 'coupon-redemptions', where: { coupon: { equals: couponId } }, overrideAccess: true })).totalDocs
+
+  const expire = async (orderId: number) => {
+    await payload.update({ collection: 'orders', id: orderId, data: { paymentExpiresAt: new Date(Date.now() - 60_000).toISOString() }, overrideAccess: true })
+    await expireUnpaidOrders(payload)
+  }
+
+  it('does not let paying a replaced checkout spend a first-order code twice', async () => {
+    const { variant } = await makeProduct(100_000)
+    const shopper = await makeShopper([variant.id])
+    const welcome = await makeCoupon({ firstOrderOnly: true })
+    const { cart } = await withCoupon(shopper, welcome.code)
+    const first = await place(shopper, (await quoteFor(cart)).quote.totals.grandTotalPaise)
+    if (!first.ok) throw new Error(first.error)
+
+    // A different cart replaces the first checkout, which still has a payable Razorpay order.
+    await addToCart(payload, async () => cart, variant.id, 1)
+    const second = await place(shopper, (await quoteFor(cart)).quote.totals.grandTotalPaise)
+    if (!second.ok) throw new Error(second.error)
+
+    const paidSecond = await confirmPayment(payload, { razorpayOrderId: second.order.razorpayOrderId, razorpayPaymentId: `pay_B${stamp}` })
+    const paidFirst = await confirmPayment(payload, { razorpayOrderId: first.order.razorpayOrderId, razorpayPaymentId: `pay_A${stamp}` })
+    expect(paidSecond.status).toBe('CONFIRMED')
+    expect(paidFirst.status).toBe('NEEDS_REFUND')
+    expect(await redemptionsOf(welcome.id)).toBe(1)
+  })
+
+  it('refunds a late payment whose code has since been used up by the same customer', async () => {
+    const { variant } = await makeProduct(100_000)
+    const shopper = await makeShopper([variant.id])
+    const once = await makeCoupon({ perCustomerLimit: 1 })
+    const { cart } = await withCoupon(shopper, once.code)
+    const total = (await quoteFor(cart)).quote.totals.grandTotalPaise
+    const first = await place(shopper, total)
+    if (!first.ok) throw new Error(first.error)
+    await expire(first.order.orderId)
+
+    // The expired checkout no longer holds the code, so a fresh one may take it and pay.
+    const second = await place(shopper, total)
+    if (!second.ok) throw new Error(second.error)
+    expect(second.order.orderId).not.toBe(first.order.orderId)
+    await confirmPayment(payload, { razorpayOrderId: second.order.razorpayOrderId, razorpayPaymentId: `pay_NEW${stamp}` })
+
+    const late = await confirmPayment(payload, { razorpayOrderId: first.order.razorpayOrderId, razorpayPaymentId: `pay_LATE${stamp}` })
+    expect(late.status).toBe('NEEDS_REFUND')
+    expect(await redemptionsOf(once.id)).toBe(1)
+  })
+
+  it('revives a late payment while its code still applies, and records the use', async () => {
+    const { variant } = await makeProduct(100_000)
+    const shopper = await makeShopper([variant.id])
+    const once = await makeCoupon({ perCustomerLimit: 1 })
+    const { cart } = await withCoupon(shopper, once.code)
+    const placed = await place(shopper, (await quoteFor(cart)).quote.totals.grandTotalPaise)
+    if (!placed.ok) throw new Error(placed.error)
+    await expire(placed.order.orderId)
+
+    const late = await confirmPayment(payload, { razorpayOrderId: placed.order.razorpayOrderId, razorpayPaymentId: `pay_SLOW${stamp}` })
+    expect(late.status).toBe('CONFIRMED')
+    expect(await redemptionsOf(once.id)).toBe(1)
+  })
 })

@@ -36,6 +36,18 @@ export const ORDER_STATUS_OPTIONS = [
 ]
 
 /**
+ * Why an order was cancelled. It decides what a payment that arrives
+ * afterwards may do: only an order that simply ran out of time can be revived
+ * by it (see `confirmPayment`); any other cancelled order is refunded instead.
+ */
+export const CANCEL_REASON_OPTIONS = [
+  { label: 'Payment window expired', value: 'EXPIRED' },
+  { label: 'Replaced by a newer checkout', value: 'SUPERSEDED' },
+  { label: 'Cancelled by staff', value: 'STAFF' },
+  { label: 'Payment provider unavailable', value: 'GATEWAY_ERROR' },
+]
+
+/**
  * The same rules for every staff write — admin form, REST, GraphQL or the bulk
  * endpoint. System code (checkout, payment capture, seeds) runs without a
  * staff user and is not limited by them.
@@ -49,6 +61,7 @@ const enforceOrderRules: CollectionBeforeChangeHook = ({ data, originalDoc, oper
     const label = (status: OrderStatus) => ORDER_STATUS_OPTIONS.find((option) => option.value === status)?.label ?? status
     throw new APIError(`An order can't go from "${label(from)}" to "${label(to)}".`, 400)
   }
+  if (to === 'CANCELLED' && from !== 'CANCELLED') data.cancelReason = 'STAFF'
   return data
 }
 
@@ -112,6 +125,17 @@ export const Orders: CollectionConfig = {
       index: true,
       options: ORDER_STATUS_OPTIONS,
       admin: { position: 'sidebar' },
+    },
+    {
+      name: 'cancelReason',
+      type: 'select',
+      options: CANCEL_REASON_OPTIONS,
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+        condition: (data) => data?.status === 'CANCELLED',
+        description: 'Set automatically. Only an expired order can be revived by a late payment.',
+      },
     },
     {
       name: 'placedAt',

@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm'
 import type { Payload, PayloadRequest } from 'payload'
 
 import { nextDocumentNumber } from '@/lib/document-numbers'
@@ -252,7 +253,7 @@ const reusablePendingOrder = async (
     await req.payload.update({
       collection: 'orders',
       id: order.id,
-      data: { status: 'CANCELLED', notes: 'Superseded by a newer checkout for the same cart.' },
+      data: { status: 'CANCELLED', cancelReason: 'SUPERSEDED', notes: 'Superseded by a newer checkout for the same cart.' },
       overrideAccess: true,
       req,
     })
@@ -378,7 +379,7 @@ export const placeOrder = async (payload: Payload, input: PlaceOrderInput): Prom
       await payload.update({
         collection: 'orders',
         id: order.id,
-        data: { status: 'CANCELLED', notes: 'Razorpay order could not be created.' },
+        data: { status: 'CANCELLED', cancelReason: 'GATEWAY_ERROR', notes: 'Razorpay order could not be created.' },
         overrideAccess: true,
       })
       return { ok: false, status: 502, error: 'We couldn’t reach the payment provider. Please try again in a moment.' }
@@ -404,13 +405,98 @@ export type ConfirmResult =
   | { status: 'NOT_FOUND' | 'AMOUNT_MISMATCH' }
 
 /**
+ * Why a cancelled order can't be brought back by a late payment, or null if it can.
+ *
+ * Only an order that simply ran out of time qualifies (a slow bank page), and
+ * only on today's terms: nothing in it may cost more now, and its coupon must
+ * still apply for the same discount. Without this, paying the Razorpay orders
+ * of superseded checkouts would spend a once-per-customer code once per order.
+ */
+const revivalProblem = async (req: PayloadRequest, order: Order): Promise<string | null> => {
+  if (order.cancelReason !== 'EXPIRED') return 'it had been cancelled'
+
+  const items = order.items ?? []
+  const { docs: variants } = await req.payload.find({
+    collection: 'product-variants',
+    where: { sku: { in: items.map((item) => item.sku) } },
+    pagination: false,
+    depth: 0,
+    select: { sku: true, sellingPricePaise: true },
+    overrideAccess: true,
+    req,
+  })
+  const priceNow = new Map(variants.map((variant) => [variant.sku, variant.sellingPricePaise]))
+  const dearer = items.find((item) => (priceNow.get(item.sku) ?? 0) > item.unitPricePaise)
+  if (dearer) return `${dearer.sku} costs more now than when it was ordered`
+
+  const couponId = relId(order.coupon)
+  if (!couponId) return null
+  // The same lock checkout takes, so the code's last use can't also go to a checkout happening now.
+  const db = await transactionDB(req)
+  await db.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${`coupon:${couponId}`}, 0))`)
+  const rule = await req.payload.findByID({ collection: 'coupons', id: couponId, depth: 0, overrideAccess: true, req, disableErrors: true })
+  if (!rule) return `coupon ${order.couponCode} no longer exists`
+
+  const productIds = items.map((item) => relId(item.product)).filter((id): id is number => id !== undefined)
+  const { docs: products } = await req.payload.find({
+    collection: 'products',
+    where: { id: { in: productIds } },
+    pagination: false,
+    depth: 0,
+    select: { category: true, brand: true },
+    overrideAccess: true,
+    req,
+  })
+  const byId = new Map(products.map((product) => [product.id, product]))
+  const { check } = await checkCartCoupon(
+    req.payload,
+    rule,
+    {
+      // No cart to leave out: every other open checkout holding the code counts.
+      cartId: null,
+      customerId: relId(order.customer) ?? null,
+      lines: items.map((item) => {
+        const productId = relId(item.product) ?? -1
+        return {
+          productId,
+          grossPaise: item.unitPricePaise * item.quantity,
+          categoryId: relId(byId.get(productId)?.category) ?? null,
+          brandId: relId(byId.get(productId)?.brand) ?? null,
+        }
+      }),
+    },
+    req,
+  )
+  if (!check.ok) return `coupon ${rule.code} no longer applies (${check.message})`
+  if (check.discountPaise !== (order.discountPaise ?? 0)) return `coupon ${rule.code} has changed`
+  return null
+}
+
+/** Leaves the order cancelled, with the payment on it and a note telling staff to refund. */
+const flagForRefund = async (req: PayloadRequest, order: Order, paymentId: string, reason: string) => {
+  const flagged = await req.payload.update({
+    collection: 'orders',
+    id: order.id,
+    data: {
+      razorpayPaymentId: paymentId,
+      notes: [order.notes, `Paid after the order was cancelled, but ${reason}. Refund payment ${paymentId} from the Razorpay dashboard.`]
+        .filter(Boolean)
+        .join('\n'),
+    },
+    overrideAccess: true,
+    req,
+  })
+  return { status: 'NEEDS_REFUND' as const, order: flagged, alert: `ACTION NEEDED: paid after cancellation, but ${reason}. Refund ${paymentId}.` }
+}
+
+/**
  * Marks the order paid: stock sold, invoice number issued, coupon use
  * recorded, cart closed. Idempotent, and safe for the browser and the webhook
  * to call at once: both take the same lock, and the second finds it done.
  *
- * A payment can land after the order expired (a slow bank page). If its stock
- * is still there the order is revived; if not, it stays cancelled and staff
- * are told to refund.
+ * A payment can land after the order was cancelled. An expired order whose
+ * terms and stock still hold is revived; anything else stays cancelled and
+ * staff are told to refund (see `revivalProblem`).
  */
 export const confirmPayment = async (
   payload: Payload,
@@ -442,23 +528,15 @@ export const confirmPayment = async (
     }
 
     if (order.status === 'CANCELLED') {
+      // The browser and the webhook both report a payment: the second finds it already flagged.
+      if (order.razorpayPaymentId === input.razorpayPaymentId) return { status: 'NEEDS_REFUND' as const, order, alert: null }
+      const problem = await revivalProblem(req, order)
+      if (problem) return flagForRefund(req, order, input.razorpayPaymentId, problem)
       try {
         await reserveOrderStock(req, order.id, await variantLines(req, order))
       } catch (error) {
         if (!(error instanceof OutOfStockError)) throw error
-        const flagged = await req.payload.update({
-          collection: 'orders',
-          id: order.id,
-          data: {
-            razorpayPaymentId: input.razorpayPaymentId,
-            notes: [order.notes, `Paid after the order had expired and ${error.sku} is out of stock. Refund payment ${input.razorpayPaymentId} from the Razorpay dashboard.`]
-              .filter(Boolean)
-              .join('\n'),
-          },
-          overrideAccess: true,
-          req,
-        })
-        return { status: 'NEEDS_REFUND' as const, order: flagged }
+        return flagForRefund(req, order, input.razorpayPaymentId, `${error.sku} is out of stock`)
       }
     }
 
@@ -508,10 +586,11 @@ export const confirmPayment = async (
   })
 
   if (outcome.status === 'CONFIRMED') await notifyConfirmed(payload, outcome.order, outcome.backordered)
-  if (outcome.status === 'NEEDS_REFUND') {
-    await sendNewOrderAlert(payload, outcome.order, [
-      `ACTION NEEDED: payment arrived after expiry and stock ran out. Refund ${input.razorpayPaymentId}.`,
-    ]).catch((err) => payload.logger.error({ err }, 'Order alert failed'))
+  if (outcome.status === 'NEEDS_REFUND' && outcome.alert) {
+    payload.logger.warn({ orderNumber: outcome.order.orderNumber, payment: input.razorpayPaymentId }, outcome.alert)
+    await sendNewOrderAlert(payload, outcome.order, [outcome.alert]).catch((err) =>
+      payload.logger.error({ err }, 'Order alert failed'),
+    )
   }
   if (outcome.status === 'ALREADY_CONFIRMED' || outcome.status === 'CONFIRMED' || outcome.status === 'NEEDS_REFUND') {
     return { status: outcome.status, order: outcome.order }
@@ -597,7 +676,7 @@ export const expireUnpaidOrders = async (
       await req.payload.update({
         collection: 'orders',
         where: { and: [{ id: { equals: order.id } }, { status: { equals: 'PENDING_PAYMENT' } }] },
-        data: { status: 'CANCELLED', notes: 'Payment was not completed in time.' },
+        data: { status: 'CANCELLED', cancelReason: 'EXPIRED', notes: 'Payment was not completed in time.' },
         overrideAccess: true,
         req,
       })

@@ -775,6 +775,10 @@ export interface Order {
     | 'DELIVERED'
     | 'CANCELLED'
     | 'RETURNED';
+  /**
+   * Set automatically. Only an expired order can be revived by a late payment.
+   */
+  cancelReason?: ('EXPIRED' | 'SUPERSEDED' | 'STAFF' | 'GATEWAY_ERROR') | null;
   placedAt: string;
   /**
    * The signed-in customer who placed it; empty for guest orders.
@@ -1668,6 +1672,7 @@ export interface OrdersSelect<T extends boolean = true> {
   orderNumber?: T;
   invoiceNumber?: T;
   status?: T;
+  cancelReason?: T;
   placedAt?: T;
   customer?: T;
   customerName?: T;

@@ -18,11 +18,25 @@ const { addToCart, findOrCreateCart, loadCartView } = await import('@/lib/storef
 
 let payload: Payload
 const stamp = Date.now()
-const created: { collection: 'customers' | 'products' | 'categories'; id: number }[] = []
+const created: { collection: 'customers' | 'products' | 'categories' | 'users'; id: number }[] = []
 
 const stockOf = async (variantId: number) => {
   const { docs } = await payload.find({ collection: 'inventory', where: { variant: { equals: variantId } }, depth: 0, overrideAccess: true })
   return { onHand: Number(docs[0].onHand), reserved: Number(docs[0].reserved) }
+}
+
+const orderOf = (id: number) => payload.findByID({ collection: 'orders', id, depth: 0, overrideAccess: true })
+
+/** Lets the payment window pass and runs the expiry job, with Razorpay showing no payment. */
+const expire = async (orderId: number) => {
+  await payload.update({
+    collection: 'orders',
+    id: orderId,
+    data: { paymentExpiresAt: new Date(Date.now() - 60_000).toISOString() },
+    overrideAccess: true,
+  })
+  await expireUnpaidOrders(payload)
+  expect(await orderOf(orderId)).toMatchObject({ status: 'CANCELLED', cancelReason: 'EXPIRED' })
 }
 
 const fixture = async (onHand: number, sellOnline = true) => {
@@ -227,7 +241,7 @@ describe('Checkout', () => {
     const f = await fixture(5)
     const placed = await place(f)
     if (!placed.ok) throw new Error(placed.error)
-    await payload.update({ collection: 'orders', id: placed.order.orderId, data: { status: 'CANCELLED' }, overrideAccess: true })
+    await expire(placed.order.orderId)
     expect(await stockOf(f.variant.id)).toEqual({ onHand: 5, reserved: 0 })
 
     const result = await confirmPayment(payload, {
@@ -236,5 +250,64 @@ describe('Checkout', () => {
     })
     expect(result.status).toBe('CONFIRMED')
     expect(await stockOf(f.variant.id)).toEqual({ onHand: 3, reserved: 0 })
+  })
+
+  it('refunds, rather than revives, an order a newer checkout replaced', async () => {
+    const f = await fixture(5)
+    const first = await place(f)
+    if (!first.ok) throw new Error(first.error)
+    await addToCart(payload, async () => f.cart, f.variant.id, 1)
+    const second = await place(f)
+    if (!second.ok) throw new Error(second.error)
+    expect((await orderOf(first.order.orderId)).cancelReason).toBe('SUPERSEDED')
+
+    const input = { razorpayOrderId: first.order.razorpayOrderId, razorpayPaymentId: `pay_OLDTAB${stamp}` }
+    expect((await confirmPayment(payload, input)).status).toBe('NEEDS_REFUND')
+    // The webhook reporting the same payment again changes nothing more.
+    expect((await confirmPayment(payload, { ...input, amountPaise: first.order.amountPaise })).status).toBe('NEEDS_REFUND')
+
+    const order = await orderOf(first.order.orderId)
+    expect(order.status).toBe('CANCELLED')
+    expect(order.paidAt).toBeFalsy()
+    expect(order.razorpayPaymentId).toBe(input.razorpayPaymentId)
+    expect(order.notes?.match(/Refund payment/g)).toHaveLength(1)
+    // Only the newer checkout holds stock.
+    expect(await stockOf(f.variant.id)).toEqual({ onHand: 5, reserved: 3 })
+  })
+
+  it('refunds, rather than revives, an order staff cancelled', async () => {
+    const f = await fixture(5)
+    const placed = await place(f)
+    if (!placed.ok) throw new Error(placed.error)
+    const manager = await payload.create({
+      collection: 'users',
+      data: { email: `checkout-manager-${stamp}@example.test`, password: `pw-${stamp}-Aa1!`, name: 'Checkout test', role: 'MANAGER', isActive: true },
+      overrideAccess: true,
+    })
+    created.push({ collection: 'users', id: manager.id })
+    await payload.update({
+      collection: 'orders',
+      id: placed.order.orderId,
+      data: { status: 'CANCELLED' },
+      user: { ...manager, collection: 'users' },
+      overrideAccess: false,
+    })
+    expect((await orderOf(placed.order.orderId)).cancelReason).toBe('STAFF')
+
+    const result = await confirmPayment(payload, { razorpayOrderId: placed.order.razorpayOrderId, razorpayPaymentId: `pay_STAFF${stamp}` })
+    expect(result.status).toBe('NEEDS_REFUND')
+    expect(await stockOf(f.variant.id)).toEqual({ onHand: 5, reserved: 0 })
+  })
+
+  it('refunds, rather than revives, an expired order whose price has since gone up', async () => {
+    const f = await fixture(5)
+    const placed = await place(f)
+    if (!placed.ok) throw new Error(placed.error)
+    await expire(placed.order.orderId)
+    await payload.update({ collection: 'product-variants', id: f.variant.id, data: { sellingPricePaise: 160_000 }, overrideAccess: true })
+
+    const result = await confirmPayment(payload, { razorpayOrderId: placed.order.razorpayOrderId, razorpayPaymentId: `pay_DEARER${stamp}` })
+    expect(result.status).toBe('NEEDS_REFUND')
+    expect(await stockOf(f.variant.id)).toEqual({ onHand: 5, reserved: 0 })
   })
 })
