@@ -11,6 +11,10 @@ const envSchema = z.object({
   // "true" once the bucket's CORS allows this site to PUT: uploads then go
   // from the browser straight to R2, past Vercel's 4.5MB request limit.
   R2_CLIENT_UPLOADS: z.enum(['true', 'false']).optional(),
+  // Texted sign-in codes; see src/lib/otp/sms.ts. Unset: `console` in development, none in production.
+  SMS_PROVIDER: z.enum(['console', 'msg91']).optional(),
+  MSG91_AUTH_KEY: z.string().min(1).optional(),
+  MSG91_TEMPLATE_ID: z.string().min(1).optional(),
   GOOGLE_CLIENT_ID: z.string().min(1).optional(),
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
   // Scheduled jobs answer only to `Authorization: Bearer <CRON_SECRET>`, which
