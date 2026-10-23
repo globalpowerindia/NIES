@@ -7,6 +7,7 @@ import * as migration_20261021_094910_coupon_rules from './20261021_094910_coupo
 import * as migration_20261021_100646_content_pages from './20261021_100646_content_pages';
 import * as migration_20261021_101913_product_tabs from './20261021_101913_product_tabs';
 import * as migration_20261021_112739_customer_reviews from './20261021_112739_customer_reviews';
+import * as migration_20261023_042948_payload_3_91_upgrade from './20261023_042948_payload_3_91_upgrade';
 
 export const migrations = [
   {
@@ -52,6 +53,11 @@ export const migrations = [
   {
     up: migration_20261021_112739_customer_reviews.up,
     down: migration_20261021_112739_customer_reviews.down,
-    name: '20261021_112739_customer_reviews'
+    name: '20261021_112739_customer_reviews',
+  },
+  {
+    up: migration_20261023_042948_payload_3_91_upgrade.up,
+    down: migration_20261023_042948_payload_3_91_upgrade.down,
+    name: '20261023_042948_payload_3_91_upgrade'
   },
 ];

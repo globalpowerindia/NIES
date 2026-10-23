@@ -38,8 +38,8 @@ import { UsersList as UsersList_be66208309d3f44cc5d4176d5be03012 } from '../../.
 import { Nav as Nav_4e2fd1f2ddee185304cca245e07e098e } from '../../../admin/components/Nav'
 import { Icon as Icon_fde206bfba86c5e4225a034862628d02 } from '../../../admin/components/Icon'
 import { Logo as Logo_ee23b055e36af2f792f5acea4d3aaff6 } from '../../../admin/components/Logo'
-import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
+import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
 
 /** @type import('payload').ImportMap */
 export const importMap = {
@@ -83,6 +83,6 @@ export const importMap = {
   "/admin/components/Nav#Nav": Nav_4e2fd1f2ddee185304cca245e07e098e,
   "/admin/components/Icon#Icon": Icon_fde206bfba86c5e4225a034862628d02,
   "/admin/components/Logo#Logo": Logo_ee23b055e36af2f792f5acea4d3aaff6,
-  "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24,
-  "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
+  "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1,
+  "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24
 }
