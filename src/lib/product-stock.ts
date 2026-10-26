@@ -1,6 +1,8 @@
 import { sql } from 'drizzle-orm'
 import type { Payload } from 'payload'
 
+import type { TransactionDB } from '@/lib/transaction'
+
 /**
  * Price and stock at a glance, per product, for the admin: what the card
  * would charge, how many can be bought, and whether it can be sold at all.
@@ -21,9 +23,11 @@ export type ProductStock = {
   level: StockLevel
 }
 
+/** `db` defaults to the shared connection; a hook passes its request's transaction to see its own writes. */
 export const loadProductStock = async (
   payload: Payload,
   productIds?: number[],
+  db: TransactionDB = payload.db.drizzle,
 ): Promise<Map<number, ProductStock>> => {
   if (productIds && productIds.length === 0) return new Map()
   const scope = productIds
@@ -32,7 +36,7 @@ export const loadProductStock = async (
         sql`, `,
       )})`
     : sql``
-  const result = await payload.db.drizzle.execute(sql`
+  const result = await db.execute(sql`
     SELECT
       p.id,
       card.selling_price_paise,

@@ -40,6 +40,7 @@ import { Nav as Nav_4e2fd1f2ddee185304cca245e07e098e } from '../../../admin/comp
 import { Icon as Icon_fde206bfba86c5e4225a034862628d02 } from '../../../admin/components/Icon'
 import { Logo as Logo_ee23b055e36af2f792f5acea4d3aaff6 } from '../../../admin/components/Logo'
 import { Dashboard as Dashboard_c7d7fc284b3b0552574b75a0421f4260 } from '../../../admin/views/Dashboard'
+import { ProductImport as ProductImport_21cba3648b5fee54aad343e9d74a4d6e } from '../../../admin/views/ProductImport'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
 
@@ -87,6 +88,7 @@ export const importMap = {
   "/admin/components/Icon#Icon": Icon_fde206bfba86c5e4225a034862628d02,
   "/admin/components/Logo#Logo": Logo_ee23b055e36af2f792f5acea4d3aaff6,
   "/admin/views/Dashboard#Dashboard": Dashboard_c7d7fc284b3b0552574b75a0421f4260,
+  "/admin/views/ProductImport#ProductImport": ProductImport_21cba3648b5fee54aad343e9d74a4d6e,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1,
   "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24
 }

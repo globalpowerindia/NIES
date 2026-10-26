@@ -85,6 +85,7 @@ export default buildConfig({
       Nav: '/admin/components/Nav#Nav',
       views: {
         dashboard: { Component: '/admin/views/Dashboard#Dashboard' },
+        productImport: { Component: '/admin/views/ProductImport#ProductImport', path: '/products/import' },
       },
       graphics: {
         Logo: '/admin/components/Logo#Logo',

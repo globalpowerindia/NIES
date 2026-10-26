@@ -1,12 +1,14 @@
 import { APIError, type CollectionBeforeChangeHook, type CollectionConfig, type Field, type NumberFieldSingleValidation } from 'payload'
 
 import { allow, pricesField, publishedProducts } from '@/access/roles'
+import { exportProducts, importProducts } from '@/admin/endpoints/productImport'
 import { slugFrom } from '@/fields/slug'
 import { DEFAULT_GST_RATE_BPS, GST_RATES_BPS } from '@/lib/money'
 import { isPriced, loadProductStock } from '@/lib/product-stock'
 import { youTubeId } from '@/lib/video'
 import { revalidateStorefront, revalidateStorefrontOnDelete } from '@/lib/revalidate'
 import { fillSearchDocument } from '@/lib/search-document'
+import { readDB } from '@/lib/transaction'
 import { prepareProductModel } from '@/lib/product-model'
 import { prepareSpin } from '@/lib/spin'
 import { SPIN_MAX_FRAMES } from '@/lib/spin-rules'
@@ -18,7 +20,10 @@ import { SPIN_MAX_FRAMES } from '@/lib/spin-rules'
  */
 const requirePriceToActivate: CollectionBeforeChangeHook = async ({ data, originalDoc, req }) => {
   if (!req.user || data.status !== 'ACTIVE' || originalDoc?.status === 'ACTIVE') return data
-  const stock = originalDoc?.id ? (await loadProductStock(req.payload, [originalDoc.id])).get(originalDoc.id) : undefined
+  // Read in this request's transaction, so prices set earlier in it (a CSV import) count.
+  const stock = originalDoc?.id
+    ? (await loadProductStock(req.payload, [originalDoc.id], await readDB(req))).get(originalDoc.id)
+    : undefined
   if (!isPriced(stock)) {
     throw new APIError(
       'Add a price before making this product Active: open Price & stock and give a variant a selling price above ₹0.',
@@ -49,6 +54,10 @@ export const Products: CollectionConfig = {
     update: allow('products', 'update'),
     delete: allow('products', 'delete'),
   },
+  endpoints: [
+    { path: '/import', method: 'post', handler: importProducts },
+    { path: '/export', method: 'get', handler: exportProducts },
+  ],
   hooks: {
     afterChange: [revalidateStorefront],
     afterDelete: [revalidateStorefrontOnDelete],

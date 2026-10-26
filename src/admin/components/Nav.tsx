@@ -1,6 +1,6 @@
 import type { ServerProps } from 'payload'
 
-import { can, isSuperAdminUser, type Action, type ResourceKey } from '@/access/permissions'
+import { can, isSuperAdminUser, mayImportProducts, type Action, type ResourceKey } from '@/access/permissions'
 import { NavClient, type NavGroup } from '@/admin/components/NavClient'
 
 type Item = NavGroup['items'][number] & { show: boolean }
@@ -61,6 +61,7 @@ export const Nav = async ({ payload, user }: ServerProps) => {
       items: [
         { label: 'Products', href: '/admin/collections/products', badge: draftProducts, show: may('products') },
         { label: 'Variants', href: '/admin/collections/product-variants', show: may('product-variants') },
+        { label: 'Import / export CSV', href: '/admin/products/import', show: mayImportProducts(user) },
         { label: 'Categories', href: '/admin/collections/categories', show: may('categories') },
         { label: 'Brands', href: '/admin/collections/brands', show: may('brands') },
         { label: 'Spec definitions', href: '/admin/collections/spec-definitions', show: may('spec-definitions') },

@@ -129,6 +129,10 @@ export const canEditPrices = (user: unknown): boolean => {
   return staff.isSuperAdmin === true || roleOf(staff)?.canEditPrices === true
 }
 
+/** The CSV import page: for anyone who can add products or edit products or variants. Each row is still checked. */
+export const mayImportProducts = (user: unknown): boolean =>
+  can(user, 'products', 'create') || can(user, 'products', 'update') || can(user, 'product-variants', 'update')
+
 /**
  * The two roles every install starts with, matching what Manager and Staff
  * could do before roles were editable. The migration creates them; tests use
