@@ -5,6 +5,8 @@ import { toSlug } from '@/fields/slug'
 import { parseCsv } from '@/lib/csv'
 import { COLUMNS, type ColumnKey } from '@/lib/product-import-columns'
 import { DEFAULT_GST_RATE_BPS, formatCurrency, GST_RATES_BPS, rupeesToPaise } from '@/lib/money'
+import { loadUnpublishedDrafts } from '@/lib/product-drafts'
+import { refreshProductsWhere } from '@/lib/search-document'
 import { readDB } from '@/lib/transaction'
 
 /**
@@ -34,7 +36,8 @@ const DEFAULT_HSN_CODE = '8467'
 const COLUMN_KEYS = new Set<string>(COLUMNS.map((column) => column.key))
 
 type Status = 'DRAFT' | 'ACTIVE' | 'ARCHIVED'
-const STATUS_LABEL: Record<Status, string> = { DRAFT: 'Draft', ACTIVE: 'Active', ARCHIVED: 'Archived' }
+// DRAFT is shown as Hidden, so it isn't confused with the admin's Save draft.
+const STATUS_LABEL: Record<Status, string> = { DRAFT: 'Hidden', ACTIVE: 'Active', ARCHIVED: 'Archived' }
 
 /** Fields as the products collection names them; categories and brands by id. */
 export type ProductFields = Partial<{
@@ -120,8 +123,10 @@ const readGst = (value: string, errors: string[]) => {
 
 const readStatus = (value: string, errors: string[]): Status | undefined => {
   const status = value.trim().toUpperCase()
-  if (status === 'DRAFT' || status === 'ACTIVE' || status === 'ARCHIVED') return status
-  errors.push('status must be Draft, Active or Archived.')
+  // "Draft" is the old name for Hidden; files made before the rename still work.
+  if (status === 'HIDDEN' || status === 'DRAFT') return 'DRAFT'
+  if (status === 'ACTIVE' || status === 'ARCHIVED') return status
+  errors.push('status must be Hidden, Active or Archived.')
   return undefined
 }
 
@@ -259,6 +264,8 @@ export type Catalogue = {
   variants: CatalogueVariant[]
   /** By variant id. */
   stock: Map<number, { onHand: number; reserved: number }>
+  /** Products with a draft not yet published. */
+  unpublished: Set<number>
 }
 
 const idOf = (value: unknown): number | null =>
@@ -314,7 +321,10 @@ export const loadCatalogue = async (req: PayloadRequest, { lockSkus = [] }: { lo
       ORDER BY i.id FOR UPDATE OF i
     `)
   }
-  const stockRows = await db.execute(sql`SELECT variant_id, on_hand, reserved FROM inventory`)
+  const [stockRows, unpublished] = await Promise.all([
+    db.execute(sql`SELECT variant_id, on_hand, reserved FROM inventory`),
+    loadUnpublishedDrafts(db),
+  ])
 
   return {
     categories: categories.docs.map(({ id, name, slug, parent }) => ({ id, name, slug, parent: idOf(parent) })),
@@ -359,6 +369,7 @@ export const loadCatalogue = async (req: PayloadRequest, { lockSkus = [] }: { lo
     stock: new Map(
       stockRows.rows.map((row) => [Number(row.variant_id), { onHand: Number(row.on_hand), reserved: Number(row.reserved) }]),
     ),
+    unpublished,
   }
 }
 
@@ -720,6 +731,11 @@ export const planImport = (text: string, catalogue: Catalogue, may: ImportPermis
       variants.push({ line: row.line, sku: row.sku, id: current?.id, fields: variantFields, stock })
     }
 
+    if (existing && Object.keys(fields).length && catalogue.unpublished.has(existing.id)) {
+      first.errors.push(
+        `"${existing.name}" has unpublished changes in the admin. Publish or discard them there first: importing would publish them along with the file.`,
+      )
+    }
     if (!existing && !may.createProducts) first.errors.push("Your role can't create products.")
     if (existing && Object.keys(fields).length && !may.updateProducts) first.errors.push("Your role can't edit products.")
     if (fields.gstRateBps !== undefined && !may.editPrices && (existing || fields.gstRateBps !== DEFAULT_GST_RATE_BPS)) {
@@ -781,6 +797,7 @@ const atRow = async <T>(line: number, sku: string, run: () => Promise<T>): Promi
 export const applyImport = async (req: PayloadRequest, plan: ImportPlan) => {
   const { payload } = req
   const as = { req, overrideAccess: false, depth: 0 } as const
+  const touched: number[] = []
 
   for (const product of plan.products) {
     const [first] = product.variants
@@ -800,6 +817,8 @@ export const applyImport = async (req: PayloadRequest, plan: ImportPlan) => {
             hsnCode: rest.hsnCode ?? DEFAULT_HSN_CODE,
             gstRateBps: rest.gstRateBps ?? DEFAULT_GST_RATE_BPS,
             status: activate ? 'DRAFT' : (status ?? 'DRAFT'),
+            // An import goes live, like the preview said; it never leaves a draft.
+            _status: 'published',
           },
           ...as,
         }),
@@ -807,7 +826,12 @@ export const applyImport = async (req: PayloadRequest, plan: ImportPlan) => {
       productId = created.id
     } else if (Object.keys(rest).length || (status && !activate)) {
       await atRow(first.line, first.sku, () =>
-        payload.update({ collection: 'products', id: productId!, data: { ...rest, ...(status && !activate ? { status } : {}) }, ...as }),
+        payload.update({
+          collection: 'products',
+          id: productId!,
+          data: { ...rest, ...(status && !activate ? { status } : {}), _status: 'published' },
+          ...as,
+        }),
       )
     }
 
@@ -846,9 +870,17 @@ export const applyImport = async (req: PayloadRequest, plan: ImportPlan) => {
     }
 
     if (activate) {
-      await atRow(first.line, first.sku, () => payload.update({ collection: 'products', id: productId!, data: { status: 'ACTIVE' }, ...as }))
+      await atRow(first.line, first.sku, () =>
+        payload.update({ collection: 'products', id: productId!, data: { status: 'ACTIVE', _status: 'published' }, ...as }),
+      )
     }
+    touched.push(productId)
   }
+
+  // The import runs without the per-save refreshes (they'd purge the storefront
+  // on every row), so the search text of what it touched is rebuilt once here:
+  // otherwise new SKUs wouldn't be searchable until the product was next saved.
+  if (touched.length) await refreshProductsWhere(payload, { id: { in: touched } }, req)
 }
 
 // ─── Exporting ──────────────────────────────────────────────────────────────

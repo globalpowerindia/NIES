@@ -347,7 +347,7 @@ export interface Product {
    */
   slug: string;
   /**
-   * Only Active products appear in the storefront.
+   * Only Active products appear in the storefront, once published.
    */
   status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
   /**
@@ -569,6 +569,7 @@ export interface Product {
   metaDescription?: string | null;
   updatedAt: string;
   createdAt: string;
+  _status?: ('draft' | 'published') | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1628,6 +1629,7 @@ export interface ProductsSelect<T extends boolean = true> {
   metaDescription?: T;
   updatedAt?: T;
   createdAt?: T;
+  _status?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

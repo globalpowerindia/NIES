@@ -13,6 +13,7 @@ import * as migration_20261023_051903_staff_audit_log from './20261023_051903_st
 import * as migration_20261023_060455_staff_roles from './20261023_060455_staff_roles';
 import * as migration_20261023_065728_product_360_view from './20261023_065728_product_360_view';
 import * as migration_20261023_084941_product_3d_model from './20261023_084941_product_3d_model';
+import * as migration_20261026_084712_product_drafts from './20261026_084712_product_drafts';
 
 export const migrations = [
   {
@@ -88,6 +89,11 @@ export const migrations = [
   {
     up: migration_20261023_084941_product_3d_model.up,
     down: migration_20261023_084941_product_3d_model.down,
-    name: '20261023_084941_product_3d_model'
+    name: '20261023_084941_product_3d_model',
+  },
+  {
+    up: migration_20261026_084712_product_drafts.up,
+    down: migration_20261026_084712_product_drafts.down,
+    name: '20261026_084712_product_drafts'
   },
 ];

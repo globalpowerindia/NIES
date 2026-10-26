@@ -39,6 +39,7 @@ const catalogue = (): Catalogue => ({
     { id: 100, sku: 'DRL-13', product: 10, name: 'Standard', mrpPaise: 249900, sellingPricePaise: 199900, isActive: true, weightGrams: 1800, barcode: null },
   ],
   stock: new Map([[100, { onHand: 10, reserved: 2 }]]),
+  unpublished: new Set(),
 })
 
 const everything: ImportPermissions = {
@@ -158,6 +159,20 @@ describe('planImport', () => {
     ])
   })
 
+  it('reads Hidden, and Draft from files made before the rename', () => {
+    const status = (value: string) => planImport(csv('sku,status', `DRL-13,${value}`), catalogue(), everything)
+    expect(status('Hidden').rows[0].action).toBe('unchanged')
+    expect(status('draft').rows[0].action).toBe('unchanged')
+    expect(status('Archived').rows[0].changes).toEqual(['Status Hidden → Archived'])
+  })
+
+  it("stays clear of a product with unpublished changes, but still updates its prices and stock", () => {
+    const drafted = { ...catalogue(), unpublished: new Set([10]) }
+    expect(planImport(csv('sku,model_number', 'DRL-13,GPG-7'), drafted, everything).rows[0].errors[0]).toMatch(/unpublished changes/)
+    // Variants sit outside the product's draft, so these don't publish it.
+    expect(planImport(csv('sku,selling_price,stock', 'DRL-13,1899,12'), drafted, everything).ok).toBe(true)
+  })
+
   it('refuses a new product whose web address is taken', () => {
     const plan = planImport(csv('sku,product_name,category,mrp,selling_price', 'N-1,Electric Drill (13mm),Electric Drills,1,1'), catalogue(), everything)
     expect(plan.rows[0].errors[0]).toMatch(/same web address/)
@@ -194,7 +209,7 @@ describe('specs', () => {
 
   it('lists the specs of a new product in its preview', () => {
     const plan = planImport(csv('sku,product_name,category,mrp,selling_price,spec:voltage', 'N-1,New Drill,Electric Drills,100,90,18'), catalogue(), everything)
-    expect(plan.rows[0].changes.slice(0, 2)).toEqual(['Electric Drills · Draft · Enquiry only', 'Voltage: 18 V'])
+    expect(plan.rows[0].changes.slice(0, 2)).toEqual(['Electric Drills · Hidden · Enquiry only', 'Voltage: 18 V'])
     expect(plan.products[0].fields.specValues).toEqual([{ definition: 50, valueText: null, valueNum: 1800, valueBool: null }])
   })
 })
@@ -205,7 +220,7 @@ describe('exportRows', () => {
     const [header, row] = parseCsv(file)
     // Only the specs products use get a column.
     expect(header.slice(-2)).toEqual(['spec:voltage', 'spec:motorType'])
-    expect(row).toEqual(['DRL-13', 'Electric Drill 13mm', 'Standard', 'Electric Drills', 'HCC', 'GPG-6D', 'Draft', 'No', '2499', '1999', '18', '8467', '10', '1800', '', '', '220', 'Carbon brush'])
+    expect(row).toEqual(['DRL-13', 'Electric Drill 13mm', 'Standard', 'Electric Drills', 'HCC', 'GPG-6D', 'Hidden', 'No', '2499', '1999', '18', '8467', '10', '1800', '', '', '220', 'Carbon brush'])
     const plan = planImport(file, catalogue(), everything)
     expect(plan.ok).toBe(true)
     expect(plan.summary).toMatchObject({ unchanged: 1, updated: 0 })

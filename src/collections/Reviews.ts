@@ -4,7 +4,8 @@ import { can } from '@/access/permissions'
 import { allow } from '@/access/roles'
 import { sql } from 'drizzle-orm'
 import { relId } from '@/lib/relations'
-import { transactionDB } from '@/lib/transaction'
+import { purgeStorefront } from '@/lib/revalidate'
+import { readDB, transactionDB } from '@/lib/transaction'
 
 /** Recomputes the rating shown on cards and the product page from approved reviews only. */
 const refreshProductRating = async (req: PayloadRequest, productId: number | undefined) => {
@@ -25,13 +26,15 @@ const refreshProductRating = async (req: PayloadRequest, productId: number | und
   })
   const count = approved.docs.length
   const total = approved.docs.reduce((sum, review) => sum + Number(review.rating ?? 0), 0)
-  await req.payload.update({
-    collection: 'products',
-    id: productId,
-    data: { ratingAvg: count ? Math.round((total / count) * 100) : 0, ratingCount: count },
-    depth: 0,
-    req,
-  })
+  // Written to the live product row only. Saving the product through Payload
+  // would publish any draft staff have open on it; the draft picks the rating
+  // up again when it's published (see syncRating in Products).
+  const db = await readDB(req)
+  await db.execute(sql`
+    UPDATE products SET rating_avg = ${count ? Math.round((total / count) * 100) : 0}, rating_count = ${count}
+    WHERE id = ${productId}
+  `)
+  purgeStorefront(req.context)
 }
 
 const afterChange: CollectionAfterChangeHook = async ({ doc, previousDoc, req }) => {

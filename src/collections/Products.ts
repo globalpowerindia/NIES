@@ -1,4 +1,13 @@
-import { APIError, type CollectionBeforeChangeHook, type CollectionConfig, type Field, type NumberFieldSingleValidation } from 'payload'
+import { sql } from 'drizzle-orm'
+import {
+  APIError,
+  type CollectionAfterChangeHook,
+  type CollectionBeforeChangeHook,
+  type CollectionBeforeOperationHook,
+  type CollectionConfig,
+  type Field,
+  type NumberFieldSingleValidation,
+} from 'payload'
 
 import { allow, pricesField, publishedProducts } from '@/access/roles'
 import { exportProducts, importProducts } from '@/admin/endpoints/productImport'
@@ -35,6 +44,53 @@ const requirePriceToActivate: CollectionBeforeChangeHook = async ({ data, origin
   return data
 }
 
+/**
+ * Drafts are for staff editing in the admin, who choose Save draft or
+ * Publish. Everything else (seeds, scripts, the CSV import, tests) writes
+ * live, as it did before products had drafts: a write that isn't a draft and
+ * doesn't say otherwise publishes.
+ */
+const publishUnlessDraft: CollectionBeforeOperationHook = ({ args, operation }) => {
+  const data = (args as { data?: Record<string, unknown> }).data
+  if ((operation === 'create' || operation === 'update') && !args.draft && data && data._status === undefined) {
+    data._status = 'published'
+  }
+  return args
+}
+
+/**
+ * The storefront reads the live row, which only says "Active" once it's
+ * published. A product created as an Active draft, or unpublished, would
+ * otherwise show on the site; its live row is set to Hidden instead, while
+ * the draft keeps the status staff chose, so publishing makes it Active.
+ */
+const hideUnpublished: CollectionAfterChangeHook = async ({ doc, req }) => {
+  const db = await readDB(req)
+  await db.execute(sql`UPDATE products SET status = 'DRAFT' WHERE id = ${doc.id} AND _status = 'draft' AND status = 'ACTIVE'`)
+  return doc
+}
+
+/** A save that only touched a draft leaves the site as it was. */
+const revalidateUnlessDraft: CollectionAfterChangeHook = (args) =>
+  args.doc?._status === 'draft' && args.previousDoc?._status === 'draft' ? args.doc : revalidateStorefront(args)
+
+/**
+ * The rating comes from approved reviews, never from the form: a draft
+ * started before a review was approved would otherwise bring the old rating
+ * back when published.
+ */
+const syncRating: CollectionBeforeChangeHook = async ({ data, originalDoc, req }) => {
+  if (!originalDoc?.id) return data
+  const db = await readDB(req)
+  const { rows } = await db.execute(sql`
+    SELECT count(*) AS count, COALESCE(round(avg(rating) * 100), 0) AS avg
+    FROM reviews WHERE product_id = ${originalDoc.id} AND status = 'APPROVED'
+  `)
+  data.ratingCount = Number(rows[0]?.count ?? 0)
+  data.ratingAvg = Number(rows[0]?.avg ?? 0)
+  return data
+}
+
 const validateGstRate: NumberFieldSingleValidation = (value) =>
   typeof value === 'number' && (GST_RATES_BPS as readonly number[]).includes(value)
     ? true
@@ -50,18 +106,23 @@ export const Products: CollectionConfig = {
   },
   access: {
     read: publishedProducts,
+    readVersions: allow('products', 'read'),
     create: allow('products', 'create'),
     update: allow('products', 'update'),
     delete: allow('products', 'delete'),
   },
+  // Save draft keeps edits off the site until Publish. Prices and stock live
+  // on variants and the stock ledger, outside the draft: they apply at once.
+  versions: { drafts: true, maxPerDoc: 30 },
   endpoints: [
     { path: '/import', method: 'post', handler: importProducts },
     { path: '/export', method: 'get', handler: exportProducts },
   ],
   hooks: {
-    afterChange: [revalidateStorefront],
+    beforeOperation: [publishUnlessDraft],
+    afterChange: [hideUnpublished, revalidateUnlessDraft],
     afterDelete: [revalidateStorefrontOnDelete],
-    beforeChange: [fillSearchDocument, requirePriceToActivate, prepareSpin, prepareProductModel],
+    beforeChange: [fillSearchDocument, syncRating, requirePriceToActivate, prepareSpin, prepareProductModel],
   },
   fields: [
     // Denormalised search text, by full-text weight. Hidden: written by
@@ -77,14 +138,18 @@ export const Products: CollectionConfig = {
       required: true,
       defaultValue: 'DRAFT',
       index: true,
+      // Stored as DRAFT from before products had drafts; shown as Hidden so it
+      // isn't confused with Save draft. Its own enum name: by default it would
+      // share `enum_products_status` with the drafts' `_status` column.
+      enumName: 'enum_products_visibility',
       options: [
-        { label: 'Draft', value: 'DRAFT' },
+        { label: 'Hidden', value: 'DRAFT' },
         { label: 'Active', value: 'ACTIVE' },
         { label: 'Archived', value: 'ARCHIVED' },
       ],
       admin: {
         position: 'sidebar',
-        description: 'Only Active products appear in the storefront.',
+        description: 'Only Active products appear in the storefront, once published.',
       },
     },
     {
@@ -447,7 +512,7 @@ export const Products: CollectionConfig = {
         {
           label: 'Price & stock',
           description:
-            'What this product sells as: each variant’s SKU, price and stock. Stock changes are recorded as movements, so every unit has a reason and a name against it.',
+            'What this product sells as: each variant’s SKU, price and stock. Changes here are saved straight away, even while the rest of the product is a draft. Stock changes are recorded as movements, so every unit has a reason and a name against it.',
           fields: [
             {
               name: 'priceAndStock',
