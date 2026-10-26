@@ -90,7 +90,10 @@ export interface Config {
     'auth-identities': AuthIdentity;
     'otp-challenges': OtpChallenge;
     'customer-sessions': CustomerSession;
+    pages: Page;
+    roles: Role;
     users: User;
+    'audit-logs': AuditLog;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -108,6 +111,9 @@ export interface Config {
     };
     customers: {
       identities: 'auth-identities';
+    };
+    roles: {
+      members: 'users';
     };
   };
   collectionsSelect: {
@@ -134,7 +140,10 @@ export interface Config {
     'auth-identities': AuthIdentitiesSelect<false> | AuthIdentitiesSelect<true>;
     'otp-challenges': OtpChallengesSelect<false> | OtpChallengesSelect<true>;
     'customer-sessions': CustomerSessionsSelect<false> | CustomerSessionsSelect<true>;
+    pages: PagesSelect<false> | PagesSelect<true>;
+    roles: RolesSelect<false> | RolesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
+    'audit-logs': AuditLogsSelect<false> | AuditLogsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -147,10 +156,12 @@ export interface Config {
   globals: {
     'home-page': HomePage;
     'site-settings': SiteSetting;
+    'checkout-settings': CheckoutSetting;
   };
   globalsSelect: {
     'home-page': HomePageSelect<false> | HomePageSelect<true>;
     'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
+    'checkout-settings': CheckoutSettingsSelect<false> | CheckoutSettingsSelect<true>;
   };
   locale: null;
   widgets: {
@@ -224,10 +235,11 @@ export interface Category {
 export interface Media {
   id: number;
   /**
-   * Describes the image or video for screen readers and search engines.
+   * Describes the image, video or 3D model for screen readers and search engines.
    */
   alt: string;
   prefix?: string | null;
+  _objectKey?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -335,9 +347,13 @@ export interface Product {
    */
   slug: string;
   /**
-   * Only Active products appear in the storefront.
+   * Only Active products appear in the storefront, once published.
    */
   status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+  /**
+   * On: customers can add it to the cart and pay. Off: they see "Enquire on WhatsApp" instead.
+   */
+  sellOnline?: boolean | null;
   sortOrder?: number | null;
   /**
    * Stored x100. Maintained from approved reviews.
@@ -369,6 +385,21 @@ export interface Product {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Upload a self-contained GLB with embedded textures, up to 25 MB (under 5 MB recommended). Export without Draco, Meshopt or KTX2 compression. Adds a smooth, draggable 3D tile alongside any uploaded 360° photo sequence.
+   */
+  model3d?: (number | null) | Media;
+  /**
+   * Views around the actual product, all the same size, center and lighting. Use 72–180 evenly spaced frames for smoother dragging; up to 180 are supported. Upload them all at once: they are put in file-name order (01, 02 … 36). Shown as a "360°" tile in the gallery.
+   */
+  spin?: {
+    frames?: (number | Media)[] | null;
+    autoRotate?: boolean | null;
+    /**
+     * Tick if the product turns the opposite way to the drag.
+     */
+    reverse?: boolean | null;
+  };
   /**
    * One or two lines for search results and sharing previews.
    */
@@ -404,6 +435,51 @@ export interface Product {
     [k: string]: unknown;
   } | null;
   warrantyInfo?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  idealFor?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  safetyInfo?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  maintenanceTips?: {
     root: {
       type: string;
       children: {
@@ -493,6 +569,7 @@ export interface Product {
   metaDescription?: string | null;
   updatedAt: string;
   createdAt: string;
+  _status?: ('draft' | 'published') | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -502,6 +579,7 @@ export interface Datasheet {
   id: number;
   title: string;
   prefix?: string | null;
+  _objectKey?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -571,12 +649,70 @@ export interface ProductVariant {
 export interface Review {
   id: number;
   product: number | Product;
+  /**
+   * Set automatically for customer submissions.
+   */
+  customer?: (number | null) | Customer;
   authorName: string;
   rating: number;
+  /**
+   * Verified against a delivered, paid order when submitted.
+   */
   verifiedPurchase?: boolean | null;
   title?: string | null;
   body?: string | null;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Shoppers. Staff accounts live under Users.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customers".
+ */
+export interface Customer {
+  id: number;
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+  /**
+   * E.164, e.g. +919876543210.
+   */
+  phone?: string | null;
+  /**
+   * Set only when the customer proves this address: an emailed code, or Google. Gates account linking.
+   */
+  emailVerifiedAt?: string | null;
+  /**
+   * Set only by a correct SMS code. Gates account linking.
+   */
+  phoneVerifiedAt?: string | null;
+  status: 'ACTIVE' | 'BLOCKED';
+  identities?: {
+    docs?: (number | AuthIdentity)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  acceptsMarketing?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * How each customer signs in. Created by the login flows, not by hand.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "auth-identities".
+ */
+export interface AuthIdentity {
+  id: number;
+  provider: 'PHONE_OTP' | 'EMAIL_OTP' | 'GOOGLE';
+  /**
+   * E.164 phone, email, or Google subject id.
+   */
+  providerAccountId: string;
+  customer: number | Customer;
+  lastUsedAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -662,6 +798,10 @@ export interface Order {
     | 'DELIVERED'
     | 'CANCELLED'
     | 'RETURNED';
+  /**
+   * Set automatically. Only an expired order can be revived by a late payment.
+   */
+  cancelReason?: ('EXPIRED' | 'SUPERSEDED' | 'STAFF' | 'GATEWAY_ERROR') | null;
   placedAt: string;
   /**
    * The signed-in customer who placed it; empty for guest orders.
@@ -746,6 +886,26 @@ export interface Order {
    * In rupees, GST inclusive.
    */
   grandTotalPaise: number;
+  paymentMethod?: 'RAZORPAY' | null;
+  razorpayOrderId?: string | null;
+  razorpayPaymentId?: string | null;
+  /**
+   * Unpaid by then, the order is cancelled and its stock released.
+   */
+  paymentExpiresAt?: string | null;
+  paidAt?: string | null;
+  coupon?: (number | null) | Coupon;
+  couponCode?: string | null;
+  /**
+   * A free-delivery code: what delivery would have cost.
+   */
+  deliveryDiscountPaise?: number | null;
+  /**
+   * What the delivery fee was charged on.
+   */
+  shippingWeightGrams?: number | null;
+  cart?: (number | null) | Cart;
+  confirmationEmailSentAt?: string | null;
   trackingCarrier?: string | null;
   trackingNumber?: string | null;
   shippedAt?: string | null;
@@ -754,83 +914,92 @@ export interface Order {
   createdAt: string;
 }
 /**
- * Shoppers. Staff accounts live under Users.
+ * Discount codes shoppers enter in the cart. Switch a code off rather than deleting it.
  *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "customers".
+ * via the `definition` "coupons".
  */
-export interface Customer {
+export interface Coupon {
   id: number;
-  firstName?: string | null;
-  lastName?: string | null;
-  email?: string | null;
   /**
-   * E.164, e.g. +919876543210.
+   * Saved in capitals without spaces. Shoppers can type it either way.
    */
-  phone?: string | null;
+  code: string;
+  isActive?: boolean | null;
   /**
-   * Set only when the customer proves this address: an emailed code, or Google. Gates account linking.
+   * For staff only, e.g. "Diwali 2026 newsletter".
    */
-  emailVerifiedAt?: string | null;
+  description?: string | null;
+  type: 'PERCENT' | 'FLAT' | 'FREE_SHIPPING';
   /**
-   * Set only by a correct SMS code. Gates account linking.
+   * 1000 = 10%.
    */
-  phoneVerifiedAt?: string | null;
-  status: 'ACTIVE' | 'BLOCKED';
-  identities?: {
-    docs?: (number | AuthIdentity)[];
+  percentBps?: number | null;
+  /**
+   * In rupees.
+   */
+  amountPaise?: number | null;
+  /**
+   * Leave empty for no minimum.
+   */
+  minSubtotalPaise?: number | null;
+  /**
+   * Caps a percentage code, e.g. 10% up to ₹1,000.
+   */
+  maxDiscountPaise?: number | null;
+  /**
+   * Empty: valid now.
+   */
+  startsAt?: string | null;
+  /**
+   * Empty: never expires.
+   */
+  endsAt?: string | null;
+  /**
+   * Across all shoppers. Empty: unlimited.
+   */
+  usageLimit?: number | null;
+  /**
+   * Empty: unlimited. When set, shoppers must sign in to use the code.
+   */
+  perCustomerLimit?: number | null;
+  /**
+   * For selected items, the discount is worked out on those items only. The minimum order still counts the whole cart.
+   */
+  appliesTo?: ('CART' | 'ITEMS') | null;
+  products?: (number | Product)[] | null;
+  /**
+   * Includes their sub-categories.
+   */
+  categories?: (number | Category)[] | null;
+  brands?: (number | Brand)[] | null;
+  /**
+   * Only for signed-in customers who have never had a paid order.
+   */
+  firstOrderOnly?: boolean | null;
+  redemptions?: {
+    docs?: (number | CouponRedemption)[];
     hasNextPage?: boolean;
     totalDocs?: number;
   };
-  acceptsMarketing?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
 /**
- * How each customer signs in. Created by the login flows, not by hand.
- *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "auth-identities".
+ * via the `definition` "coupon-redemptions".
  */
-export interface AuthIdentity {
+export interface CouponRedemption {
   id: number;
-  provider: 'PHONE_OTP' | 'EMAIL_OTP' | 'GOOGLE';
+  coupon: number | Coupon;
+  order: number | Order;
+  customer?: (number | null) | Customer;
   /**
-   * E.164 phone, email, or Google subject id.
+   * In rupees, GST inclusive.
    */
-  providerAccountId: string;
-  customer: number | Customer;
-  lastUsedAt?: string | null;
+  discountPaise: number;
   updatedAt: string;
   createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
- */
-export interface User {
-  id: number;
-  name: string;
-  role: 'SUPER_ADMIN' | 'MANAGER' | 'STAFF';
-  isActive?: boolean | null;
-  updatedAt: string;
-  createdAt: string;
-  email: string;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
-  hash?: string | null;
-  loginAttempts?: number | null;
-  lockUntil?: string | null;
-  sessions?:
-    | {
-        id: string;
-        createdAt?: string | null;
-        expiresAt: string;
-      }[]
-    | null;
-  password?: string | null;
-  collection: 'users';
 }
 /**
  * Shoppers’ carts. Carts untouched for a day are flagged as abandoned but stay usable.
@@ -864,80 +1033,6 @@ export interface Cart {
   createdAt: string;
 }
 /**
- * Discount codes shoppers enter in the cart. Switch a code off rather than deleting it.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "coupons".
- */
-export interface Coupon {
-  id: number;
-  /**
-   * Saved in capitals without spaces. Shoppers can type it either way.
-   */
-  code: string;
-  isActive?: boolean | null;
-  /**
-   * For staff only, e.g. "Diwali 2026 newsletter".
-   */
-  description?: string | null;
-  type: 'PERCENT' | 'FLAT';
-  /**
-   * 1000 = 10%.
-   */
-  percentBps?: number | null;
-  /**
-   * In rupees.
-   */
-  amountPaise?: number | null;
-  /**
-   * Leave empty for no minimum.
-   */
-  minSubtotalPaise?: number | null;
-  /**
-   * Caps a percentage code, e.g. 10% up to ₹1,000.
-   */
-  maxDiscountPaise?: number | null;
-  /**
-   * Empty: valid now.
-   */
-  startsAt?: string | null;
-  /**
-   * Empty: never expires.
-   */
-  endsAt?: string | null;
-  /**
-   * Across all shoppers. Empty: unlimited.
-   */
-  usageLimit?: number | null;
-  /**
-   * Empty: unlimited. When set, shoppers must sign in to use the code.
-   */
-  perCustomerLimit?: number | null;
-  redemptions?: {
-    docs?: (number | CouponRedemption)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "coupon-redemptions".
- */
-export interface CouponRedemption {
-  id: number;
-  coupon: number | Coupon;
-  order: number | Order;
-  customer?: (number | null) | Customer;
-  /**
-   * In rupees, GST inclusive.
-   */
-  discountPaise: number;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "cart-items".
  */
@@ -947,6 +1042,76 @@ export interface CartItem {
   variant: number | ProductVariant;
   product: number | Product;
   quantity: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users".
+ */
+export interface User {
+  id: number;
+  name: string;
+  /**
+   * Can do everything, including managing staff, roles and the audit log. Keep this to one or two people.
+   */
+  isSuperAdmin?: boolean | null;
+  /**
+   * What they can see and do. Edit roles under Settings → Roles.
+   */
+  role?: (number | null) | Role;
+  isActive?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  resetPasswordRequestedAt?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
+  collection: 'users';
+}
+/**
+ * What each kind of staff user can see and do. Super admins can always do everything.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "roles".
+ */
+export interface Role {
+  id: number;
+  name: string;
+  /**
+   * What this role is for, for whoever assigns it.
+   */
+  description?: string | null;
+  grants?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Variant MRP and selling price, product GST rate, and category delivery charges. Without it, those fields are read-only even where the section can be edited.
+   */
+  canEditPrices?: boolean | null;
+  members?: {
+    docs?: (number | User)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -1081,6 +1246,79 @@ export interface CustomerSession {
   createdAt: string;
 }
 /**
+ * Shown at the site root, e.g. a page with slug "privacy" is /privacy. Link them from Header & Footer.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages".
+ */
+export interface Page {
+  id: number;
+  title: string;
+  /**
+   * Generated from title when left blank. Changing it breaks existing links.
+   */
+  slug: string;
+  /**
+   * Off: the page shows "not found" to visitors.
+   */
+  isPublished?: boolean | null;
+  /**
+   * One or two sentences for search results.
+   */
+  metaDescription?: string | null;
+  content: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Every change staff make in the admin, and every staff sign-in. Read-only.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audit-logs".
+ */
+export interface AuditLog {
+  id: number;
+  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGIN_FAILED' | 'PASSWORD_RESET_REQUESTED';
+  user?: (number | null) | User;
+  /**
+   * Kept even if the staff account is later deleted.
+   */
+  userEmail?: string | null;
+  entity?: string | null;
+  documentId?: string | null;
+  documentTitle?: string | null;
+  /**
+   * Each changed field, before and after. Secrets are never recorded.
+   */
+  changes?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  ip?: string | null;
+  userAgent?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -1197,8 +1435,20 @@ export interface PayloadLockedDocument {
         value: number | CustomerSession;
       } | null)
     | ({
+        relationTo: 'pages';
+        value: number | Page;
+      } | null)
+    | ({
+        relationTo: 'roles';
+        value: number | Role;
+      } | null)
+    | ({
         relationTo: 'users';
         value: number | User;
+      } | null)
+    | ({
+        relationTo: 'audit-logs';
+        value: number | AuditLog;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1303,6 +1553,7 @@ export interface ProductsSelect<T extends boolean = true> {
   name?: T;
   slug?: T;
   status?: T;
+  sellOnline?: T;
   sortOrder?: T;
   ratingAvg?: T;
   ratingCount?: T;
@@ -1319,10 +1570,21 @@ export interface ProductsSelect<T extends boolean = true> {
         file?: T;
         id?: T;
       };
+  model3d?: T;
+  spin?:
+    | T
+    | {
+        frames?: T;
+        autoRotate?: T;
+        reverse?: T;
+      };
   shortDesc?: T;
   description?: T;
   keyFeatures?: T;
   warrantyInfo?: T;
+  idealFor?: T;
+  safetyInfo?: T;
+  maintenanceTips?: T;
   userManual?: T;
   category?: T;
   brand?: T;
@@ -1367,6 +1629,7 @@ export interface ProductsSelect<T extends boolean = true> {
   metaDescription?: T;
   updatedAt?: T;
   createdAt?: T;
+  _status?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1397,6 +1660,7 @@ export interface ProductVariantsSelect<T extends boolean = true> {
  */
 export interface ReviewsSelect<T extends boolean = true> {
   product?: T;
+  customer?: T;
   authorName?: T;
   rating?: T;
   verifiedPurchase?: T;
@@ -1448,6 +1712,7 @@ export interface StockMovementsSelect<T extends boolean = true> {
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
   prefix?: T;
+  _objectKey?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -1501,6 +1766,7 @@ export interface MediaSelect<T extends boolean = true> {
 export interface DatasheetsSelect<T extends boolean = true> {
   title?: T;
   prefix?: T;
+  _objectKey?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -1521,6 +1787,7 @@ export interface OrdersSelect<T extends boolean = true> {
   orderNumber?: T;
   invoiceNumber?: T;
   status?: T;
+  cancelReason?: T;
   placedAt?: T;
   customer?: T;
   customerName?: T;
@@ -1557,6 +1824,17 @@ export interface OrdersSelect<T extends boolean = true> {
   sgstPaise?: T;
   igstPaise?: T;
   grandTotalPaise?: T;
+  paymentMethod?: T;
+  razorpayOrderId?: T;
+  razorpayPaymentId?: T;
+  paymentExpiresAt?: T;
+  paidAt?: T;
+  coupon?: T;
+  couponCode?: T;
+  deliveryDiscountPaise?: T;
+  shippingWeightGrams?: T;
+  cart?: T;
+  confirmationEmailSentAt?: T;
   trackingCarrier?: T;
   trackingNumber?: T;
   shippedAt?: T;
@@ -1608,6 +1886,11 @@ export interface CouponsSelect<T extends boolean = true> {
   endsAt?: T;
   usageLimit?: T;
   perCustomerLimit?: T;
+  appliesTo?: T;
+  products?: T;
+  categories?: T;
+  brands?: T;
+  firstOrderOnly?: T;
   redemptions?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -1729,10 +2012,37 @@ export interface CustomerSessionsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages_select".
+ */
+export interface PagesSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  isPublished?: T;
+  metaDescription?: T;
+  content?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "roles_select".
+ */
+export interface RolesSelect<T extends boolean = true> {
+  name?: T;
+  description?: T;
+  grants?: T;
+  canEditPrices?: T;
+  members?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
+  isSuperAdmin?: T;
   role?: T;
   isActive?: T;
   updatedAt?: T;
@@ -1742,6 +2052,7 @@ export interface UsersSelect<T extends boolean = true> {
   resetPasswordExpiration?: T;
   salt?: T;
   hash?: T;
+  resetPasswordRequestedAt?: T;
   loginAttempts?: T;
   lockUntil?: T;
   sessions?:
@@ -1751,6 +2062,23 @@ export interface UsersSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audit-logs_select".
+ */
+export interface AuditLogsSelect<T extends boolean = true> {
+  action?: T;
+  user?: T;
+  userEmail?: T;
+  entity?: T;
+  documentId?: T;
+  documentTitle?: T;
+  changes?: T;
+  ip?: T;
+  userAgent?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2227,6 +2555,8 @@ export interface SiteSetting {
         id?: string | null;
       }[]
     | null;
+  catalogueFile?: (number | null) | Datasheet;
+  priceListFile?: (number | null) | Datasheet;
   footerColumns?:
     | {
         heading: string;
@@ -2262,6 +2592,46 @@ export interface SiteSetting {
    */
   certifications?: (number | Media)[] | null;
   paymentMethodsImage?: (number | null) | Media;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * Delivery is charged by the total weight of the order, using these slabs.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "checkout-settings".
+ */
+export interface CheckoutSetting {
+  id: number;
+  /**
+   * Each slab covers orders up to its weight. Prices include GST. Kerala orders use the first price, all other states the second.
+   */
+  shippingSlabs?:
+    | {
+        maxWeightKg: number;
+        /**
+         * In rupees, GST inclusive.
+         */
+        withinStatePaise: number;
+        /**
+         * In rupees, GST inclusive.
+         */
+        otherStatesPaise: number;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * In rupees, GST inclusive.
+   */
+  extraPerKgWithinStatePaise: number;
+  /**
+   * In rupees, GST inclusive.
+   */
+  extraPerKgOtherStatesPaise: number;
+  /**
+   * Enter each variant’s weight (Products → variant → Weight) so customers are charged correctly.
+   */
+  defaultWeightKg: number;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -2575,6 +2945,8 @@ export interface SiteSettingsSelect<T extends boolean = true> {
             };
         id?: T;
       };
+  catalogueFile?: T;
+  priceListFile?: T;
   footerColumns?:
     | T
     | {
@@ -2606,6 +2978,26 @@ export interface SiteSettingsSelect<T extends boolean = true> {
   whatsappNumber?: T;
   certifications?: T;
   paymentMethodsImage?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "checkout-settings_select".
+ */
+export interface CheckoutSettingsSelect<T extends boolean = true> {
+  shippingSlabs?:
+    | T
+    | {
+        maxWeightKg?: T;
+        withinStatePaise?: T;
+        otherStatesPaise?: T;
+        id?: T;
+      };
+  extraPerKgWithinStatePaise?: T;
+  extraPerKgOtherStatesPaise?: T;
+  defaultWeightKg?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

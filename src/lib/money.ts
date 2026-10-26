@@ -8,6 +8,8 @@ export type CartLineInput = {
   sellingPricePaise: number
   quantity: number
   gstRateBps: number
+  /** False for a line a coupon doesn't cover: none of the discount is apportioned to it. */
+  discountable?: boolean
 }
 
 export type CartLine = CartLineInput & {
@@ -120,7 +122,10 @@ export function computeCartTotals(input: CartTotalsInput): CartTotals {
   assertPaise(shippingPaise, 'shippingPaise')
 
   const grossPerLine = lineInputs.map((line) => line.sellingPricePaise * line.quantity)
-  const discountPerLine = allocateDiscount(grossPerLine, discountPaise)
+  const discountPerLine = allocateDiscount(
+    lineInputs.map((line, index) => (line.discountable === false ? 0 : grossPerLine[index])),
+    discountPaise,
+  )
 
   const lines: CartLine[] = lineInputs.map((line, index) => {
     const grossPaise = grossPerLine[index]

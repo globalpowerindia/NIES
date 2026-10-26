@@ -1,12 +1,26 @@
-import { APIError, type CollectionBeforeChangeHook, type CollectionConfig, type Field, type NumberFieldSingleValidation } from 'payload'
+import { sql } from 'drizzle-orm'
+import {
+  APIError,
+  type CollectionAfterChangeHook,
+  type CollectionBeforeChangeHook,
+  type CollectionBeforeOperationHook,
+  type CollectionConfig,
+  type Field,
+  type NumberFieldSingleValidation,
+} from 'payload'
 
-import { publishedProducts, isManager, isSuperAdmin } from '@/access/roles'
+import { allow, pricesField, publishedProducts } from '@/access/roles'
+import { exportProducts, importProducts } from '@/admin/endpoints/productImport'
 import { slugFrom } from '@/fields/slug'
 import { DEFAULT_GST_RATE_BPS, GST_RATES_BPS } from '@/lib/money'
 import { isPriced, loadProductStock } from '@/lib/product-stock'
 import { youTubeId } from '@/lib/video'
 import { revalidateStorefront, revalidateStorefrontOnDelete } from '@/lib/revalidate'
 import { fillSearchDocument } from '@/lib/search-document'
+import { readDB } from '@/lib/transaction'
+import { prepareProductModel } from '@/lib/product-model'
+import { prepareSpin } from '@/lib/spin'
+import { SPIN_MAX_FRAMES } from '@/lib/spin-rules'
 
 /**
  * Staff can't switch a product to Active until it has a price: an active
@@ -15,7 +29,10 @@ import { fillSearchDocument } from '@/lib/search-document'
  */
 const requirePriceToActivate: CollectionBeforeChangeHook = async ({ data, originalDoc, req }) => {
   if (!req.user || data.status !== 'ACTIVE' || originalDoc?.status === 'ACTIVE') return data
-  const stock = originalDoc?.id ? (await loadProductStock(req.payload, [originalDoc.id])).get(originalDoc.id) : undefined
+  // Read in this request's transaction, so prices set earlier in it (a CSV import) count.
+  const stock = originalDoc?.id
+    ? (await loadProductStock(req.payload, [originalDoc.id], await readDB(req))).get(originalDoc.id)
+    : undefined
   if (!isPriced(stock)) {
     throw new APIError(
       'Add a price before making this product Active: open Price & stock and give a variant a selling price above ₹0.',
@@ -24,6 +41,53 @@ const requirePriceToActivate: CollectionBeforeChangeHook = async ({ data, origin
       true,
     )
   }
+  return data
+}
+
+/**
+ * Drafts are for staff editing in the admin, who choose Save draft or
+ * Publish. Everything else (seeds, scripts, the CSV import, tests) writes
+ * live, as it did before products had drafts: a write that isn't a draft and
+ * doesn't say otherwise publishes.
+ */
+const publishUnlessDraft: CollectionBeforeOperationHook = ({ args, operation }) => {
+  const data = (args as { data?: Record<string, unknown> }).data
+  if ((operation === 'create' || operation === 'update') && !args.draft && data && data._status === undefined) {
+    data._status = 'published'
+  }
+  return args
+}
+
+/**
+ * The storefront reads the live row, which only says "Active" once it's
+ * published. A product created as an Active draft, or unpublished, would
+ * otherwise show on the site; its live row is set to Hidden instead, while
+ * the draft keeps the status staff chose, so publishing makes it Active.
+ */
+const hideUnpublished: CollectionAfterChangeHook = async ({ doc, req }) => {
+  const db = await readDB(req)
+  await db.execute(sql`UPDATE products SET status = 'DRAFT' WHERE id = ${doc.id} AND _status = 'draft' AND status = 'ACTIVE'`)
+  return doc
+}
+
+/** A save that only touched a draft leaves the site as it was. */
+const revalidateUnlessDraft: CollectionAfterChangeHook = (args) =>
+  args.doc?._status === 'draft' && args.previousDoc?._status === 'draft' ? args.doc : revalidateStorefront(args)
+
+/**
+ * The rating comes from approved reviews, never from the form: a draft
+ * started before a review was approved would otherwise bring the old rating
+ * back when published.
+ */
+const syncRating: CollectionBeforeChangeHook = async ({ data, originalDoc, req }) => {
+  if (!originalDoc?.id) return data
+  const db = await readDB(req)
+  const { rows } = await db.execute(sql`
+    SELECT count(*) AS count, COALESCE(round(avg(rating) * 100), 0) AS avg
+    FROM reviews WHERE product_id = ${originalDoc.id} AND status = 'APPROVED'
+  `)
+  data.ratingCount = Number(rows[0]?.count ?? 0)
+  data.ratingAvg = Number(rows[0]?.avg ?? 0)
   return data
 }
 
@@ -42,14 +106,23 @@ export const Products: CollectionConfig = {
   },
   access: {
     read: publishedProducts,
-    create: isManager,
-    update: isManager,
-    delete: isSuperAdmin,
+    readVersions: allow('products', 'read'),
+    create: allow('products', 'create'),
+    update: allow('products', 'update'),
+    delete: allow('products', 'delete'),
   },
+  // Save draft keeps edits off the site until Publish. Prices and stock live
+  // on variants and the stock ledger, outside the draft: they apply at once.
+  versions: { drafts: true, maxPerDoc: 30 },
+  endpoints: [
+    { path: '/import', method: 'post', handler: importProducts },
+    { path: '/export', method: 'get', handler: exportProducts },
+  ],
   hooks: {
-    afterChange: [revalidateStorefront],
+    beforeOperation: [publishUnlessDraft],
+    afterChange: [hideUnpublished, revalidateUnlessDraft],
     afterDelete: [revalidateStorefrontOnDelete],
-    beforeChange: [fillSearchDocument, requirePriceToActivate],
+    beforeChange: [fillSearchDocument, syncRating, requirePriceToActivate, prepareSpin, prepareProductModel],
   },
   fields: [
     // Denormalised search text, by full-text weight. Hidden: written by
@@ -65,14 +138,30 @@ export const Products: CollectionConfig = {
       required: true,
       defaultValue: 'DRAFT',
       index: true,
+      // Stored as DRAFT from before products had drafts; shown as Hidden so it
+      // isn't confused with Save draft. Its own enum name: by default it would
+      // share `enum_products_status` with the drafts' `_status` column.
+      enumName: 'enum_products_visibility',
       options: [
-        { label: 'Draft', value: 'DRAFT' },
+        { label: 'Hidden', value: 'DRAFT' },
         { label: 'Active', value: 'ACTIVE' },
         { label: 'Archived', value: 'ARCHIVED' },
       ],
       admin: {
         position: 'sidebar',
-        description: 'Only Active products appear in the storefront.',
+        description: 'Only Active products appear in the storefront, once published.',
+      },
+    },
+    {
+      name: 'sellOnline',
+      label: 'Sell online',
+      type: 'checkbox',
+      defaultValue: false,
+      index: true,
+      admin: {
+        position: 'sidebar',
+        description:
+          'On: customers can add it to the cart and pay. Off: they see "Enquire on WhatsApp" instead.',
       },
     },
     {
@@ -196,6 +285,55 @@ export const Products: CollectionConfig = {
               ],
             },
             {
+              name: 'model3d',
+              label: '3D model (.glb)',
+              type: 'upload',
+              relationTo: 'media',
+              filterOptions: { mimeType: { equals: 'model/gltf-binary' } },
+              admin: {
+                description: 'Upload a self-contained GLB with embedded textures, up to 25 MB (under 5 MB recommended). Export without Draco, Meshopt or KTX2 compression. Adds a smooth, draggable 3D tile alongside any uploaded 360° photo sequence.',
+              },
+            },
+            {
+              name: 'spin',
+              label: '360° view',
+              type: 'group',
+              admin: {
+                description:
+                  'Views around the actual product, all the same size, center and lighting. Use 72–180 evenly spaced frames for smoother dragging; up to 180 are supported. Upload them all at once: they are put in file-name order (01, 02 … 36). Shown as a "360°" tile in the gallery.',
+              },
+              fields: [
+                {
+                  name: 'frames',
+                  label: 'Turntable photos',
+                  type: 'upload',
+                  relationTo: 'media',
+                  hasMany: true,
+                  maxRows: SPIN_MAX_FRAMES,
+                  filterOptions: { mimeType: { contains: 'image' } },
+                },
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'autoRotate',
+                      label: 'Turn slowly on its own until the shopper touches it',
+                      type: 'checkbox',
+                      defaultValue: true,
+                      admin: { width: '50%' },
+                    },
+                    {
+                      name: 'reverse',
+                      label: 'Reverse the drag direction',
+                      type: 'checkbox',
+                      defaultValue: false,
+                      admin: { width: '50%', description: 'Tick if the product turns the opposite way to the drag.' },
+                    },
+                  ],
+                },
+              ],
+            },
+            {
               name: 'shortDesc',
               type: 'textarea',
               maxLength: 300,
@@ -205,6 +343,19 @@ export const Products: CollectionConfig = {
             { name: 'description', type: 'richText' },
             { name: 'keyFeatures', type: 'richText' },
             { name: 'warrantyInfo', type: 'richText', label: 'Warranty information' },
+            {
+              type: 'collapsible',
+              label: 'Product page tabs',
+              admin: {
+                initCollapsed: true,
+                description: 'Each one adds a tab beside Attributes and Description on the product page. Leave empty to hide the tab.',
+              },
+              fields: [
+                { name: 'idealFor', type: 'richText', label: 'Ideal for' },
+                { name: 'safetyInfo', type: 'richText', label: 'Safety information' },
+                { name: 'maintenanceTips', type: 'richText', label: 'Maintenance tips' },
+              ],
+            },
             {
               name: 'userManual',
               type: 'upload',
@@ -361,7 +512,7 @@ export const Products: CollectionConfig = {
         {
           label: 'Price & stock',
           description:
-            'What this product sells as: each variant’s SKU, price and stock. Stock changes are recorded as movements, so every unit has a reason and a name against it.',
+            'What this product sells as: each variant’s SKU, price and stock. Changes here are saved straight away, even while the rest of the product is a draft. Stock changes are recorded as movements, so every unit has a reason and a name against it.',
           fields: [
             {
               name: 'priceAndStock',
@@ -390,6 +541,8 @@ export const Products: CollectionConfig = {
                 description: 'Basis points. 1800 is 18%. Allowed: 0, 500, 1200, 1800, 2800.',
               },
               validate: validateGstRate,
+              // GST changes what the customer pays: it needs the role's price permission.
+              access: { create: pricesField, update: pricesField },
             },
             { name: 'warrantyMonths', type: 'number', defaultValue: 6, min: 0 },
           ],

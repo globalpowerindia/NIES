@@ -893,14 +893,15 @@ const run = async () => {
             { label: 'Privacy Policy', link: custom('/privacy') },
             { label: 'Return Policy', link: custom('/returns') },
             { label: 'Terms & Conditions', link: custom('/terms') },
+            { label: 'Contact Us', link: custom('/contact') },
           ],
         },
         {
           heading: 'Top Categories',
           links: [
-            { label: 'Gold Power Tools', link: custom('/category/gold-power-tools') },
+            { label: 'Global Power Tools', link: custom('/brand/global-power') },
             { label: 'HCC Power Tools', link: custom('/brand/hcc') },
-            { label: 'Cordless Tools', link: custom('/category/cordless-tools') },
+            { label: 'Cordless Tools', link: custom('/search?q=cordless') },
             { label: 'Pressure Wash', link: category('Pressure Wash') },
             { label: 'Welding Machines', link: category('Welding Machines') },
             { label: 'Air Compressor', link: category('Air Compressor') },

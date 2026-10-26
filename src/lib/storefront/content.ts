@@ -1,3 +1,4 @@
+import { isSafeLinkUrl } from '@/fields/link'
 import type { Category, Datasheet, Media, Product } from '@/payload-types'
 
 export type MediaInfo = { url: string; alt: string; width?: number; height?: number }
@@ -34,7 +35,8 @@ export const hrefOf = (link: LinkValue): string | null => {
     case 'product':
       return typeof link.product === 'object' && link.product?.slug ? `/products/${link.product.slug}` : null
     case 'custom':
-      return link.url?.trim() || null
+      // Checked again here for links saved before the field validated them.
+      return link.url && isSafeLinkUrl(link.url) ? link.url.trim() : null
     default:
       return null
   }

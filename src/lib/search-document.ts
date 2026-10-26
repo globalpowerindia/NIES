@@ -1,4 +1,7 @@
+import { sql } from 'drizzle-orm'
 import type { CollectionBeforeChangeHook, Payload, PayloadRequest, Where } from 'payload'
+
+import { readDB } from '@/lib/transaction'
 
 /**
  * A Postgres generated column can only read its own row, so everything a
@@ -37,13 +40,13 @@ const idOf = (relation: unknown): number | null => {
 }
 
 /** Walks a category to the root so a product under "Drills" also matches "Power Tools". */
-const categoryPath = async (payload: Payload, start: unknown): Promise<string[]> => {
+const categoryPath = async (payload: Payload, start: unknown, req?: PayloadRequest): Promise<string[]> => {
   const names: string[] = []
   let id = idOf(start)
   const seen = new Set<number>()
   while (id !== null && !seen.has(id)) {
     seen.add(id)
-    const category = await payload.findByID({ collection: 'categories', id, depth: 0, disableErrors: true })
+    const category = await payload.findByID({ collection: 'categories', id, depth: 0, disableErrors: true, req })
     if (!category) break
     names.push(category.name)
     id = idOf(category.parent)
@@ -51,7 +54,7 @@ const categoryPath = async (payload: Payload, start: unknown): Promise<string[]>
   return names
 }
 
-const variantTerms = async (payload: Payload, productId: number | undefined): Promise<string[]> => {
+const variantTerms = async (payload: Payload, productId: number | undefined, req?: PayloadRequest): Promise<string[]> => {
   if (!productId) return []
   const { docs } = await payload.find({
     collection: 'product-variants',
@@ -59,18 +62,21 @@ const variantTerms = async (payload: Payload, productId: number | undefined): Pr
     pagination: false,
     depth: 0,
     select: { sku: true, name: true },
+    req,
   })
   return docs.flatMap((variant) => [variant.sku, variant.name].filter(Boolean) as string[])
 }
 
+/** Pass `req` to read inside its transaction, so variants it just added count. */
 export const buildSearchDocument = async (
   payload: Payload,
   product: ProductLike,
+  req?: PayloadRequest,
 ): Promise<{ searchA: string; searchB: string; searchC: string }> => {
-  const brandName = nameOf(product.brand) ?? (await brandNameById(payload, product.brand))
+  const brandName = nameOf(product.brand) ?? (await brandNameById(payload, product.brand, req))
   const [path, skus] = await Promise.all([
-    categoryPath(payload, product.category),
-    variantTerms(payload, product.id),
+    categoryPath(payload, product.category, req),
+    variantTerms(payload, product.id, req),
   ])
 
   const specs = (product.specValues ?? []).map((entry) => entry.valueText).filter(Boolean) as string[]
@@ -82,35 +88,43 @@ export const buildSearchDocument = async (
   }
 }
 
-const brandNameById = async (payload: Payload, brand: unknown): Promise<string | null> => {
+const brandNameById = async (payload: Payload, brand: unknown, req?: PayloadRequest): Promise<string | null> => {
   const id = idOf(brand)
   if (id === null) return null
-  const doc = await payload.findByID({ collection: 'brands', id, depth: 0, disableErrors: true })
+  const doc = await payload.findByID({ collection: 'brands', id, depth: 0, disableErrors: true, req })
   return doc?.name ?? null
 }
 
 export const fillSearchDocument: CollectionBeforeChangeHook = async ({ data, req, originalDoc }) => {
-  const document = await buildSearchDocument(req.payload, {
-    ...(originalDoc ?? {}),
-    ...data,
-    id: originalDoc?.id ?? data.id,
-  })
+  const document = await buildSearchDocument(
+    req.payload,
+    {
+      ...(originalDoc ?? {}),
+      ...data,
+      id: originalDoc?.id ?? data.id,
+    },
+    req,
+  )
   return { ...data, ...document }
 }
 
 /**
- * Re-saves every product whose document depends on a record that just changed.
- * Catalogue-sized work (tens of rows), so it runs inline rather than queued.
+ * Rebuilds the search text of every product whose document depends on a
+ * record that just changed. Catalogue-sized work (tens of rows), so it runs
+ * inline rather than queued.
+ *
+ * It writes the live rows' search columns directly rather than re-saving the
+ * products: a re-save would publish any draft staff have open on them. A
+ * draft rebuilds its own text when it's published. Pass the hook's `req` so
+ * this runs inside the same transaction: from a separate one it would wait on
+ * the very rows that transaction has locked (saving a variant locks its
+ * product), and never finish.
  */
-/**
- * Re-saves products so `fillSearchDocument` rebuilds their search text. Pass
- * the hook's `req` so this runs inside the same transaction: from a separate
- * one it would wait on the very rows that transaction has locked (saving a
- * variant locks its product), and never finish.
- */
-export const refreshProductsWhere = async (payload: Payload, where: Where, req?: PayloadRequest): Promise<void> => {
+export const refreshProductsWhere = async (payload: Payload, where: Where, req: PayloadRequest): Promise<void> => {
   const { docs } = await payload.find({ collection: 'products', where, pagination: false, depth: 0, req })
-  for (const { id } of docs) {
-    await payload.update({ collection: 'products', id, data: {}, req, context: { skipRevalidate: true } })
+  const db = await readDB(req)
+  for (const product of docs) {
+    const { searchA, searchB, searchC } = await buildSearchDocument(payload, product, req)
+    await db.execute(sql`UPDATE products SET search_a = ${searchA}, search_b = ${searchB}, search_c = ${searchC} WHERE id = ${product.id}`)
   }
 }

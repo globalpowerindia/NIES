@@ -1,31 +1,47 @@
 import type { Access, FieldAccess, PayloadRequest, Where } from 'payload'
 
-export const STAFF_ROLES = ['SUPER_ADMIN', 'MANAGER', 'STAFF'] as const
+import { can, canEditPrices, isSuperAdminUser, staffOf, type Action, type ResourceKey } from '@/access/permissions'
 
-export type StaffRole = (typeof STAFF_ROLES)[number]
-
-export const STAFF_ROLE_OPTIONS = [
-  { label: 'Super Admin', value: 'SUPER_ADMIN' },
-  { label: 'Manager', value: 'MANAGER' },
-  { label: 'Staff', value: 'STAFF' },
-]
-
-export const activeStaffRole = (user: unknown): StaffRole | undefined => {
-  if (!user || typeof user !== 'object') return undefined
-  const staff = user as { collection?: string; isActive?: boolean; role?: StaffRole }
-  if (staff.collection !== 'users' || staff.isActive !== true) return undefined
-  return STAFF_ROLES.includes(staff.role as StaffRole) ? staff.role : undefined
-}
+/**
+ * Payload access functions built on the role grid in `permissions.ts`. Each
+ * collection says which section it is and which action an operation needs;
+ * the signed-in user's role decides.
+ */
 
 export const anyone: Access = () => true
-export const isStaff: Access = ({ req }) => activeStaffRole(req.user) !== undefined
-export const isManager: Access = ({ req }) => ['SUPER_ADMIN', 'MANAGER'].includes(activeStaffRole(req.user) ?? '')
-export const isSuperAdmin: Access = ({ req }) => activeStaffRole(req.user) === 'SUPER_ADMIN'
-export const isSuperAdminField: FieldAccess = ({ req }) => activeStaffRole(req.user) === 'SUPER_ADMIN'
-export const canAccessAdminUI = ({ req }: { req: PayloadRequest }): boolean => activeStaffRole(req.user) !== undefined
-export const publishedProducts: Access = ({ req }) => activeStaffRole(req.user) ? true : { status: { equals: 'ACTIVE' } }
-const PUBLISHED_VARIANT: Where = {
+
+/** Any active staff user, whatever their role. */
+export const isStaff: Access = ({ req }) => staffOf(req.user) !== undefined
+export const isSuperAdmin: Access = ({ req }) => isSuperAdminUser(req.user)
+export const isSuperAdminField: FieldAccess = ({ req }) => isSuperAdminUser(req.user)
+export const canAccessAdminUI = ({ req }: { req: PayloadRequest }): boolean => staffOf(req.user) !== undefined
+
+/** This section and action, per the user's role. */
+export const allow =
+  (key: ResourceKey, action: Action): Access =>
+  ({ req }) =>
+    can(req.user, key, action)
+
+/** For prices, GST and delivery charges; see CAPABILITIES in permissions.ts. */
+export const pricesField: FieldAccess = ({ req }) => canEditPrices(req.user)
+
+/**
+ * Hides a section the storefront reads publicly from staff whose role can't
+ * view it. Others are hidden by Payload itself, since their read access fails.
+ */
+export const hiddenUnless =
+  (key: ResourceKey) =>
+  ({ user }: { user: unknown }): boolean =>
+    !can(user, key, 'read')
+
+/** Public visitors see the published version; staff who may view the section see everything. */
+const published =
+  (key: ResourceKey, where: Where): Access =>
+  ({ req }) =>
+    can(req.user, key, 'read') ? true : where
+
+export const publishedProducts = published('products', { status: { equals: 'ACTIVE' } })
+export const publishedVariants = published('product-variants', {
   and: [{ isActive: { equals: true } }, { 'product.status': { equals: 'ACTIVE' } }],
-}
-export const publishedVariants: Access = ({ req }) => activeStaffRole(req.user) ? true : PUBLISHED_VARIANT
-export const publishedHome: Access = ({ req }) => activeStaffRole(req.user) ? true : { _status: { equals: 'published' } }
+})
+export const publishedHome = published('home-page', { _status: { equals: 'published' } })

@@ -92,6 +92,7 @@ export type WishlistEntry = {
   pricePaise: number | null
   mrpPaise: number | null
   inStock: boolean
+  sellOnline: boolean
 }
 
 export const getWishlist = async (
@@ -130,6 +131,7 @@ export const getWishlist = async (
       pricePaise: variant?.sellingPricePaise ?? null,
       mrpPaise: variant?.mrpPaise ?? null,
       inStock: pricing.get(product.id)?.inStock ?? false,
+      sellOnline: product.sellOnline === true,
     }
   })
 }
@@ -180,6 +182,8 @@ export const getOrderLines = async (
       and: [
         { customer: { equals: customerId } },
         { status: { in: tab === 'active' ? ACTIVE : PAST } },
+        // A checkout that was never paid is cancelled too, but was never an order.
+        { or: [{ status: { not_equals: 'CANCELLED' } }, { paidAt: { exists: true } }] },
       ],
     },
     sort: '-placedAt',

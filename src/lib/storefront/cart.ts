@@ -5,18 +5,21 @@ import { cookies } from 'next/headers'
 import type { Payload, PayloadRequest } from 'payload'
 
 import {
+  couponCoversLine,
   evaluateCoupon,
   INVALID_COUPON_MESSAGE,
   mergeCartLines,
   normaliseCouponCode,
   purchasableQuantity,
+  type CouponCheck,
   type StockLevel,
 } from '@/lib/cart-rules'
 import { computeCartTotals, DEFAULT_GST_RATE_BPS, SELLER_STATE_CODE } from '@/lib/money'
+import { relIds } from '@/lib/relations'
 import { mediaOf } from '@/lib/storefront/content'
 import { pickVariant, PLACEHOLDER_IMAGE, relId } from '@/lib/storefront/products'
 import { inTransaction, transactionDB } from '@/lib/transaction'
-import type { Product, ProductVariant } from '@/payload-types'
+import type { Coupon, Product, ProductVariant } from '@/payload-types'
 
 /**
  * The shopper's cart. Guests are recognised by a random token in an httpOnly
@@ -155,7 +158,10 @@ const loadStock = async (
   return stock
 }
 
-/** Variants that can be sold at all: active, on an active product. Keyed by id, with their product. */
+/**
+ * Variants that can be sold at all: active, on an active product that is sold
+ * online (the rest are enquiry-only). Keyed by id, with their product.
+ */
 const loadSellableVariants = async (
   payload: Payload,
   variantIds: number[],
@@ -174,7 +180,9 @@ const loadSellableVariants = async (
   ] as number[]
   const products = await payload.find({
     collection: 'products',
-    where: { and: [{ id: { in: productIds } }, { status: { equals: 'ACTIVE' } }] },
+    where: {
+      and: [{ id: { in: productIds } }, { status: { equals: 'ACTIVE' } }, { sellOnline: { equals: true } }],
+    },
     pagination: false,
     depth: 1,
     overrideAccess: true,
@@ -226,9 +234,17 @@ export type CartLineView = {
   /** Most this line can hold right now. 0 when it can't be bought. */
   maxQuantity: number
   status: CartLineStatus
+  /** Whether the applied coupon's discount covers this line (always true for a whole-order code). */
+  couponEligible: boolean
 }
 
-export type CartCouponView = { code: string; applied: boolean; message: string | null }
+export type CartCouponView = {
+  code: string
+  applied: boolean
+  message: string | null
+  /** A free-delivery code: nothing comes off the items; checkout waives delivery. */
+  freeShipping: boolean
+}
 
 export type CartView = {
   lines: CartLineView[]
@@ -267,23 +283,127 @@ export const EMPTY_CART: CartView = {
   canCheckout: false,
 }
 
-const couponUsage = async (payload: Payload, couponId: number, customerId: number | null) => {
-  const [total, byCustomer] = await Promise.all([
-    payload.count({
-      collection: 'coupon-redemptions',
-      where: { coupon: { equals: couponId } },
-      overrideAccess: true,
-    }),
-    customerId
-      ? payload.count({
-          collection: 'coupon-redemptions',
-          where: { and: [{ coupon: { equals: couponId } }, { customer: { equals: customerId } }] },
-          overrideAccess: true,
-        })
-      : null,
+/**
+ * Uses of a coupon: paid redemptions, plus checkouts still open with it (they
+ * hold their use until paid or expired, so the last use can't go to two
+ * people). This cart's own open checkout is left out, so a retry doesn't
+ * count against itself.
+ */
+export const couponUsage = async (
+  payload: Payload,
+  couponId: number,
+  customerId: number | null,
+  cartId: number | null,
+  req?: PayloadRequest,
+) => {
+  const holding = {
+    and: [
+      { coupon: { equals: couponId } },
+      { status: { equals: 'PENDING_PAYMENT' } },
+      { paymentExpiresAt: { greater_than: new Date().toISOString() } },
+      ...(cartId ? [{ cart: { not_equals: cartId } }] : []),
+    ],
+  }
+  const count = (collection: 'coupon-redemptions' | 'orders', where: object) =>
+    payload.count({ collection, where: where as never, overrideAccess: true, req }).then((result) => result.totalDocs)
+  const mine = (where: { and: object[] }) => ({ and: [...where.and, { customer: { equals: customerId } }] })
+  const redeemed = { and: [{ coupon: { equals: couponId } }] }
+
+  const [total, held, byCustomer, heldByCustomer] = await Promise.all([
+    count('coupon-redemptions', redeemed),
+    count('orders', holding),
+    customerId ? count('coupon-redemptions', mine(redeemed)) : null,
+    customerId ? count('orders', mine(holding)) : null,
   ])
-  return { total: total.totalDocs, byCustomer: byCustomer ? byCustomer.totalDocs : null }
+  return { total: total + held, byCustomer: byCustomer === null ? null : byCustomer + (heldByCustomer ?? 0) }
 }
+
+/** Whether the customer has never had a paid order; null for a guest. */
+const isFirstOrder = async (payload: Payload, customerId: number | null, req?: PayloadRequest) =>
+  customerId
+    ? (await payload.count({
+        collection: 'orders',
+        where: { and: [{ customer: { equals: customerId } }, { paidAt: { exists: true } }] },
+        overrideAccess: true,
+        req,
+      })).totalDocs === 0
+    : null
+
+/** Each category with every parent above it, for "this category and its sub-categories". */
+const categoryAncestry = async (payload: Payload): Promise<Map<number, number[]>> => {
+  const { docs } = await payload.find({
+    collection: 'categories',
+    pagination: false,
+    depth: 0,
+    select: { parent: true },
+    overrideAccess: true,
+  })
+  const parentOf = new Map(docs.map((doc) => [doc.id, relId(doc.parent) ?? null]))
+  const chain = (id: number) => {
+    const ids: number[] = []
+    for (let at: number | null = id; at !== null && !ids.includes(at); at = parentOf.get(at) ?? null) ids.push(at)
+    return ids
+  }
+  return new Map([...parentOf.keys()].map((id) => [id, chain(id)]))
+}
+
+export type CouponLine = { productId: number; grossPaise: number; categoryId: number | null; brandId: number | null }
+
+/**
+ * Every coupon rule for this cart, in one place: the cart view, the coupon box
+ * and checkout all ask here, so they can never disagree. Returns the result and
+ * which products the discount covers.
+ */
+export const checkCartCoupon = async (
+  payload: Payload,
+  rule: Coupon,
+  cart: { cartId: number | null; customerId: number | null; lines: CouponLine[] },
+  req?: PayloadRequest,
+): Promise<{ check: CouponCheck; covered: Set<number> }> => {
+  const subtotalPaise = cart.lines.reduce((sum, line) => sum + line.grossPaise, 0)
+  let covered = new Set(cart.lines.map((line) => line.productId))
+  if (rule.appliesTo === 'ITEMS' && rule.type !== 'FREE_SHIPPING') {
+    const scope = { productIds: relIds(rule.products), categoryIds: relIds(rule.categories), brandIds: relIds(rule.brands) }
+    const ancestry = scope.categoryIds.length ? await categoryAncestry(payload) : new Map<number, number[]>()
+    covered = new Set(
+      cart.lines
+        .filter((line) =>
+          couponCoversLine(scope, {
+            productId: line.productId,
+            brandId: line.brandId,
+            categoryIds: line.categoryId === null ? [] : (ancestry.get(line.categoryId) ?? [line.categoryId]),
+          }),
+        )
+        .map((line) => line.productId),
+    )
+  }
+  const [usage, firstOrder] = await Promise.all([
+    couponUsage(payload, rule.id, cart.customerId, cart.cartId, req),
+    rule.firstOrderOnly ? isFirstOrder(payload, cart.customerId, req) : Promise.resolve(null),
+  ])
+  const check = evaluateCoupon(rule, {
+    subtotalPaise,
+    eligibleSubtotalPaise: cart.lines.filter((line) => covered.has(line.productId)).reduce((sum, line) => sum + line.grossPaise, 0),
+    now: new Date(),
+    usage,
+    firstOrder,
+  })
+  return { check, covered }
+}
+
+const couponLinesOf = (
+  lines: Pick<CartLineView, 'productId' | 'unitPricePaise' | 'quantity'>[],
+  products: Map<number, Product>,
+): CouponLine[] =>
+  lines.map((line) => {
+    const product = products.get(line.productId)
+    return {
+      productId: line.productId,
+      grossPaise: line.unitPricePaise * line.quantity,
+      categoryId: relId(product?.category) ?? null,
+      brandId: relId(product?.brand) ?? null,
+    }
+  })
 
 /** Prices the cart at today's prices and stock, and re-checks its coupon. */
 export const loadCartView = async (payload: Payload, cart: CartRef | null): Promise<CartView> => {
@@ -333,6 +453,7 @@ export const loadCartView = async (payload: Payload, cart: CartRef | null): Prom
         quantity: item.quantity,
         maxQuantity: 0,
         status: 'UNAVAILABLE',
+        couponEligible: false,
       }
     }
     const { variant, product } = found
@@ -353,6 +474,7 @@ export const loadCartView = async (payload: Payload, cart: CartRef | null): Prom
       quantity: item.quantity,
       maxQuantity,
       status: maxQuantity === 0 ? 'OUT_OF_STOCK' : item.quantity > maxQuantity ? 'LIMITED' : 'OK',
+      couponEligible: true,
     }
   })
 
@@ -373,13 +495,20 @@ export const loadCartView = async (payload: Payload, cart: CartRef | null): Prom
       disableErrors: true,
     })
     if (rule) {
-      const check = evaluateCoupon(rule, {
-        subtotalPaise,
-        now: new Date(),
-        usage: await couponUsage(payload, rule.id, cart.customerId),
+      const productById = new Map([...sellable.values()].map(({ product }) => [product.id, product]))
+      const { check, covered } = await checkCartCoupon(payload, rule, {
+        cartId: cart.id,
+        customerId: cart.customerId,
+        lines: couponLinesOf(buyable, productById),
       })
-      coupon = { code: rule.code, applied: check.ok, message: check.ok ? null : check.message }
+      coupon = {
+        code: rule.code,
+        applied: check.ok,
+        message: check.ok ? null : check.message,
+        freeShipping: check.ok && check.freeShipping,
+      }
       discountPaise = check.ok ? check.discountPaise : 0
+      for (const line of lines) line.couponEligible = check.ok && covered.has(line.productId)
     }
   }
 
@@ -387,6 +516,7 @@ export const loadCartView = async (payload: Payload, cart: CartRef | null): Prom
     sellingPricePaise: line.unitPricePaise,
     quantity: line.quantity,
     gstRateBps: gstOf.get(line.productId) ?? DEFAULT_GST_RATE_BPS,
+    discountable: line.couponEligible,
   }))
   // Delivery and the state's GST split are settled at checkout; the total is the same either way.
   const totals = computeCartTotals({ lines: taxLines, shipStateCode: SELLER_STATE_CODE, discountPaise })
@@ -416,6 +546,20 @@ export type CartChange =
   { ok: true; notice?: string } | { ok: false; status: number; error: string }
 
 const OUT_OF_STOCK = 'Sorry, this is out of stock.'
+const ENQUIRY_ONLY = 'This product isn’t sold online. Message us on WhatsApp for the price and availability.'
+
+/** An active product that staff haven't put on sale online: say so, rather than "no longer available". */
+const isEnquiryOnly = async (payload: Payload, variantId: number): Promise<boolean> => {
+  const variant = await payload.findByID({
+    collection: 'product-variants',
+    id: variantId,
+    depth: 1,
+    overrideAccess: true,
+    disableErrors: true,
+  })
+  const product = variant && typeof variant.product === 'object' ? variant.product : null
+  return Boolean(variant?.isActive && product?.status === 'ACTIVE' && !product.sellOnline)
+}
 
 /**
  * The variant to add when a shopper picks a product rather than a variant
@@ -447,7 +591,11 @@ export const addToCart = async (
   quantity: number,
 ): Promise<CartChange> => {
   const found = (await loadSellableVariants(payload, [variantId])).get(variantId)
-  if (!found) return { ok: false, status: 404, error: 'This product is no longer available.' }
+  if (!found) {
+    return (await isEnquiryOnly(payload, variantId))
+      ? { ok: false, status: 409, error: ENQUIRY_ONLY }
+      : { ok: false, status: 404, error: 'This product is no longer available.' }
+  }
   const limit = purchasableQuantity((await loadStock(payload, [variantId])).get(variantId))
   if (limit === 0) return { ok: false, status: 409, error: OUT_OF_STOCK }
 
@@ -581,10 +729,21 @@ export const applyCoupon = async (
   if (!rule) return { ok: false, status: 422, error: INVALID_COUPON_MESSAGE }
 
   const view = await loadCartView(payload, { ...cart, couponId: null })
-  const check = evaluateCoupon(rule, {
-    subtotalPaise: view.subtotalPaise,
-    now: new Date(),
-    usage: await couponUsage(payload, rule.id, cart.customerId),
+  const buyable = view.lines.filter((line) => line.status === 'OK' || line.status === 'LIMITED')
+  const products = buyable.length
+    ? await payload.find({
+        collection: 'products',
+        where: { id: { in: buyable.map((line) => line.productId) } },
+        pagination: false,
+        depth: 0,
+        select: { category: true, brand: true },
+        overrideAccess: true,
+      })
+    : { docs: [] }
+  const { check } = await checkCartCoupon(payload, rule, {
+    cartId: cart.id,
+    customerId: cart.customerId,
+    lines: couponLinesOf(buyable, new Map(products.docs.map((product) => [product.id, product as Product]))),
   })
   if (!check.ok) return { ok: false, status: 422, error: check.message }
 

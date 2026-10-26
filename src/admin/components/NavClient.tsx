@@ -74,7 +74,8 @@ export const NavClient = ({ groups, staffName }: { groups: NavGroup[]; staffName
       .filter((g) => g.items.length > 0)
   }, [groups, query])
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`)
+  // The dashboard lives at /admin itself, which every other path starts with.
+  const isActive = (href: string) => pathname === href || (href !== '/admin' && pathname.startsWith(`${href}/`))
 
   return (
     <nav className="gpn" aria-label="Admin">

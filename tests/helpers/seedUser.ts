@@ -8,7 +8,7 @@ export const testUser = {
   // Fresh every run, so an account left behind by an interrupted run can't be logged into.
   password: randomBytes(18).toString('base64url'),
   name: 'Dev User',
-  role: 'SUPER_ADMIN' as const,
+  isSuperAdmin: true,
 }
 
 /**

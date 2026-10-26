@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { isManager, isSuperAdmin } from '@/access/roles'
+import { isSuperAdmin } from '@/access/roles'
 
 /**
  * One row per customer sign-in. The session cookie names its row, and a token
@@ -17,7 +17,7 @@ export const CustomerSessions: CollectionConfig = {
   admin: { hidden: true },
   access: {
     // Created and revoked only through our own handlers via the Local API.
-    read: isManager,
+    read: isSuperAdmin,
     create: () => false,
     update: () => false,
     delete: isSuperAdmin,

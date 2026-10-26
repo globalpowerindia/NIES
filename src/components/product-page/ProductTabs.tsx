@@ -1,13 +1,37 @@
-import Link from 'next/link'
+import { RichText } from '@payloadcms/richtext-lexical/react'
 
+import { ProductTabsClient, type TabPanel } from '@/components/product-page/ProductTabsClient'
 import type { SpecRow } from '@/lib/storefront/product-page'
 import { cn } from '@/lib/utils'
+import type { Product } from '@/payload-types'
+
+type RichTextData = Parameters<typeof RichText>[0]['data']
 
 type Props = {
   attributes: SpecRow[]
-  /** Sections further down the page; each tab jumps to its section. */
-  sections: { id: string; label: string }[]
+  product: Pick<Product, 'description' | 'shortDesc' | 'idealFor' | 'safetyInfo' | 'maintenanceTips'>
 }
+
+/** A rich text field with any real text in it; an untouched editor stores an empty paragraph. */
+const hasText = (value: unknown): value is RichTextData => {
+  const visit = (node: unknown): boolean => {
+    if (!node || typeof node !== 'object') return false
+    const { text, children } = node as { text?: string; children?: unknown[] }
+    return Boolean(text?.trim()) || (Array.isArray(children) && children.some(visit))
+  }
+  return Boolean(value && typeof value === 'object' && visit((value as { root?: unknown }).root))
+}
+
+const PanelHeading = ({ children }: { children: string }) => (
+  <h2 className="text-body3 font-medium text-dark-500 lg:text-h5">{children}</h2>
+)
+
+const Prose = ({ data }: { data: RichTextData }) => (
+  <RichText
+    data={data}
+    className="flex max-w-[60rem] flex-col gap-3 text-[0.75rem] leading-5 text-dark-400 lg:text-body1 [&_a]:text-brand-blue-400 [&_a]:underline [&_h3]:font-semibold [&_h3]:text-dark-500 [&_ol]:list-decimal [&_ol]:pl-6 [&_strong]:text-dark-500 [&_ul]:list-disc [&_ul]:pl-6"
+  />
+)
 
 const AttributeTable = ({ rows }: { rows: SpecRow[] }) => (
   <dl className="flex flex-1 flex-col">
@@ -36,36 +60,41 @@ const AttributeTable = ({ rows }: { rows: SpecRow[] }) => (
   </dl>
 )
 
-export const ProductTabs = ({ attributes, sections }: Props) => {
+/**
+ * Attributes, Description, Ideal For, Safety Information and Maintenance Tips
+ * (Figma 885:46492). Attributes always shows; the others only when staff have
+ * written them (Products → Content).
+ */
+export const ProductTabs = ({ attributes, product }: Props) => {
   const half = Math.ceil(attributes.length / 2)
-  return (
-    <section aria-labelledby="attributes-heading" className="flex flex-col">
-      <nav
-        aria-label="Product sections"
-        className="flex overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        <span className="rounded-t-xl bg-brand-blue-400 px-6 py-3 text-[0.75rem] leading-5 font-medium whitespace-nowrap text-brand-blue-100 lg:px-8 lg:py-4 lg:text-h6">
-          Attributes
-        </span>
-        {sections.map((section) => (
-          <Link
-            key={section.id}
-            href={`#${section.id}`}
-            className="rounded-t-sm px-6 py-3 text-[0.75rem] leading-5 font-medium whitespace-nowrap text-dark-300 transition-colors hover:text-brand-blue-400 lg:px-8 lg:py-4 lg:text-h6"
-          >
-            {section.label}
-          </Link>
-        ))}
-      </nav>
-      <div className="mt-6 flex flex-col gap-2 rounded-t-xl lg:mt-0 lg:gap-6 lg:rounded-tl-none rounded-b-xl border-[0.5px] border-brand-blue-200 bg-light-100 p-2 lg:p-6">
-        <h2 id="attributes-heading" className="text-body3 font-medium text-dark-500 lg:text-h5">
-          Key Attributes
-        </h2>
-        <div className="flex flex-col gap-0 lg:flex-row lg:gap-6">
-          <AttributeTable rows={attributes.slice(0, half)} />
-          {attributes.length > half && <AttributeTable rows={attributes.slice(half)} />}
-        </div>
-      </div>
-    </section>
-  )
+  const texts: { id: string; label: string; value: unknown }[] = [
+    { id: 'description', label: 'Description', value: product.description },
+    { id: 'ideal-for', label: 'Ideal For', value: product.idealFor },
+    { id: 'safety', label: 'Safety Information', value: product.safetyInfo },
+    { id: 'maintenance', label: 'Maintenance Tips', value: product.maintenanceTips },
+  ]
+  const panels: TabPanel[] = [
+    {
+      id: 'attributes',
+      label: 'Attributes',
+      content: (
+        <>
+          <PanelHeading>Key Attributes</PanelHeading>
+          <div className="flex flex-col gap-0 lg:flex-row lg:gap-6">
+            <AttributeTable rows={attributes.slice(0, half)} />
+            {attributes.length > half && <AttributeTable rows={attributes.slice(half)} />}
+          </div>
+        </>
+      ),
+    },
+    ...texts.flatMap(({ id, label, value }) =>
+      hasText(value)
+        ? [{ id, label, content: <><PanelHeading>{label}</PanelHeading><Prose data={value} /></> }]
+        : // Like the summary above, a product with only a short description shows that.
+          id === 'description' && product.shortDesc?.trim()
+          ? [{ id, label, content: <><PanelHeading>{label}</PanelHeading><p className="max-w-[60rem] text-[0.75rem] leading-5 text-dark-400 lg:text-body1">{product.shortDesc}</p></> }]
+          : [],
+    ),
+  ]
+  return <ProductTabsClient panels={panels} />
 }

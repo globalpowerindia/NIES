@@ -44,6 +44,8 @@ export const AccountLink = () => {
   const signOut = async () => {
     setSigningOut(true)
     await fetch('/api/auth/logout', { method: 'POST' }).catch(() => null)
+    // A full reload, not router.push, so the cart and wishlist stores start over signed out.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.assign('/')
   }
 

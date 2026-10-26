@@ -1,3 +1,5 @@
+import 'server-only'
+
 import { createHmac, randomInt, timingSafeEqual } from 'node:crypto'
 
 import { sql } from 'drizzle-orm'
@@ -121,12 +123,19 @@ export const issueChallenge = async (
   return { ok: true, code, resendAfterSeconds: RESEND_AFTER_MS / 1000 }
 })
 
+/**
+ * Housekeeping for the scheduled job. Codes live five minutes and the send
+ * limits look back an hour, so a day-old row serves nothing and only keeps a
+ * phone number or email address on file.
+ */
+export const deleteOldChallenges = async (payload: Payload): Promise<void> => {
+  await payload.db.drizzle.execute(sql`DELETE FROM otp_challenges WHERE created_at < now() - interval '1 day'`)
+}
+
 export type CheckResult =
   | { ok: true }
   | { ok: false; reason: 'NO_CODE' | 'EXPIRED' | 'TOO_MANY_ATTEMPTS' }
   | { ok: false; reason: 'WRONG_CODE'; attemptsLeft: number }
-
-type Drizzle = { execute: (query: ReturnType<typeof sql>) => Promise<{ rows: Record<string, unknown>[] }> }
 
 /**
  * Checks a code and, if right, spends it.
@@ -156,7 +165,7 @@ export const checkChallenge = async (
   if (!challenge) return { ok: false, reason: 'NO_CODE' }
   if (new Date(challenge.expiresAt).getTime() <= Date.now()) return { ok: false, reason: 'EXPIRED' }
 
-  const db = (payload.db as unknown as { drizzle: Drizzle }).drizzle
+  const db = payload.db.drizzle
 
   // Spend an attempt first; the right code costs one too.
   const counted = await db.execute(sql`

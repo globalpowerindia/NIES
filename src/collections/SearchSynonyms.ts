@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { anyone, isManager, isSuperAdmin } from '@/access/roles'
+import { allow, anyone, hiddenUnless } from '@/access/roles'
 import { revalidateStorefront, revalidateStorefrontOnDelete } from '@/lib/revalidate'
 
 /**
@@ -16,6 +16,7 @@ export const SearchSynonyms: CollectionConfig = {
   hooks: { afterChange: [revalidateStorefront], afterDelete: [revalidateStorefrontOnDelete] },
   labels: { singular: 'Synonym', plural: 'Search synonyms' },
   admin: {
+    hidden: hiddenUnless('search-synonyms'),
     useAsTitle: 'terms',
     group: 'Storefront',
     defaultColumns: ['terms', 'isActive', 'updatedAt'],
@@ -23,9 +24,9 @@ export const SearchSynonyms: CollectionConfig = {
   },
   access: {
     read: anyone,
-    create: isManager,
-    update: isManager,
-    delete: isSuperAdmin,
+    create: allow('search-synonyms', 'create'),
+    update: allow('search-synonyms', 'update'),
+    delete: allow('search-synonyms', 'delete'),
   },
   fields: [
     {

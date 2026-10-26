@@ -14,14 +14,27 @@ export const transactionDB = async (req: PayloadRequest): Promise<TransactionDB>
   return db
 }
 
+/** For reads: the request's transaction when it has one, so they see its uncommitted writes. */
+export const readDB = async (req: PayloadRequest): Promise<TransactionDB> => {
+  const id = await req.transactionID
+  const adapter = req.payload.db as unknown as { sessions?: Record<string, { db: TransactionDB }>; drizzle: TransactionDB }
+  return (id == null ? undefined : adapter.sessions?.[String(id)]?.db) ?? adapter.drizzle
+}
+
+/**
+ * Runs `run` in one transaction, holding the advisory locks named by
+ * `lockKeys`. Pass `user` for writes that should go through that staff
+ * user's access rules and be audited as theirs.
+ */
 export const inTransaction = async <T>(
   payload: Payload,
   lockKeys: string[],
   run: (req: PayloadRequest) => Promise<T>,
+  { user, context }: { user?: PayloadRequest['user']; context?: Record<string, unknown> } = {},
 ): Promise<T> => {
   const transactionID = await payload.db.beginTransaction()
   if (transactionID == null) throw new Error('Database transactions are required.')
-  const req = await createLocalReq({ req: { transactionID } }, payload)
+  const req = await createLocalReq({ req: { transactionID }, user: user ?? undefined, context }, payload)
   try {
     const db = await transactionDB(req)
     for (const key of [...new Set(lockKeys)].sort()) {

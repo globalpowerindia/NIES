@@ -1,15 +1,15 @@
 import type { CollectionConfig } from 'payload'
 
-import { anyone, isManager, isStaff } from '@/access/roles'
+import { allow, anyone, hiddenUnless } from '@/access/roles'
 
 export const Datasheets: CollectionConfig = {
   slug: 'datasheets',
-  admin: { group: 'Catalog', useAsTitle: 'title' },
+  admin: { hidden: hiddenUnless('datasheets'), group: 'Catalog', useAsTitle: 'title' },
   access: {
     read: anyone,
-    create: isStaff,
-    update: isStaff,
-    delete: isManager,
+    create: allow('datasheets', 'create'),
+    update: allow('datasheets', 'update'),
+    delete: allow('datasheets', 'delete'),
   },
   upload: {
     externalFileHeaderFilter: () => ({}), mimeTypes: ['application/pdf'] },

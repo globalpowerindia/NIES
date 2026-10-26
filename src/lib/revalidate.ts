@@ -27,7 +27,7 @@ export const STOREFRONT_CACHE = { tags: [STOREFRONT_TAG], revalidate: 3600 }
  * to purge both. Seeds and scripts run outside a Next request, where these
  * throw; they pass `context.skipRevalidate` or simply hit the catch.
  */
-const purge = (context: Record<string, unknown> | undefined) => {
+export const purgeStorefront = (context: Record<string, unknown> | undefined) => {
   if (context?.skipRevalidate) return
   try {
     // Prices and stock must not be served stale, so the next request reloads.
@@ -39,16 +39,16 @@ const purge = (context: Record<string, unknown> | undefined) => {
 }
 
 export const revalidateStorefrontGlobal: GlobalAfterChangeHook = ({ doc, context }) => {
-  purge(context)
+  purgeStorefront(context)
   return doc
 }
 
 export const revalidateStorefront: CollectionAfterChangeHook = ({ doc, context }) => {
-  purge(context)
+  purgeStorefront(context)
   return doc
 }
 
 export const revalidateStorefrontOnDelete: CollectionAfterDeleteHook = ({ doc, req }) => {
-  purge(req.context)
+  purgeStorefront(req.context)
   return doc
 }

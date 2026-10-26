@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { isStaff, isSuperAdmin } from '@/access/roles'
+import { allow } from '@/access/roles'
 
 export const CART_STATUS_OPTIONS = [
   { label: 'Active', value: 'ACTIVE' },
@@ -27,10 +27,10 @@ export const Carts: CollectionConfig = {
       'Shoppers’ carts. Carts untouched for a day are flagged as abandoned but stay usable.',
   },
   access: {
-    read: isStaff,
+    read: allow('carts', 'read'),
     create: () => false,
     update: () => false,
-    delete: isSuperAdmin,
+    delete: allow('carts', 'delete'),
   },
   hooks: {
     // An item can't outlive its cart (its `cart` is required), so they go first.

@@ -3,6 +3,7 @@ import Image from 'next/image'
 import React from 'react'
 
 import { CartToast } from '@/components/cart/CartToast'
+import { EnquiryProvider } from '@/components/enquiry/EnquireButton'
 import { Footer } from '@/components/layout/Footer'
 import { Header } from '@/components/layout/Header'
 import { fileUrlOf, hrefOf, mediaOf, type MediaInfo } from '@/lib/storefront/content'
@@ -60,6 +61,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* The rule targets pages/_document; this is the root layout, so the fonts load on every page. */}
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
           href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:wght@400;500;600&family=Manrope:wght@400;500;600&display=swap"
           rel="stylesheet"
@@ -74,7 +77,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           categories={categories}
           searchTiles={searchTiles}
         />
-        <div className="flex-1">{children}</div>
+        <EnquiryProvider whatsapp={whatsapp || null}>
+          <div className="flex-1">{children}</div>
+        </EnquiryProvider>
         <CartToast />
         <Footer
           siteName={settings.siteName}

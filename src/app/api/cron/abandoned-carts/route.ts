@@ -1,8 +1,10 @@
 import { sql } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 
+import { expireUnpaidOrders } from '@/lib/checkout'
 import { isCronRequest } from '@/lib/cron-auth'
 import { deleteDeadSessions } from '@/lib/customer-sessions'
+import { deleteOldChallenges } from '@/lib/otp/challenges'
 import { deleteStaleRateLimits } from '@/lib/rate-limit'
 import { getPayloadClient } from '@/lib/storefront/queries'
 
@@ -13,7 +15,9 @@ const ABANDONED_AFTER_HOURS = 24
  * Hourly (see vercel.json). Flags carts with items that nobody has touched
  * for a day, for the admin's Carts list and, later, reminder emails. The
  * cart stays usable; any change clears the flag. Also clears out customer
- * sessions that have expired or been revoked, and old rate-limit counters.
+ * sessions that have expired or been revoked, old rate-limit counters and
+ * sign-in codes, and gives up on orders whose payment window has passed,
+ * releasing their stock.
  */
 export const GET = async (request: Request): Promise<NextResponse> => {
   if (!isCronRequest(request)) return NextResponse.json({ ok: false }, { status: 401 })
@@ -29,5 +33,7 @@ export const GET = async (request: Request): Promise<NextResponse> => {
   `)
   await deleteDeadSessions(payload)
   await deleteStaleRateLimits(payload)
-  return NextResponse.json({ ok: true, flagged: result.rows.length })
+  await deleteOldChallenges(payload)
+  const orders = await expireUnpaidOrders(payload)
+  return NextResponse.json({ ok: true, flagged: result.rows.length, orders })
 }

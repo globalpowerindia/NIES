@@ -1,9 +1,9 @@
 import { Star } from 'lucide-react'
 
-import { ButtonLink } from '@/components/ui/button'
 import type { ProductPageData } from '@/lib/storefront/product-page'
 
 import { RatingBadge } from './RatingBadge'
+import { ReviewForm } from './ReviewForm'
 
 const Stars = ({ filled }: { filled: number }) => (
   <span className="flex gap-1" aria-hidden>
@@ -31,13 +31,10 @@ const formatDate = (iso: string) =>
 
 export const ReviewsSection = ({
   data,
-  loginHref,
 }: {
   data: ProductPageData
-  loginHref: string
 }) => {
   const { rating, reviews } = data
-  const total = rating.distribution.reduce((sum, row) => sum + row.count, 0)
 
   return (
     <section
@@ -70,10 +67,10 @@ export const ReviewsSection = ({
 
           <ul className="flex flex-col justify-center gap-2" aria-label="Rating breakdown">
             {rating.distribution.map((row) => {
-              const percent = total ? Math.round((row.count / total) * 100) : 0
+              const percent = row.percent
               return (
                 <li key={row.stars} className="flex items-center gap-3">
-                  <span className="sr-only">{row.stars} stars:</span>
+                  <span className="sr-only">{row.stars} stars: {row.count} reviews,</span>
                   <Stars filled={row.stars} />
                   <span className="relative h-3 w-full min-w-24 bg-[#d9d9d9] lg:w-[22.0625rem]">
                     <span
@@ -89,23 +86,7 @@ export const ReviewsSection = ({
             })}
           </ul>
 
-          <div className="flex flex-col justify-center gap-4">
-            <div className="flex flex-col gap-1">
-              <p className="text-body2 font-semibold text-dark-500 lg:text-h6">
-                Review this product
-              </p>
-              <p className="text-[0.75rem] leading-5 text-dark-300 lg:text-body1">
-                Share your thoughts with other customers
-              </p>
-            </div>
-            <ButtonLink
-              href={loginHref}
-              variant="blue"
-              className="h-10 w-[14.25rem] text-body3 lg:h-[3.125rem] lg:text-body2"
-            >
-              Write a Review
-            </ButtonLink>
-          </div>
+          <ReviewForm key={data.product.id} productId={data.product.id} />
         </div>
 
         {reviews.length > 0 && (

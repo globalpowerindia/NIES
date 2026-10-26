@@ -1,4 +1,5 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
+import { resendAdapter } from '@payloadcms/email-resend'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { s3Storage } from '@payloadcms/storage-s3'
 import path from 'path'
@@ -16,25 +17,31 @@ import { AuthIdentities } from './collections/AuthIdentities'
 import { CustomerSessions } from './collections/CustomerSessions'
 import { OtpChallenges } from './collections/OtpChallenges'
 import { Addresses } from './collections/Addresses'
+import { AuditLogs } from './collections/AuditLogs'
 import { Customers } from './collections/Customers'
 import { Datasheets } from './collections/Datasheets'
 import { Inventory } from './collections/Inventory'
 import { Media } from './collections/Media'
 import { NewsletterSubscribers } from './collections/NewsletterSubscribers'
 import { Orders } from './collections/Orders'
+import { Pages } from './collections/Pages'
 import { Products } from './collections/Products'
 import { ProductVariants } from './collections/ProductVariants'
 import { Reviews } from './collections/Reviews'
+import { Roles } from './collections/Roles'
 import { SearchSynonyms } from './collections/SearchSynonyms'
 import { SpecDefinitions } from './collections/SpecDefinitions'
 import { StockMovements } from './collections/StockMovements'
 import { Users } from './collections/Users'
 import { WishlistItems } from './collections/WishlistItems'
 import { HomePage } from './globals/HomePage'
+import { CheckoutSettings } from './globals/CheckoutSettings'
 import { SiteSettings } from './globals/SiteSettings'
 import { env, r2 } from './lib/env'
-import { activeStaffRole } from './access/roles'
+import { can } from './access/permissions'
+import { withAudit, withGlobalAudit } from './lib/audit'
 import { siteUrl } from './lib/site-url'
+import { addDocumentCountersTable } from './lib/document-numbers'
 import { consoleEmailAdapter } from './lib/email-console'
 import { enforceCommerceInvariants } from './lib/commerce-constraints'
 import { addRateLimitTable } from './lib/rate-limit'
@@ -76,12 +83,17 @@ export default buildConfig({
     },
     components: {
       Nav: '/admin/components/Nav#Nav',
+      views: {
+        dashboard: { Component: '/admin/views/Dashboard#Dashboard' },
+        productImport: { Component: '/admin/views/ProductImport#ProductImport', path: '/products/import' },
+      },
       graphics: {
         Logo: '/admin/components/Logo#Logo',
         Icon: '/admin/components/Icon#Icon',
       },
     },
   },
+  // Every collection but the log itself records staff changes; see src/lib/audit.ts.
   collections: [
     Categories,
     Brands,
@@ -106,9 +118,19 @@ export default buildConfig({
     AuthIdentities,
     OtpChallenges,
     CustomerSessions,
+    Pages,
+    Roles,
     Users,
-  ],
-  globals: [HomePage, SiteSettings],
+  ].map(withAudit).concat(AuditLogs),
+  globals: [HomePage, SiteSettings, CheckoutSettings].map(withGlobalAudit),
+  onInit: async (payload) => {
+    // A server's own disk doesn't survive a redeploy, and files on it are served from this origin.
+    if (process.env.NODE_ENV === 'production' && !r2PublicUrl) {
+      payload.logger.warn('R2 is not configured: uploads are stored on local disk and served from this site. Set R2_* and R2_PUBLIC_URL.')
+    }
+  },
+  // The admin and the storefront use REST only; an unused GraphQL API is attack surface for nothing.
+  graphQL: { disable: true },
   editor: lexicalEditor(),
   secret: env.PAYLOAD_SECRET,
   typescript: {
@@ -123,11 +145,23 @@ export default buildConfig({
     // the suite to 33 minutes and Neon started resetting connections
     // mid-introspection. Tests run against the schema dev has already pushed.
     push: process.env.ALLOW_SCHEMA_PUSH === 'true' && process.env.NODE_ENV === 'development',
-    afterSchemaInit: [enforceIntegerMoney, enforceCommerceInvariants, addSearchVector, addRateLimitTable],
+    afterSchemaInit: [
+      enforceIntegerMoney,
+      enforceCommerceInvariants,
+      addSearchVector,
+      addRateLimitTable,
+      addDocumentCountersTable,
+    ],
   }),
-  // Until a real provider is configured (Module 9), print emails so the
-  // verification and reset links are usable locally.
-  email: consoleEmailAdapter,
+  // Resend once its key is set; until then emails print to the terminal in
+  // development (and refuse to send in production).
+  email: env.RESEND_API_KEY
+    ? resendAdapter({
+        apiKey: env.RESEND_API_KEY,
+        defaultFromAddress: env.EMAIL_FROM_ADDRESS ?? 'orders@toolshypermarket.com',
+        defaultFromName: env.EMAIL_FROM_NAME ?? 'Tools Hypermarket',
+      })
+    : consoleEmailAdapter,
   sharp,
   plugins: [
     s3Storage({
@@ -135,7 +169,7 @@ export default buildConfig({
       alwaysInsertFields: true,
       // Large files (videos, big photos) can't pass through a Vercel function,
       // so once R2's CORS allows it the browser uploads them directly.
-      clientUploads: env.R2_CLIENT_UPLOADS === 'true' ? { access: ({ req }) => Boolean(activeStaffRole(req.user)) } : false,
+      clientUploads: env.R2_CLIENT_UPLOADS === 'true' ? { access: ({ req, collectionSlug }) => can(req.user, collectionSlug === 'datasheets' ? 'datasheets' : 'media', 'create') } : false,
       collections: { media: r2Files, datasheets: r2Files },
       bucket: r2?.bucket ?? '',
       config: {

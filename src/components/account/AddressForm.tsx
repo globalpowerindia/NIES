@@ -40,7 +40,16 @@ const TYPES: { value: AddressType; label: string }[] = [
  * that address; without, it adds a new one. Rules live on the server
  * (`src/lib/validations/account.ts`) and come back per field.
  */
-export const AddressForm = ({ id, initial }: { id?: number; initial: AddressFormValues }) => {
+export const AddressForm = ({
+  id,
+  initial,
+  returnTo = '/account/addresses',
+}: {
+  id?: number
+  initial: AddressFormValues
+  /** Where Save and Cancel go, e.g. back to checkout. Must be a path on this site. */
+  returnTo?: string
+}) => {
   const router = useRouter()
   const [values, setValues] = useState(initial)
   const save = useAuthSubmit(id ? `/api/account/addresses/${id}` : '/api/account/addresses')
@@ -53,7 +62,7 @@ export const AddressForm = ({ id, initial }: { id?: number; initial: AddressForm
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault()
     if (!(await save.submit(values))) return
-    router.push('/account/addresses')
+    router.push(returnTo)
     router.refresh()
   }
 
@@ -192,7 +201,7 @@ export const AddressForm = ({ id, initial }: { id?: number; initial: AddressForm
           type="button"
           variant="ghost"
           disabled={save.pending}
-          onClick={() => router.push('/account/addresses')}
+          onClick={() => router.push(returnTo)}
           className="h-12.5"
         >
           Cancel

@@ -1,7 +1,9 @@
 'use client'
 
-import { Button, Link, Pill, toast, useDocumentInfo } from '@payloadcms/ui'
+import { Button, Link, Pill, toast, useAuth, useDocumentInfo } from '@payloadcms/ui'
 import { useState } from 'react'
+
+import { can, canEditPrices } from '@/access/permissions'
 
 import { parseRupees } from '@/admin/components/RupeeField'
 
@@ -48,6 +50,17 @@ const draftOf = (variant: VariantRow, stock?: StockRow): Draft => ({
   isActive: variant.isActive,
   lowStockThreshold: String(stock?.lowStockThreshold ?? 5),
   allowBackorder: Boolean(stock?.allowBackorder),
+})
+
+/** What the signed-in user's role lets them do here; the server enforces the same rules. */
+type Rights = { editVariant: boolean; createVariant: boolean; prices: boolean; adjustStock: boolean; stockSettings: boolean }
+
+const rightsOf = (user: unknown): Rights => ({
+  editVariant: can(user, 'product-variants', 'update'),
+  createVariant: can(user, 'product-variants', 'create') && canEditPrices(user),
+  prices: canEditPrices(user),
+  adjustStock: can(user, 'stock-movements', 'create'),
+  stockSettings: can(user, 'inventory', 'update'),
 })
 
 /** Rupee text to paise, or an error message. */
@@ -135,10 +148,12 @@ const VariantEditor = ({
   variant,
   stock,
   onlyVariant,
+  rights,
 }: {
   variant: VariantRow
   stock?: StockRow
   onlyVariant: boolean
+  rights: Rights
 }) => {
   const [draft, setDraft] = useState(() => draftOf(variant, stock))
   const [saving, setSaving] = useState(false)
@@ -161,15 +176,18 @@ const VariantEditor = ({
       return toast.error('Low-stock level must be 0 or more.')
 
     setSaving(true)
-    const variantError = await sendJson('PATCH', `/api/product-variants/${variant.id}`, {
-      sku: draft.sku.trim(),
-      name: draft.name.trim(),
-      mrpPaise: mrp,
-      sellingPricePaise: price,
-      isActive: draft.isActive,
-    })
+    const variantError = rights.editVariant
+      ? await sendJson('PATCH', `/api/product-variants/${variant.id}`, {
+          sku: draft.sku.trim(),
+          name: draft.name.trim(),
+          // Sent only with the price permission; the server would ignore them anyway.
+          ...(rights.prices && { mrpPaise: mrp, sellingPricePaise: price }),
+          isActive: draft.isActive,
+        })
+      : null
     const stockError =
       !variantError &&
+      rights.stockSettings &&
       stock &&
       (threshold !== stock.lowStockThreshold || draft.allowBackorder !== stock.allowBackorder)
         ? await sendJson('PATCH', `/api/inventory/${stock.id}`, {
@@ -200,25 +218,27 @@ const VariantEditor = ({
       <div className="price-stock__grid">
         <label>
           <span>SKU</span>
-          <input value={draft.sku} onChange={(event) => set('sku', event.target.value)} />
+          <input value={draft.sku} disabled={!rights.editVariant} onChange={(event) => set('sku', event.target.value)} />
         </label>
         <label className="price-stock__wide">
           <span>Variant name</span>
-          <input value={draft.name} onChange={(event) => set('name', event.target.value)} />
+          <input value={draft.name} disabled={!rights.editVariant} onChange={(event) => set('name', event.target.value)} />
         </label>
-        <label>
+        <label title={rights.prices ? undefined : 'Your role can’t change prices.'}>
           <span>MRP (₹)</span>
           <input
             inputMode="decimal"
             value={draft.mrp}
+            disabled={!rights.editVariant || !rights.prices}
             onChange={(event) => set('mrp', event.target.value)}
           />
         </label>
-        <label>
+        <label title={rights.prices ? undefined : 'Your role can’t change prices.'}>
           <span>Selling price (₹)</span>
           <input
             inputMode="decimal"
             value={draft.price}
+            disabled={!rights.editVariant || !rights.prices}
             onChange={(event) => set('price', event.target.value)}
           />
         </label>
@@ -228,6 +248,7 @@ const VariantEditor = ({
             type="number"
             min={0}
             step={1}
+            disabled={!rights.stockSettings}
             value={draft.lowStockThreshold}
             onChange={(event) => set('lowStockThreshold', event.target.value)}
           />
@@ -239,6 +260,7 @@ const VariantEditor = ({
           <input
             type="checkbox"
             checked={draft.isActive}
+            disabled={!rights.editVariant}
             onChange={(event) => set('isActive', event.target.checked)}
           />
           On sale
@@ -247,6 +269,7 @@ const VariantEditor = ({
           <input
             type="checkbox"
             checked={draft.allowBackorder}
+            disabled={!rights.stockSettings}
             onChange={(event) => set('allowBackorder', event.target.checked)}
           />
           Sell when out of stock (backorder)
@@ -257,9 +280,11 @@ const VariantEditor = ({
               Default: shown on cards
             </Pill>
           ) : (
-            <button type="button" className="price-stock__link" onClick={makeDefault}>
-              Make default
-            </button>
+            rights.editVariant && (
+              <button type="button" className="price-stock__link" onClick={makeDefault}>
+                Make default
+              </button>
+            )
           ))}
       </div>
 
@@ -279,7 +304,7 @@ const VariantEditor = ({
           </Pill>
         </div>
         <div className="price-stock__actions">
-          {!adjusting && (
+          {!adjusting && rights.adjustStock && (
             <Button
               buttonStyle="secondary"
               size="small"
@@ -295,15 +320,17 @@ const VariantEditor = ({
           <Link href={`/admin/collections/product-variants/${variant.id}`}>
             All variant details
           </Link>
-          <Button
-            buttonStyle="primary"
-            size="small"
-            margin={false}
-            onClick={save}
-            disabled={!dirty || saving}
-          >
-            {saving ? 'Saving…' : dirty ? 'Save changes' : 'Saved'}
-          </Button>
+          {(rights.editVariant || rights.stockSettings) && (
+            <Button
+              buttonStyle="primary"
+              size="small"
+              margin={false}
+              onClick={save}
+              disabled={!dirty || saving}
+            >
+              {saving ? 'Saving…' : dirty ? 'Save changes' : 'Saved'}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -442,6 +469,8 @@ const AddVariant = ({
  */
 export const PriceStockEditor = () => {
   const { id } = useDocumentInfo()
+  const { user } = useAuth()
+  const rights = rightsOf(user)
   const { variants, stock, loading, error } = useProductStock(id)
   const [adding, setAdding] = useState(false)
 
@@ -457,8 +486,15 @@ export const PriceStockEditor = () => {
 
   return (
     <div className="price-stock">
+      {!rights.prices && (
+        <p className="price-stock__empty">Prices are read-only: your role can’t change prices.</p>
+      )}
       {variants.length === 0 ? (
-        <AddVariant productId={id} first onDone={() => undefined} />
+        rights.createVariant ? (
+          <AddVariant productId={id} first onDone={() => undefined} />
+        ) : (
+          <p className="price-stock__empty">No price or stock yet. Someone whose role can set prices needs to add them.</p>
+        )
       ) : (
         <>
           {variants.map((variant) => (
@@ -468,15 +504,17 @@ export const PriceStockEditor = () => {
               variant={variant}
               stock={stock.get(variant.id)}
               onlyVariant={variants.length === 1}
+              rights={rights}
             />
           ))}
-          {adding ? (
-            <AddVariant productId={id} first={false} onDone={() => setAdding(false)} />
-          ) : (
-            <Button buttonStyle="secondary" size="small" onClick={() => setAdding(true)}>
-              + Add another variant
-            </Button>
-          )}
+          {rights.createVariant &&
+            (adding ? (
+              <AddVariant productId={id} first={false} onDone={() => setAdding(false)} />
+            ) : (
+              <Button buttonStyle="secondary" size="small" onClick={() => setAdding(true)}>
+                + Add another variant
+              </Button>
+            ))}
         </>
       )}
     </div>

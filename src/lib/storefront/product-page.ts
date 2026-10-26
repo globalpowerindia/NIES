@@ -2,12 +2,14 @@ import { unstable_cache } from 'next/cache'
 import type { Payload } from 'payload'
 import { cache } from 'react'
 
+import { summarizeReviewRatings } from '@/lib/review-ratings'
 import { CACHE_VERSION, STOREFRONT_CACHE } from '@/lib/revalidate'
+import { SPIN_MIN_FRAMES } from '@/lib/spin-rules'
 import { fileUrlOf, mediaOf, type MediaInfo } from '@/lib/storefront/content'
 import { loadPricing, PLACEHOLDER_IMAGE, relId } from '@/lib/storefront/products'
 import { getPayloadClient } from '@/lib/storefront/queries'
 import { youTubeId } from '@/lib/video'
-import type { Brand, Category, Product, ProductVariant, SpecDefinition } from '@/payload-types'
+import type { Brand, Category, Media, Product, ProductVariant, SpecDefinition } from '@/payload-types'
 
 type SpecEntry = NonNullable<Product['specValues']>[number]
 
@@ -47,6 +49,41 @@ export type VariantOption = {
   inStock: boolean
 }
 
+/**
+ * One photo of a 360° view: the 768px copy for phones and the 1600px copy for
+ * large screens. Copies Payload didn't make (the photo was smaller) fall back
+ * to the original.
+ */
+export type SpinFrame = { src: string; large: string; width?: number; height?: number }
+
+export type ProductSpinData = {
+  frames: SpinFrame[]
+  verticalFrames?: SpinFrame[]
+  generated?: boolean
+  autoRotate: boolean
+  reverse: boolean
+}
+
+const spinFrameOf = (value: unknown): SpinFrame | null => {
+  if (!value || typeof value !== 'object') return null
+  const media = value as Media
+  if (!media.url || !media.mimeType?.startsWith('image/')) return null
+  return {
+    src: media.sizes?.card?.url ?? media.url,
+    large: media.sizes?.hero?.url ?? media.url,
+    width: media.width ?? undefined,
+    height: media.height ?? undefined,
+  }
+}
+
+/** The 360° view, or null when there are too few photos for one (see SPIN_MIN_FRAMES). */
+const spinOf = (product: Product): ProductSpinData | null => {
+  const frames = (product.spin?.frames ?? []).map(spinFrameOf).filter((frame): frame is SpinFrame => frame !== null)
+  return frames.length >= SPIN_MIN_FRAMES
+    ? { frames, autoRotate: product.spin?.autoRotate !== false, reverse: product.spin?.reverse === true }
+    : null
+}
+
 /** A product video for the gallery: a YouTube embed or an uploaded file. */
 export type GalleryVideo =
   | { kind: 'youtube'; id: string; title: string }
@@ -55,6 +92,7 @@ export type GalleryVideo =
 export type CompareColumn = {
   productId: number
   inStock: boolean
+  sellOnline: boolean
   href: string
   name: string
   image: string
@@ -162,10 +200,7 @@ const loadProductPage = async (slug: string, variantSku?: string) => {
     ...(product.countryOfOrigin ? [{ key: 'origin', label: 'Country of Origin', value: product.countryOfOrigin }] : []),
   ]
 
-  const distribution = [5, 4, 3, 2, 1].map((stars) => ({
-    stars,
-    count: ratings.docs.filter((review) => Math.round(Number(review.rating)) === stars).length,
-  }))
+  const rating = summarizeReviewRatings(ratings.docs)
 
   const compare = await buildCompare(payload, product, defs)
 
@@ -175,6 +210,9 @@ const loadProductPage = async (slug: string, variantSku?: string) => {
     options,
     inStock: sellableVariants.has(selected.id),
     images: images.length ? images : [{ url: PLACEHOLDER_IMAGE, alt: product.name }],
+    modelUrl: product.model3d && typeof product.model3d === 'object' && product.model3d.mimeType === 'model/gltf-binary'
+      ? `/api/models/${product.model3d.id}?v=${encodeURIComponent(product.model3d.updatedAt)}` : null,
+    spin: spinOf(product),
     videos: (product.videos ?? []).flatMap<GalleryVideo>((video) => {
       const title = video.title || product.name
       if (video.source === 'youtube') {
@@ -191,11 +229,7 @@ const loadProductPage = async (slug: string, variantSku?: string) => {
     parentCategory,
     summarySpecs: specRows(product, defs, (def) => Boolean(def.isSummary)),
     attributes,
-    rating: {
-      average: product.ratingCount ? Number(product.ratingAvg ?? 0) / 100 : 0,
-      count: Number(product.ratingCount ?? 0),
-      distribution,
-    },
+    rating,
     reviews: reviews.docs.map<ReviewCard>((review) => ({
       id: review.id,
       authorName: review.authorName,
@@ -228,7 +262,7 @@ const loadProductPage = async (slug: string, variantSku?: string) => {
 
 /** Cached per product and variant until the catalogue or its reviews change. */
 export const getProductPage = cache(
-  unstable_cache(loadProductPage, ['product-page', CACHE_VERSION], STOREFRONT_CACHE),
+  unstable_cache(loadProductPage, ['product-page', 'review-summary-v2', 'product-gallery-dense-spin-v1', CACHE_VERSION], STOREFRONT_CACHE),
 )
 
 export type ProductPageData = NonNullable<Awaited<ReturnType<typeof getProductPage>>>
@@ -275,6 +309,7 @@ const buildCompare = async (payload: Payload, product: Product, defs: Map<number
       {
         productId: entry.id,
         inStock: priced.inStock,
+        sellOnline: entry.sellOnline === true,
         href: `/products/${entry.slug}`,
         name: entry.name,
         image: mediaOf(entry.images?.[0])?.url ?? PLACEHOLDER_IMAGE,
@@ -287,7 +322,10 @@ const buildCompare = async (payload: Payload, product: Product, defs: Map<number
           entry.ratingCount
             ? { label: 'Rating', value: (Number(entry.ratingAvg ?? 0) / 100).toFixed(1), isRating: true }
             : { label: 'Rating', value: 'No reviews yet' },
-          { label: 'Availability', value: priced.inStock ? 'In Stock' : 'Out Of Stock' },
+          {
+            label: 'Availability',
+            value: entry.sellOnline !== true ? 'On enquiry' : priced.inStock ? 'In Stock' : 'Out Of Stock',
+          },
         ],
         specs: Object.fromEntries(
           specRows(entry, defs, (def) => def.isCompare !== false).map((row) => [row.label, row.value]),

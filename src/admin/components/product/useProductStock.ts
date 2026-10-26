@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react'
 
+import { relId } from '@/lib/relations'
+
 export type VariantRow = {
   id: number
   sku: string
@@ -26,9 +28,6 @@ export type StockRow = {
 /** Fired after any price or stock change, so every panel on the page reloads together. */
 export const STOCK_CHANGED = 'product-stock-changed'
 export const announceStockChange = () => window.dispatchEvent(new Event(STOCK_CHANGED))
-
-const relId = (value: unknown) =>
-  typeof value === 'number' ? value : Number((value as { id?: number } | null)?.id)
 
 /**
  * A product's variants and their stock rows, through the admin's own REST API
@@ -56,10 +55,10 @@ export const useProductStock = (productId: number | string | undefined) => {
       setVariants(variantBody.docs)
       setStock(
         new Map(
-          stockBody.docs.map((row) => [
-            relId(row.variant),
-            { ...row, variant: relId(row.variant) },
-          ]),
+          stockBody.docs.flatMap((row) => {
+            const variant = relId(row.variant)
+            return variant === undefined ? [] : [[variant, { ...row, variant }] as const]
+          }),
         ),
       )
       setError(null)

@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from 'react'
 
 import { applyCoupon, removeCoupon } from '@/components/cart/cart-store'
-import { Button } from '@/components/ui/button'
+import { Button, ButtonLink } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { formatCurrency } from '@/lib/money'
 import type { CartView } from '@/lib/storefront/cart'
@@ -62,7 +62,11 @@ const CouponBox = ({ cart }: { cart: CartView }) => {
       : coupon.applied
         ? {
             tone: 'ok',
-            text: `Coupon ${coupon.code} applied. You save ${formatCurrency(cart.discountPaise)}.`,
+            text: coupon.freeShipping
+              ? `Coupon ${coupon.code} applied. Delivery is free at checkout.`
+              : cart.lines.some((line) => line.status === 'OK' && !line.couponEligible)
+                ? `Coupon ${coupon.code} applied to eligible items. You save ${formatCurrency(cart.discountPaise)}.`
+                : `Coupon ${coupon.code} applied. You save ${formatCurrency(cart.discountPaise)}.`,
           }
         : { tone: 'error', text: `${coupon.message} Coupon ${coupon.code} isn't applied.` }
 
@@ -155,15 +159,15 @@ export const CartSummary = ({ cart }: { cart: CartView }) => {
       <dl>
         <Row label="Amount Payable :" paise={cart.totalPaise} strong />
       </dl>
-      {/* Checkout arrives with Module 7; the button sits in its final place until then. */}
-      <Button
-        variant="blue"
-        className="h-12.5 w-full"
-        disabled
-        title={cart.canCheckout ? 'Online checkout opens soon.' : undefined}
-      >
-        Checkout Now
-      </Button>
+      {cart.canCheckout ? (
+        <ButtonLink href="/checkout" variant="blue" className="h-12.5 w-full">
+          Checkout Now
+        </ButtonLink>
+      ) : (
+        <Button variant="blue" className="h-12.5 w-full" disabled>
+          Checkout Now
+        </Button>
+      )}
       {!cart.canCheckout && (
         <p role="status" className="-mt-2 text-body2 text-brand-red-500">
           Fix the items marked in red to continue.

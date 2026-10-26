@@ -8,6 +8,8 @@ import { useState } from 'react'
 
 import { addToCart } from '@/components/cart/cart-store'
 import { toggleWishlist } from '@/components/wishlist/wishlist-store'
+import { EnquireButton } from '@/components/enquiry/EnquireButton'
+import { cardPrice } from '@/components/product/ProductCard'
 import { formatCurrency } from '@/lib/money'
 import type { WishlistEntry } from '@/lib/storefront/account'
 
@@ -17,7 +19,7 @@ export const WishlistRow = ({ item }: { item: WishlistEntry }) => {
   const [removing, setRemoving] = useState(false)
   const [moving, setMoving] = useState(false)
   const discount =
-    item.pricePaise !== null && item.mrpPaise && item.mrpPaise > item.pricePaise
+    item.pricePaise && item.mrpPaise && item.mrpPaise > item.pricePaise
       ? Math.round(((item.mrpPaise - item.pricePaise) / item.mrpPaise) * 100)
       : null
 
@@ -60,7 +62,8 @@ export const WishlistRow = ({ item }: { item: WishlistEntry }) => {
             {item.subtitle && <p className="text-label1 text-dark-300">{item.subtitle}</p>}
           </div>
           <div className="flex items-start gap-8">
-            {item.inStock && (
+            {!item.sellOnline && <EnquireButton productName={item.name} href={item.href} className="h-9 px-3 text-body2" />}
+            {item.sellOnline && item.inStock && (
               <button
                 type="button"
                 onClick={moveToCart}
@@ -85,7 +88,7 @@ export const WishlistRow = ({ item }: { item: WishlistEntry }) => {
 
         {item.pricePaise !== null && (
           <div className="flex shrink-0 flex-col gap-1 sm:items-end">
-            <p className="text-h4 font-semibold text-dark-500">{formatCurrency(item.pricePaise)}</p>
+            <p className="text-h4 font-semibold text-dark-500">{cardPrice(item.pricePaise)}</p>
             {discount !== null && item.mrpPaise && (
               <div className="flex items-center gap-1">
                 <span className="text-label1 text-dark-300 line-through">

@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { anyone, isManager, isSuperAdmin } from '@/access/roles'
+import { allow, anyone, hiddenUnless } from '@/access/roles'
 import { slugFrom } from '@/fields/slug'
 import { revalidateStorefront, revalidateStorefrontOnDelete } from '@/lib/revalidate'
 import { refreshOnBrandChange } from '@/lib/search-refresh'
@@ -8,6 +8,7 @@ import { refreshOnBrandChange } from '@/lib/search-refresh'
 export const Brands: CollectionConfig = {
   slug: 'brands',
   admin: {
+    hidden: hiddenUnless('brands'),
     useAsTitle: 'name',
     group: 'Catalog',
     defaultColumns: ['name', 'slug', 'isActive', 'sortOrder'],
@@ -15,9 +16,9 @@ export const Brands: CollectionConfig = {
   },
   access: {
     read: anyone,
-    create: isManager,
-    update: isManager,
-    delete: isSuperAdmin,
+    create: allow('brands', 'create'),
+    update: allow('brands', 'update'),
+    delete: allow('brands', 'delete'),
   },
   hooks: { afterChange: [revalidateStorefront, refreshOnBrandChange], afterDelete: [revalidateStorefrontOnDelete] },
   fields: [

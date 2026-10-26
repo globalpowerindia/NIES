@@ -43,7 +43,8 @@ export const CollectionShowcase = ({
 
   const update = useCallback(() => {
     const track = trackRef.current
-    if (!track) return
+    // A hidden or not-yet-laid-out track has no width to page against.
+    if (!track || track.clientWidth === 0) return
     const scrollable = Math.max(0, track.scrollWidth - track.clientWidth)
     const pages = Math.max(1, Math.ceil(track.scrollWidth / track.clientWidth - 0.05))
     // The final page is clamped to the end of the track, rather than a full
@@ -114,7 +115,7 @@ export const CollectionShowcase = ({
                   </Link>
                   <p className="w-full text-center text-body1 font-medium text-balance text-dark-500">{item.name}</p>
                   <p className="text-label1 font-semibold text-dark-500">
-                    {formatCurrency(item.pricePaise, { showPaise: true })}
+                    {item.pricePaise > 0 ? formatCurrency(item.pricePaise, { showPaise: true }) : 'Price on request'}
                   </p>
                   <Link
                     href={item.href}

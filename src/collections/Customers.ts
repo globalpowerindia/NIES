@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { isManager, isStaff, isSuperAdmin } from '@/access/roles'
+import { allow } from '@/access/roles'
 import { revokeAllSessions } from '@/lib/customer-sessions'
 
 /**
@@ -45,10 +45,10 @@ export const Customers: CollectionConfig = {
   access: {
     // Never `anyone`: this is personal data. The storefront reads customers
     // through the Local API, which bypasses access control by design.
-    read: isStaff,
-    create: isManager,
-    update: isManager,
-    delete: isSuperAdmin,
+    read: allow('customers', 'read'),
+    create: allow('customers', 'create'),
+    update: allow('customers', 'update'),
+    delete: allow('customers', 'delete'),
   },
   fields: [
     {

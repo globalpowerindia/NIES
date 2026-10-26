@@ -1,6 +1,6 @@
 import type { GlobalConfig } from 'payload'
 
-import { publishedHome, isManager, isStaff } from '@/access/roles'
+import { allow, publishedHome } from '@/access/roles'
 import { HOME_BLOCKS } from '@/globals/home-blocks'
 import { revalidateStorefrontGlobal } from '@/lib/revalidate'
 
@@ -14,8 +14,8 @@ export const HomePage: GlobalConfig = {
   },
   access: {
     read: publishedHome,
-    readVersions: isStaff,
-    update: isManager,
+    readVersions: allow('home-page', 'read'),
+    update: allow('home-page', 'update'),
   },
   versions: {
     drafts: true,

@@ -1,9 +1,15 @@
-import { APIError, type CollectionBeforeChangeHook, type CollectionConfig } from 'payload'
+import {
+  APIError,
+  type CollectionAfterChangeHook,
+  type CollectionBeforeChangeHook,
+  type CollectionConfig,
+} from 'payload'
 
 import { bulkOrderStatus } from '@/admin/endpoints/bulkOrderStatus'
-import { isManager, isStaff, isSuperAdmin } from '@/access/roles'
+import { allow, isSuperAdmin } from '@/access/roles'
 import { paiseField } from '@/fields/paise'
 import { LOCKED_ORDER_FIELDS, staffCanMoveOrder } from '@/lib/order-rules'
+import { releaseOrderStock } from '@/lib/order-stock'
 
 export const ORDER_STATUSES = [
   'PENDING_PAYMENT',
@@ -30,6 +36,18 @@ export const ORDER_STATUS_OPTIONS = [
 ]
 
 /**
+ * Why an order was cancelled. It decides what a payment that arrives
+ * afterwards may do: only an order that simply ran out of time can be revived
+ * by it (see `confirmPayment`); any other cancelled order is refunded instead.
+ */
+export const CANCEL_REASON_OPTIONS = [
+  { label: 'Payment window expired', value: 'EXPIRED' },
+  { label: 'Replaced by a newer checkout', value: 'SUPERSEDED' },
+  { label: 'Cancelled by staff', value: 'STAFF' },
+  { label: 'Payment provider unavailable', value: 'GATEWAY_ERROR' },
+]
+
+/**
  * The same rules for every staff write — admin form, REST, GraphQL or the bulk
  * endpoint. System code (checkout, payment capture, seeds) runs without a
  * staff user and is not limited by them.
@@ -43,7 +61,16 @@ const enforceOrderRules: CollectionBeforeChangeHook = ({ data, originalDoc, oper
     const label = (status: OrderStatus) => ORDER_STATUS_OPTIONS.find((option) => option.value === status)?.label ?? status
     throw new APIError(`An order can't go from "${label(from)}" to "${label(to)}".`, 400)
   }
+  if (to === 'CANCELLED' && from !== 'CANCELLED') data.cancelReason = 'STAFF'
   return data
+}
+
+/** An unpaid order that is cancelled (by expiry, a retried checkout, or staff) gives its held stock back. */
+const releaseUnpaidStock: CollectionAfterChangeHook = async ({ doc, previousDoc, operation, req }) => {
+  if (operation === 'update' && previousDoc?.status === 'PENDING_PAYMENT' && doc.status === 'CANCELLED') {
+    await releaseOrderStock(req, doc.id)
+  }
+  return doc
 }
 
 export const Orders: CollectionConfig = {
@@ -59,12 +86,13 @@ export const Orders: CollectionConfig = {
     },
   },
   access: {
-    read: isStaff,
-    create: isManager,
-    update: isManager,
+    read: allow('orders', 'read'),
+    create: allow('orders', 'create'),
+    update: allow('orders', 'update'),
+    // Tax records: only a super admin, and never through the role grid.
     delete: isSuperAdmin,
   },
-  hooks: { beforeChange: [enforceOrderRules] },
+  hooks: { beforeChange: [enforceOrderRules], afterChange: [releaseUnpaidStock] },
   endpoints: [{ path: '/bulk-status', method: 'post', handler: bulkOrderStatus }],
   fields: [
     {
@@ -98,6 +126,17 @@ export const Orders: CollectionConfig = {
       index: true,
       options: ORDER_STATUS_OPTIONS,
       admin: { position: 'sidebar' },
+    },
+    {
+      name: 'cancelReason',
+      type: 'select',
+      options: CANCEL_REASON_OPTIONS,
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+        condition: (data) => data?.status === 'CANCELLED',
+        description: 'Set automatically. Only an expired order can be revived by a late payment.',
+      },
     },
     {
       name: 'placedAt',
@@ -299,6 +338,72 @@ export const Orders: CollectionConfig = {
               ],
             },
             paiseField({ name: 'grandTotalPaise', label: 'Grand total', required: true }),
+          ],
+        },
+        {
+          label: 'Payment',
+          description: 'Written by checkout and Razorpay. Read-only: a payment is never edited by hand.',
+          fields: [
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'paymentMethod',
+                  type: 'select',
+                  defaultValue: 'RAZORPAY',
+                  options: [{ label: 'Razorpay (online)', value: 'RAZORPAY' }],
+                  admin: { width: '34%', readOnly: true },
+                },
+                { name: 'razorpayOrderId', type: 'text', unique: true, index: true, admin: { width: '33%', readOnly: true } },
+                { name: 'razorpayPaymentId', type: 'text', index: true, admin: { width: '33%', readOnly: true } },
+              ],
+            },
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'paymentExpiresAt',
+                  type: 'date',
+                  admin: {
+                    width: '50%',
+                    readOnly: true,
+                    date: { pickerAppearance: 'dayAndTime' },
+                    description: 'Unpaid by then, the order is cancelled and its stock released.',
+                  },
+                },
+                { name: 'paidAt', type: 'date', admin: { width: '50%', readOnly: true, date: { pickerAppearance: 'dayAndTime' } } },
+              ],
+            },
+            {
+              type: 'row',
+              fields: [
+                { name: 'coupon', type: 'relationship', relationTo: 'coupons', admin: { width: '50%', readOnly: true } },
+                { name: 'couponCode', type: 'text', admin: { width: '50%', readOnly: true } },
+              ],
+            },
+            paiseField({
+              name: 'deliveryDiscountPaise',
+              label: 'Delivery waived by coupon',
+              defaultValue: 0,
+              admin: { readOnly: true, description: 'A free-delivery code: what delivery would have cost.' },
+            }),
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'shippingWeightGrams',
+                  label: 'Parcel weight (g)',
+                  type: 'number',
+                  admin: { width: '50%', readOnly: true, description: 'What the delivery fee was charged on.' },
+                },
+                { name: 'cart', type: 'relationship', relationTo: 'carts', admin: { width: '50%', readOnly: true } },
+              ],
+            },
+            {
+              name: 'confirmationEmailSentAt',
+              type: 'date',
+              admin: { readOnly: true, date: { pickerAppearance: 'dayAndTime' } },
+            },
           ],
         },
         {

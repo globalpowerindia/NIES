@@ -1,3 +1,7 @@
+import 'server-only'
+
+import { env } from '@/lib/env'
+
 /**
  * Where texted codes go. Chosen by `SMS_PROVIDER`:
  *
@@ -47,10 +51,10 @@ const msg91Sender = (authKey: string, templateId: string): SmsSender => ({
 
 /** The configured sender, or null when mobile sign-in cannot work here. */
 export const smsSender = (): SmsSender | null => {
-  const provider = process.env.SMS_PROVIDER ?? (process.env.NODE_ENV === 'production' ? '' : 'console')
+  const provider = env.SMS_PROVIDER ?? (process.env.NODE_ENV === 'production' ? null : 'console')
 
-  if (provider === 'msg91' && process.env.MSG91_AUTH_KEY && process.env.MSG91_TEMPLATE_ID) {
-    return msg91Sender(process.env.MSG91_AUTH_KEY, process.env.MSG91_TEMPLATE_ID)
+  if (provider === 'msg91' && env.MSG91_AUTH_KEY && env.MSG91_TEMPLATE_ID) {
+    return msg91Sender(env.MSG91_AUTH_KEY, env.MSG91_TEMPLATE_ID)
   }
   if (provider === 'console' && process.env.NODE_ENV !== 'production') return consoleSender
   return null

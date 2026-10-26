@@ -1,5 +1,17 @@
 import type { GroupField } from 'payload'
 
+/** A site path (`/…`, but not `//host` or `/\host`) or an absolute https URL. */
+export const isSafeLinkUrl = (value: string): boolean => {
+  const url = value.trim()
+  if (/[\x00-\x20\x7f\\]/.test(url)) return false
+  if (url.startsWith('/')) return !url.startsWith('//')
+  try {
+    return new URL(url).protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
 type LinkFieldOptions = {
   name?: string
   label?: string
@@ -55,6 +67,11 @@ export const linkField = ({ name = 'link', label = 'Link', required }: LinkField
             placeholder: '/catalogue or https://…',
             condition: (_, sibling) => sibling?.type === 'custom',
           },
+          // A path on this site or an https address; never javascript:, data: or a protocol-relative //host.
+          validate: (value: string | null | undefined, { siblingData }: { siblingData: { type?: string } }) =>
+            siblingData?.type !== 'custom' || isSafeLinkUrl(value ?? '')
+              ? true
+              : 'Enter a path on this site (e.g. /catalogue) or a full https:// address.',
         },
       ],
     },

@@ -3,7 +3,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 
 import { AddToCartButton } from '@/components/cart/AddToCartButton'
-import { ProductCard, type ProductCardProps } from '@/components/product/ProductCard'
+import { EnquireButton } from '@/components/enquiry/EnquireButton'
+import { cardPrice, ProductCard, type ProductCardProps } from '@/components/product/ProductCard'
 import { WishlistHeart } from '@/components/wishlist/WishlistHeart'
 import { formatCurrency } from '@/lib/money'
 import { cn } from '@/lib/utils'
@@ -22,8 +23,10 @@ export const CatalogProductCard = (props: ProductCardProps) => {
     rating,
     badge,
     inStock = true,
+    sellOnline = false,
   } = props
-  const discounted = mrpPaise !== undefined && mrpPaise > pricePaise
+  const soldOut = sellOnline && !inStock
+  const discounted = pricePaise > 0 && mrpPaise !== undefined && mrpPaise > pricePaise
   const discount = discounted ? Math.round(((mrpPaise - pricePaise) / mrpPaise) * 100) : null
 
   return (
@@ -54,7 +57,7 @@ export const CatalogProductCard = (props: ProductCardProps) => {
               alt={imageAlt}
               fill
               sizes="(max-width: 767px) 40vw, 250px"
-              className={cn('object-contain', !inStock && 'opacity-40')}
+              className={cn('object-contain', soldOut && 'opacity-40')}
             />
           </Link>
         </div>
@@ -74,9 +77,7 @@ export const CatalogProductCard = (props: ProductCardProps) => {
           <p className="text-[0.625rem] leading-3 text-dark-300">{category}</p>
           <hr className="border-neutral-300" />
           <div className="flex flex-wrap items-baseline gap-x-2">
-            <span className="text-label1 font-semibold text-dark-500">
-              {formatCurrency(pricePaise)}
-            </span>
+            <span className="text-label1 font-semibold text-dark-500">{cardPrice(pricePaise)}</span>
             {discounted && (
               <span className="text-[0.75rem] leading-[1.125rem] text-dark-300 line-through">
                 {formatCurrency(mrpPaise)}
@@ -92,33 +93,45 @@ export const CatalogProductCard = (props: ProductCardProps) => {
           <span
             className={cn(
               'mt-auto flex items-center gap-1 px-1 text-[0.625rem] leading-4',
-              inStock ? 'text-green-400' : 'text-brand-red-500',
+              !sellOnline
+                ? 'text-brand-blue-300'
+                : inStock
+                  ? 'text-green-400'
+                  : 'text-brand-red-500',
             )}
           >
             <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-current" />
-            {inStock ? 'In Stock' : 'Out Of Stock'}
+            {!sellOnline ? 'Available on enquiry' : inStock ? 'In Stock' : 'Out Of Stock'}
           </span>
-          <div className="flex gap-[0.4375rem]">
-            <AddToCartButton
-              productId={productId}
-              buyNow
-              disabled={!inStock}
-              variant="blue"
-              className="min-w-0 flex-1 px-2 text-[0.75rem] font-normal"
-            >
-              Buy Now
-            </AddToCartButton>
-            <AddToCartButton
-              productId={productId}
-              disabled={!inStock}
-              variant="red"
-              size="icon"
-              aria-label={`Add ${label} to cart`}
-              className="size-10 bg-brand-red-400"
-            >
-              <ShoppingCart className="size-5" strokeWidth={1.5} />
-            </AddToCartButton>
-          </div>
+          {!sellOnline ? (
+            <EnquireButton
+              productName={label}
+              href={href}
+              className="w-full px-2 text-[0.75rem] font-normal"
+            />
+          ) : (
+            <div className="flex gap-[0.4375rem]">
+              <AddToCartButton
+                productId={productId}
+                buyNow
+                disabled={!inStock}
+                variant="blue"
+                className="min-w-0 flex-1 px-2 text-[0.75rem] font-normal"
+              >
+                Buy Now
+              </AddToCartButton>
+              <AddToCartButton
+                productId={productId}
+                disabled={!inStock}
+                variant="red"
+                size="icon"
+                aria-label={`Add ${label} to cart`}
+                className="size-10 bg-brand-red-400"
+              >
+                <ShoppingCart className="size-5" strokeWidth={1.5} />
+              </AddToCartButton>
+            </div>
+          )}
         </div>
       </article>
     </>

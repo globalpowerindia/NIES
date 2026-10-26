@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { isStaff, isSuperAdmin } from '@/access/roles'
+import { allow } from '@/access/roles'
 
 /**
  * One row per product a customer has hearted. Written only by
@@ -15,10 +15,10 @@ export const WishlistItems: CollectionConfig = {
     defaultColumns: ['customer', 'product', 'createdAt'],
   },
   access: {
-    read: isStaff,
+    read: allow('wishlist-items', 'read'),
     create: () => false,
     update: () => false,
-    delete: isSuperAdmin,
+    delete: allow('wishlist-items', 'delete'),
   },
   // Hearting the same product twice is one row, enforced by the database
   // rather than a read-then-write race.

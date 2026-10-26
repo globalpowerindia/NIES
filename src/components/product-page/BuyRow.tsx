@@ -4,22 +4,43 @@ import { Minus, Plus } from 'lucide-react'
 import { useState } from 'react'
 
 import { AddToCartButton } from '@/components/cart/AddToCartButton'
+import { EnquireButton } from '@/components/enquiry/EnquireButton'
 import { MAX_LINE_QTY as MAX_QTY } from '@/lib/cart-rules'
 
 const stepper =
   'grid size-8 place-items-center rounded-full border-[0.5px] border-brand-blue-200 bg-brand-blue-100 text-dark-500 transition-colors hover:bg-brand-blue-200 disabled:opacity-40 lg:size-[3.125rem]'
 
-/** Quantity and the two purchase buttons, for the variant on show. */
+/**
+ * Quantity and the two purchase buttons, for the variant on show. A product
+ * that isn't sold online gets a WhatsApp enquiry instead.
+ */
 export const BuyRow = ({
   name,
   variantId,
   inStock,
+  sellOnline,
+  href,
 }: {
   name: string
   variantId: number
   inStock: boolean
+  sellOnline: boolean
+  href: string
 }) => {
   const [qty, setQty] = useState(1)
+
+  if (!sellOnline) {
+    return (
+      <div className="fixed inset-x-0 bottom-0 z-50 bg-light-400 px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-2px_12px_#0000000a] lg:static lg:bg-transparent lg:p-0 lg:shadow-none">
+        <div className="mx-auto flex w-full max-w-[43.75rem] flex-col gap-2 lg:max-w-none">
+          <EnquireButton productName={name} href={href} className="h-10 w-full text-body3 lg:h-13 lg:text-body2" />
+          <p className="hidden text-body3 text-dark-300 lg:block">
+            This product is sold on enquiry. Message us for the price, availability and delivery.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-h-10 flex-col gap-4 lg:flex-row lg:items-center">

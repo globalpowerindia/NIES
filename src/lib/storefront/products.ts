@@ -7,8 +7,9 @@ import type { Product, ProductVariant } from '@/payload-types'
 
 export const PLACEHOLDER_IMAGE = '/products/sample-drill.png'
 
-export const relId = (value: unknown): number | undefined =>
-  typeof value === 'number' ? value : (value as { id?: number } | null | undefined)?.id
+import { relId } from '@/lib/relations'
+
+export { relId }
 
 /** The variant a card prices from: the one marked default, else the first by sort order. */
 export const pickVariant = (variants: ProductVariant[]): ProductVariant | undefined =>
@@ -98,6 +99,7 @@ export const toProductCards = async (
             ? 'new'
             : undefined,
         inStock,
+        sellOnline: product.sellOnline === true,
       },
     ]
   })
@@ -126,7 +128,8 @@ const cardsInOrder = async (payload: Payload, ids: number[]): Promise<ProductCar
  * prices from the default variant (else the first by sort order, as
  * `pickVariant`), so that is the variant that has to be discounted.
  */
-const offerProductIds = async (payload: Payload, limit: number): Promise<number[]> => {
+/** Active products whose price is below MRP. Also the /offers listing. */
+export const offerProductIds = async (payload: Payload, limit: number): Promise<number[]> => {
   const result = await payload.db.drizzle.execute(sql`
     SELECT p.id
     FROM products p

@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { anyone, isManager, isSuperAdmin } from '@/access/roles'
+import { allow, anyone, hiddenUnless, pricesField } from '@/access/roles'
 import { paiseField } from '@/fields/paise'
 import { slugFrom } from '@/fields/slug'
 import { revalidateStorefront, revalidateStorefrontOnDelete } from '@/lib/revalidate'
@@ -9,6 +9,7 @@ import { refreshOnCategoryChange } from '@/lib/search-refresh'
 export const Categories: CollectionConfig = {
   slug: 'categories',
   admin: {
+    hidden: hiddenUnless('categories'),
     useAsTitle: 'name',
     group: 'Catalog',
     defaultColumns: ['name', 'slug', 'parent', 'isActive', 'sortOrder'],
@@ -16,9 +17,9 @@ export const Categories: CollectionConfig = {
   },
   access: {
     read: anyone,
-    create: isManager,
-    update: isManager,
-    delete: isSuperAdmin,
+    create: allow('categories', 'create'),
+    update: allow('categories', 'update'),
+    delete: allow('categories', 'delete'),
   },
   hooks: { afterChange: [revalidateStorefront, refreshOnCategoryChange], afterDelete: [revalidateStorefrontOnDelete] },
   fields: [
@@ -62,11 +63,13 @@ export const Categories: CollectionConfig = {
               name: 'deliveryKeralaPaise',
               label: 'In Kerala',
               admin: { width: '50%' },
+              access: { create: pricesField, update: pricesField },
             }),
             paiseField({
               name: 'deliveryOutOfStatePaise',
               label: 'Outside Kerala',
               admin: { width: '50%' },
+              access: { create: pricesField, update: pricesField },
             }),
           ],
         },

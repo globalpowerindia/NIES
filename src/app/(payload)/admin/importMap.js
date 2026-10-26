@@ -33,12 +33,16 @@ import { StockAdjuster as StockAdjuster_e6c07d7b46582096ac85c3aefa1bb399 } from 
 import { InventoryList as InventoryList_5d56bc2e3872b7879aff01e95db4f32c } from '../../../admin/views/InventoryList'
 import { StockMovementsList as StockMovementsList_6bd1338c5b306a7fa96da9372946c5c3 } from '../../../admin/views/StockMovementsList'
 import { OrdersList as OrdersList_5d6bed559100f816229134e5933cc150 } from '../../../admin/views/OrdersList'
+import { CouponsList as CouponsList_8d9e368d47db834ee206b9b9ed13518d } from '../../../admin/views/CouponsList'
+import { PermissionGrid as PermissionGrid_e6180bd9fec25929f767683a791d0f5d } from '../../../admin/components/PermissionGrid'
 import { UsersList as UsersList_be66208309d3f44cc5d4176d5be03012 } from '../../../admin/views/UsersList'
 import { Nav as Nav_4e2fd1f2ddee185304cca245e07e098e } from '../../../admin/components/Nav'
 import { Icon as Icon_fde206bfba86c5e4225a034862628d02 } from '../../../admin/components/Icon'
 import { Logo as Logo_ee23b055e36af2f792f5acea4d3aaff6 } from '../../../admin/components/Logo'
-import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
+import { Dashboard as Dashboard_c7d7fc284b3b0552574b75a0421f4260 } from '../../../admin/views/Dashboard'
+import { ProductImport as ProductImport_21cba3648b5fee54aad343e9d74a4d6e } from '../../../admin/views/ProductImport'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
+import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
 
 /** @type import('payload').ImportMap */
 export const importMap = {
@@ -77,10 +81,14 @@ export const importMap = {
   "/admin/views/InventoryList#InventoryList": InventoryList_5d56bc2e3872b7879aff01e95db4f32c,
   "/admin/views/StockMovementsList#StockMovementsList": StockMovementsList_6bd1338c5b306a7fa96da9372946c5c3,
   "/admin/views/OrdersList#OrdersList": OrdersList_5d6bed559100f816229134e5933cc150,
+  "/admin/views/CouponsList#CouponsList": CouponsList_8d9e368d47db834ee206b9b9ed13518d,
+  "/admin/components/PermissionGrid#PermissionGrid": PermissionGrid_e6180bd9fec25929f767683a791d0f5d,
   "/admin/views/UsersList#UsersList": UsersList_be66208309d3f44cc5d4176d5be03012,
   "/admin/components/Nav#Nav": Nav_4e2fd1f2ddee185304cca245e07e098e,
   "/admin/components/Icon#Icon": Icon_fde206bfba86c5e4225a034862628d02,
   "/admin/components/Logo#Logo": Logo_ee23b055e36af2f792f5acea4d3aaff6,
-  "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24,
-  "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
+  "/admin/views/Dashboard#Dashboard": Dashboard_c7d7fc284b3b0552574b75a0421f4260,
+  "/admin/views/ProductImport#ProductImport": ProductImport_21cba3648b5fee54aad343e9d74a4d6e,
+  "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1,
+  "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24
 }

@@ -11,11 +11,25 @@ const envSchema = z.object({
   // "true" once the bucket's CORS allows this site to PUT: uploads then go
   // from the browser straight to R2, past Vercel's 4.5MB request limit.
   R2_CLIENT_UPLOADS: z.enum(['true', 'false']).optional(),
+  // Texted sign-in codes; see src/lib/otp/sms.ts. Unset: `console` in development, none in production.
+  SMS_PROVIDER: z.enum(['console', 'msg91']).optional(),
+  MSG91_AUTH_KEY: z.string().min(1).optional(),
+  MSG91_TEMPLATE_ID: z.string().min(1).optional(),
   GOOGLE_CLIENT_ID: z.string().min(1).optional(),
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
   // Scheduled jobs answer only to `Authorization: Bearer <CRON_SECRET>`, which
   // Vercel Cron sends. Unset, the job routes refuse every call.
   CRON_SECRET: z.string().min(16).optional(),
+  // Online payment. Checkout stays closed until the key id and secret are set.
+  RAZORPAY_KEY_ID: z.string().min(1).optional(),
+  RAZORPAY_KEY_SECRET: z.string().min(1).optional(),
+  RAZORPAY_WEBHOOK_SECRET: z.string().min(1).optional(),
+  // Transactional email through Resend. Unset, emails print to the terminal in development.
+  RESEND_API_KEY: z.string().min(1).optional(),
+  EMAIL_FROM_ADDRESS: z.string().email().optional(),
+  EMAIL_FROM_NAME: z.string().min(1).optional(),
+  // Where "new order" alerts go. Comma-separated; unset sends none.
+  ORDER_ALERT_EMAILS: z.string().min(1).optional(),
 })
 
 const parsed = envSchema.safeParse(process.env)

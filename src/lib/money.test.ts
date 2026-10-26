@@ -82,6 +82,20 @@ describe('allocateDiscount', () => {
 })
 
 describe('computeCartTotals', () => {
+  it('puts a coupon only on the lines it covers, so each line keeps its own GST', () => {
+    const totals = computeCartTotals({
+      lines: [
+        { sellingPricePaise: 100_000, quantity: 1, gstRateBps: 1800, discountable: true },
+        { sellingPricePaise: 100_000, quantity: 1, gstRateBps: 1200, discountable: false },
+      ],
+      shipStateCode: '32',
+      discountPaise: 10_000,
+    })
+    expect(totals.lines.map((line) => line.discountPaise)).toEqual([10_000, 0])
+    expect(totals.lines[1].netPaise).toBe(100_000)
+    expect(totals.grandTotalPaise).toBe(190_000)
+  })
+
   const line = (sellingPricePaise: number, quantity = 1, gstRateBps = 1800) => ({
     sellingPricePaise,
     quantity,

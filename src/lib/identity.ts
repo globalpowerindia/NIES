@@ -56,12 +56,13 @@ export const normalisePhone = (phone: string): string => {
   return bare.length === 10 ? `+91${bare}` : `+${bare}`
 }
 
-const touch = async (payload: Payload, identityId: number): Promise<void> => {
+const touch = async (payload: Payload, identityId: number, req?: PayloadRequest): Promise<void> => {
   await payload.update({
     collection: 'auth-identities',
     id: identityId,
     data: { lastUsedAt: new Date().toISOString() },
     overrideAccess: true,
+    req,
   })
 }
 
@@ -86,6 +87,7 @@ const findIdentity = async (payload: Payload, provider: AuthProvider, providerAc
 const findLinkTarget = async (
   payload: Payload,
   input: IdentityInput,
+  req: PayloadRequest,
 ): Promise<Customer | null> => {
   if (input.verifiedEmail) {
     const { docs } = await payload.find({
@@ -93,6 +95,7 @@ const findLinkTarget = async (
       where: { email: { equals: normaliseEmail(input.verifiedEmail) } },
       limit: 1,
       overrideAccess: true,
+      req,
     })
     const candidate = docs[0]
     if (candidate?.emailVerifiedAt) return candidate
@@ -104,6 +107,7 @@ const findLinkTarget = async (
       where: { phone: { equals: normalisePhone(input.verifiedPhone) } },
       limit: 1,
       overrideAccess: true,
+      req,
     })
     const candidate = docs[0]
     if (candidate?.phoneVerifiedAt) return candidate
@@ -117,12 +121,13 @@ const findLinkTarget = async (
  * login can take it. Without this, an unverified squatter would permanently
  * block the real owner from signing in.
  */
-const releaseUnverifiedEmail = async (payload: Payload, email: string): Promise<void> => {
+const releaseUnverifiedEmail = async (payload: Payload, email: string, req: PayloadRequest): Promise<void> => {
   const { docs } = await payload.find({
     collection: 'customers',
     where: { and: [{ email: { equals: email } }, { emailVerifiedAt: { exists: false } }] },
     pagination: false,
     overrideAccess: true,
+    req,
   })
   for (const squatter of docs) {
     await payload.update({
@@ -130,6 +135,7 @@ const releaseUnverifiedEmail = async (payload: Payload, email: string): Promise<
       id: squatter.id,
       data: { email: null },
       overrideAccess: true,
+      req,
     })
   }
 }
@@ -153,6 +159,12 @@ const releaseUnverifiedPhone = async (payload: Payload, phone: string, req?: Pay
   }
 }
 
+/**
+ * One transaction under the locks of this login method and of every channel
+ * it proves (the same keys `attachPhone` takes). Two first sign-ins arriving
+ * together would otherwise both find nobody and both create a customer, and
+ * the second would fail on the identity's unique index, leaving an orphan.
+ */
 export const resolveIdentity = async (payload: Payload, input: IdentityInput): Promise<IdentityResult> => {
   const accountId =
     input.provider === 'EMAIL_OTP'
@@ -160,72 +172,82 @@ export const resolveIdentity = async (payload: Payload, input: IdentityInput): P
       : input.provider === 'PHONE_OTP'
         ? normalisePhone(input.providerAccountId)
         : input.providerAccountId
+  const locks = [
+    `identity:${input.provider}:${accountId}`,
+    ...(input.verifiedEmail ? [`identity:email:${normaliseEmail(input.verifiedEmail)}`] : []),
+    ...(input.verifiedPhone ? [`identity:phone:${normalisePhone(input.verifiedPhone)}`] : []),
+  ]
 
-  // 1. Known login method: just sign them in.
-  const existing = await findIdentity(payload, input.provider, accountId)
-  if (existing) {
-    const customer =
-      typeof existing.customer === 'object'
-        ? existing.customer
-        : await payload.findByID({ collection: 'customers', id: existing.customer, overrideAccess: true })
+  return inTransaction(payload, locks, async (req): Promise<IdentityResult> => {
+    // 1. Known login method: just sign them in.
+    const existing = await findIdentity(payload, input.provider, accountId, req)
+    if (existing) {
+      const customer =
+        typeof existing.customer === 'object'
+          ? existing.customer
+          : await payload.findByID({ collection: 'customers', id: existing.customer, overrideAccess: true, req })
 
-    if (customer.status === 'BLOCKED') return { outcome: 'BLOCKED', customer }
-    await touch(payload, existing.id)
-    return { outcome: 'SIGNED_IN', customer }
-  }
+      if (customer.status === 'BLOCKED') return { outcome: 'BLOCKED', customer }
+      await touch(payload, existing.id, req)
+      return { outcome: 'SIGNED_IN', customer }
+    }
 
-  // 2. New login method. Attach it to an existing customer only over a
-  //    channel both sides have verified.
-  const target = await findLinkTarget(payload, input)
-  if (target) {
-    if (target.status === 'BLOCKED') return { outcome: 'BLOCKED', customer: target }
+    // 2. New login method. Attach it to an existing customer only over a
+    //    channel both sides have verified.
+    const target = await findLinkTarget(payload, input, req)
+    if (target) {
+      if (target.status === 'BLOCKED') return { outcome: 'BLOCKED', customer: target }
+      await payload.create({
+        collection: 'auth-identities',
+        data: {
+          provider: input.provider,
+          providerAccountId: accountId,
+          customer: target.id,
+          lastUsedAt: new Date().toISOString(),
+        },
+        overrideAccess: true,
+        req,
+      })
+      return { outcome: 'LINKED', customer: target }
+    }
+
+    // 3. Nobody to link to: a new person.
+    //    First, release the channel from anyone squatting it unverified. They
+    //    never proved it, and the login we are handling now has. Their own
+    //    login method still works; they simply lose the unproven claim.
+    if (input.verifiedEmail) await releaseUnverifiedEmail(payload, normaliseEmail(input.verifiedEmail), req)
+    if (input.verifiedPhone) await releaseUnverifiedPhone(payload, normalisePhone(input.verifiedPhone), req)
+
+    const customer = await payload.create({
+      collection: 'customers',
+      data: {
+        email: input.verifiedEmail ? normaliseEmail(input.verifiedEmail) : undefined,
+        phone: input.verifiedPhone ? normalisePhone(input.verifiedPhone) : undefined,
+        // Only a channel this login actually proved counts as verified.
+        emailVerifiedAt: input.verifiedEmail ? new Date().toISOString() : undefined,
+        phoneVerifiedAt: input.verifiedPhone ? new Date().toISOString() : undefined,
+        firstName: input.profile?.firstName ?? undefined,
+        lastName: input.profile?.lastName ?? undefined,
+        status: 'ACTIVE',
+      },
+      overrideAccess: true,
+      req,
+    })
+
     await payload.create({
       collection: 'auth-identities',
       data: {
         provider: input.provider,
         providerAccountId: accountId,
-        customer: target.id,
+        customer: customer.id,
         lastUsedAt: new Date().toISOString(),
       },
       overrideAccess: true,
+      req,
     })
-    return { outcome: 'LINKED', customer: target }
-  }
 
-  // 3. Nobody to link to: a new person.
-  //    First, release the channel from anyone squatting it unverified. They
-  //    never proved it, and the login we are handling now has. Their own
-  //    login method still works; they simply lose the unproven claim.
-  if (input.verifiedEmail) await releaseUnverifiedEmail(payload, normaliseEmail(input.verifiedEmail))
-  if (input.verifiedPhone) await releaseUnverifiedPhone(payload, normalisePhone(input.verifiedPhone))
-
-  const customer = await payload.create({
-    collection: 'customers',
-    data: {
-      email: input.verifiedEmail ? normaliseEmail(input.verifiedEmail) : undefined,
-      phone: input.verifiedPhone ? normalisePhone(input.verifiedPhone) : undefined,
-      // Only a channel this login actually proved counts as verified.
-      emailVerifiedAt: input.verifiedEmail ? new Date().toISOString() : undefined,
-      phoneVerifiedAt: input.verifiedPhone ? new Date().toISOString() : undefined,
-      firstName: input.profile?.firstName ?? undefined,
-      lastName: input.profile?.lastName ?? undefined,
-      status: 'ACTIVE',
-    },
-    overrideAccess: true,
+    return { outcome: 'CREATED', customer }
   })
-
-  await payload.create({
-    collection: 'auth-identities',
-    data: {
-      provider: input.provider,
-      providerAccountId: accountId,
-      customer: customer.id,
-      lastUsedAt: new Date().toISOString(),
-    },
-    overrideAccess: true,
-  })
-
-  return { outcome: 'CREATED', customer }
 }
 
 export type AttachPhoneResult =

@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { isManager, isStaff, isSuperAdmin } from '@/access/roles'
+import { allow } from '@/access/roles'
 import { INDIAN_STATES } from '@/lib/indian-states'
 
 export const ADDRESS_TYPES = ['HOME', 'OFFICE', 'OTHER'] as const
@@ -21,12 +21,10 @@ export const Addresses: CollectionConfig = {
     defaultColumns: ['fullName', 'customer', 'city', 'stateCode', 'type'],
   },
   access: {
-    // Personal data. The storefront goes through /api/account/addresses,
-    // which scopes every query to the signed-in customer.
-    read: isStaff,
-    create: isManager,
-    update: isManager,
-    delete: isSuperAdmin,
+    read: allow('addresses', 'read'),
+    create: allow('addresses', 'create'),
+    update: allow('addresses', 'update'),
+    delete: allow('addresses', 'delete'),
   },
   fields: [
     {

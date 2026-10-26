@@ -39,4 +39,17 @@ export const LOCKED_ORDER_FIELDS = [
   'sgstPaise',
   'igstPaise',
   'grandTotalPaise',
+  'paymentMethod',
+  'razorpayOrderId',
+  'razorpayPaymentId',
+  'paymentExpiresAt',
+  'paidAt',
+  'coupon',
+  'couponCode',
+  'deliveryDiscountPaise',
+  'shippingWeightGrams',
+  'cart',
+  'confirmationEmailSentAt',
+  // Set by the code that cancels; staff cancelling is recorded as STAFF by the hook.
+  'cancelReason',
 ] as const

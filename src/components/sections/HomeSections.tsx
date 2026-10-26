@@ -1,6 +1,7 @@
 import type { Payload } from 'payload'
 
 import type { CategoryTile } from '@/components/sections/CategoryZone'
+import { relId } from '@/lib/relations'
 import { CategoryZone } from '@/components/sections/CategoryZone'
 import { AppPromo } from '@/components/sections/AppPromo'
 import { BannerRow, WideBanner } from '@/components/sections/Banner'
@@ -16,9 +17,6 @@ import { getCarouselCards, toProductCards } from '@/lib/storefront/products'
 import type { Brand, Category, HomePage, Product } from '@/payload-types'
 
 type Section = NonNullable<HomePage['sections']>[number]
-
-const relId = (value: unknown): number | undefined =>
-  typeof value === 'number' ? value : (value as { id?: number } | null | undefined)?.id
 
 const populated = <T,>(values: (number | T)[] | null | undefined): T[] =>
   (values ?? []).filter((value): value is T => typeof value === 'object' && value !== null)

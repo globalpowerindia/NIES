@@ -1,6 +1,7 @@
 import type { GlobalConfig } from 'payload'
 
-import { anyone, isManager } from '@/access/roles'
+import { can } from '@/access/permissions'
+import { allow, anyone } from '@/access/roles'
 import { linkField } from '@/fields/link'
 import { revalidateStorefrontGlobal } from '@/lib/revalidate'
 
@@ -8,12 +9,14 @@ export const SiteSettings: GlobalConfig = {
   slug: 'site-settings',
   label: 'Header & Footer',
   admin: {
+    // Read publicly by the storefront; in the admin, only for roles that may change it.
+    hidden: ({ user }) => !can(user, 'site-settings', 'update'),
     group: 'Storefront',
     description: 'Shown on every storefront page.',
   },
   access: {
     read: anyone,
-    update: isManager,
+    update: allow('site-settings', 'update'),
   },
   hooks: { afterChange: [revalidateStorefrontGlobal] },
   fields: [
@@ -105,6 +108,20 @@ export const SiteSettings: GlobalConfig = {
                   ],
                 },
                 linkField(),
+              ],
+            },
+          ],
+        },
+        {
+          label: 'Downloads',
+          description:
+            'The PDFs behind /catalogue and /price-list (the top-bar links and the homepage catalogue banner). Upload under Library → Datasheets.',
+          fields: [
+            {
+              type: 'row',
+              fields: [
+                { name: 'catalogueFile', label: 'Product catalogue (PDF)', type: 'upload', relationTo: 'datasheets', admin: { width: '50%' } },
+                { name: 'priceListFile', label: 'Price list (PDF)', type: 'upload', relationTo: 'datasheets', admin: { width: '50%' } },
               ],
             },
           ],
