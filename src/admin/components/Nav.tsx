@@ -33,6 +33,11 @@ export const Nav = async ({ payload, user }: ServerProps) => {
 
   const sections: { id: string; label: string; items: Item[] }[] = [
     {
+      id: 'overview',
+      label: 'Overview',
+      items: [{ label: 'Dashboard', href: '/admin', show: true }],
+    },
+    {
       id: 'commerce',
       label: 'Commerce',
       items: [

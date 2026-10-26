@@ -32,6 +32,7 @@ export type Resource = {
 const ALL = ACTIONS
 
 export const RESOURCES = [
+  { key: 'reports', label: 'Sales analytics', group: 'Overview', actions: ['read'], note: 'Revenue, top sellers and sales charts on the dashboard.' },
   { key: 'orders', label: 'Orders', group: 'Commerce', actions: ['read', 'create', 'update'], note: 'Delete: super admins only, as orders are tax records.' },
   { key: 'coupons', label: 'Coupons', group: 'Commerce', actions: ALL },
   { key: 'carts', label: 'Carts', group: 'Commerce', actions: ['read', 'delete'], note: 'Written only by shoppers.' },

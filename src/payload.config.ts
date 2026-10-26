@@ -83,6 +83,9 @@ export default buildConfig({
     },
     components: {
       Nav: '/admin/components/Nav#Nav',
+      views: {
+        dashboard: { Component: '/admin/views/Dashboard#Dashboard' },
+      },
       graphics: {
         Logo: '/admin/components/Logo#Logo',
         Icon: '/admin/components/Icon#Icon',
