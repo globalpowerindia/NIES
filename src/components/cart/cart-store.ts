@@ -49,8 +49,6 @@ export const seedCart = (cart: CartView) => {
 export const showCartToast = (kind: CartToast['kind'], message: string) =>
   setState({ toast: { id: ++toastId, kind, message } })
 
-export const dismissCartToast = () => setState({ toast: null })
-
 export type CartResult = { ok: boolean; error?: string; notice?: string }
 
 const send = async (method: string, path: string, body?: unknown): Promise<CartResult> => {

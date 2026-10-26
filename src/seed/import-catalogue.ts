@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs'
 import path from 'path'
-import { getPayload, type Payload } from 'payload'
+import { getPayload } from 'payload'
 
 import { toSlug } from '../fields/slug.js'
 import { DEFAULT_GST_RATE_BPS } from '../lib/money.js'
@@ -287,7 +287,8 @@ const main = async () => {
     }
 
     if (dryRun) {
-      existing.docs[0] ? counts.updated++ : counts.created++
+      if (existing.docs[0]) counts.updated++
+      else counts.created++
     } else if (existing.docs[0]) {
       const productId =
         typeof existing.docs[0].product === 'number'

@@ -1,7 +1,7 @@
 'use client'
 
 import { Heart } from 'lucide-react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 
 import { toggleWishlist, useWishlist } from '@/components/wishlist/wishlist-store'
 import { cn } from '@/lib/utils'
@@ -24,6 +24,7 @@ export const WishlistHeart = ({
   strokeWidth?: number
 }) => {
   const pathname = usePathname()
+  const router = useRouter()
   const { ids } = useWishlist()
   const saved = ids.has(productId)
 
@@ -34,7 +35,7 @@ export const WishlistHeart = ({
       aria-label={saved ? `Remove ${label} from wishlist` : `Add ${label} to wishlist`}
       onClick={async () => {
         if (!(await toggleWishlist(productId))) {
-          window.location.assign(`/login?next=${encodeURIComponent(pathname)}`)
+          router.push(`/login?next=${encodeURIComponent(pathname)}`)
         }
       }}
       className={cn(

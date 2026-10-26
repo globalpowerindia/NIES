@@ -8,8 +8,8 @@
   "vulnerabilityAlerts": { "enabled": true, "minimumReleaseAge": null, "schedule": ["at any time"] },
   "packageRules": [
     {
-      "description": "Payload's packages must move together, or the admin and the database adapter drift apart.",
-      "matchPackageNames": ["payload", "@payloadcms/**"],
+      "description": "Payload's packages must move together, or the admin and the database adapter drift apart. drizzle-orm must stay on the version @payloadcms/drizzle uses.",
+      "matchPackageNames": ["payload", "@payloadcms/**", "drizzle-orm"],
       "groupName": "payload"
     },
     {
