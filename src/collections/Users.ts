@@ -1,4 +1,4 @@
-import { APIError, type CollectionConfig, type PayloadRequest } from 'payload'
+import { APIError, type CollectionConfig } from 'payload'
 
 import { isSuperAdminUser } from '@/access/permissions'
 import { canAccessAdminUI, isStaff, isSuperAdmin, isSuperAdminField } from '@/access/roles'
@@ -38,11 +38,12 @@ export const Users: CollectionConfig = {
       return user
     }],
     afterLogin: [async ({ req, user }) => {
-      await writeAudit(req.payload, { ...req, user: { ...user, collection: 'users' } } as PayloadRequest, {
+      await writeAudit(req.payload, req, {
         action: 'LOGIN',
         entity: 'users',
         documentId: user.id,
         documentTitle: user.email,
+        staff: { id: user.id, email: user.email },
       })
     }],
     // Wrong password, unknown email, locked or disabled account: one row each, with the email tried.

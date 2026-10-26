@@ -1,6 +1,7 @@
 import type {
   CollectionAfterChangeHook,
   CollectionAfterDeleteHook,
+  CollectionBeforeChangeHook,
   CollectionConfig,
   GlobalAfterChangeHook,
   GlobalConfig,
@@ -87,6 +88,12 @@ export type AuditEntry = {
   changes?: Record<string, unknown> | null
   /** Who, when nobody is signed in yet (a failed login or reset request). */
   email?: string | null
+  /**
+   * The staff user, when the request doesn't carry them yet (a sign-in). The
+   * request itself is passed as it is: a copy (`{ ...req }`) loses its
+   * headers, and with them the IP and browser.
+   */
+  staff?: { id: number; email?: string | null }
 }
 
 /**
@@ -95,7 +102,7 @@ export type AuditEntry = {
  * `inTransaction: false`: its request is failing, and the row must outlive it.
  */
 export const writeAudit = async (payload: Payload, request: PayloadRequest, entry: AuditEntry, inTransaction = true) => {
-  const staff = staffOf(request)
+  const staff = entry.staff ?? staffOf(request)
   await payload.create({
     collection: 'audit-logs',
     data: {
@@ -119,11 +126,26 @@ const titleOf = (doc: Record<string, unknown>, useAsTitle: string | undefined) =
   return typeof title === 'string' || typeof title === 'number' ? String(title) : null
 }
 
-const auditChange: CollectionAfterChangeHook = async ({ collection, data, doc, operation, previousDoc, req }) => {
+/**
+ * Payload hashes a new password and deletes it from `data` before the
+ * afterChange hooks run, so it's noticed here and recorded there.
+ */
+const passwordKey = (slug: string, id: unknown) => `audit:password:${slug}:${id ?? 'new'}`
+
+const notePassword: CollectionBeforeChangeHook = ({ collection, data, originalDoc, req }) => {
+  if (collection.auth && typeof data?.password === 'string' && data.password) req.context[passwordKey(collection.slug, originalDoc?.id)] = true
+  return data
+}
+
+const auditChange: CollectionAfterChangeHook = async ({ collection, doc, operation, previousDoc, req }) => {
   if (!staffOf(req)) return doc
   const changes = diffDocuments(operation === 'create' ? undefined : previousDoc, doc)
   // A password is recorded as changed, never as a value.
-  if (collection.auth && typeof data?.password === 'string') changes.password = { from: '(hidden)', to: '(changed)' }
+  const key = passwordKey(collection.slug, operation === 'create' ? undefined : previousDoc?.id)
+  if (req.context[key]) {
+    delete req.context[key]
+    changes.password = { from: '(hidden)', to: '(changed)' }
+  }
   if (operation === 'update' && Object.keys(changes).length === 0) return doc
   await writeAudit(req.payload, req, {
     action: operation === 'create' ? 'CREATE' : 'UPDATE',
@@ -160,6 +182,7 @@ export const withAudit = (collection: CollectionConfig): CollectionConfig => ({
   ...collection,
   hooks: {
     ...collection.hooks,
+    beforeChange: [...(collection.hooks?.beforeChange ?? []), notePassword],
     afterChange: [...(collection.hooks?.afterChange ?? []), auditChange],
     afterDelete: [...(collection.hooks?.afterDelete ?? []), auditDelete],
   },
