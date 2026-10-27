@@ -7,6 +7,7 @@ import { useLayoutEffect } from 'react'
 import { CartRow } from '@/components/cart/CartRow'
 import { CartSummary } from '@/components/cart/CartSummary'
 import { seedCart, useCart } from '@/components/cart/cart-store'
+import { PhoneBackTitle } from '@/components/layout/PhoneBackTitle'
 import { ButtonLink } from '@/components/ui/button'
 import type { CartView } from '@/lib/storefront/cart'
 
@@ -22,16 +23,16 @@ export const CartPage = ({ initial, signedIn }: { initial: CartView; signedIn: b
   const count = cart.itemCount
 
   return (
-    <main className="bg-light-400 pb-6">
-      <div className="container-page pt-6">
+    <main className="bg-light-100 pb-6 sm:bg-light-400">
+      <div className="container-page pt-4 sm:pt-6">
         {cart.lines.length === 0 ? (
           <section className="flex flex-col items-center gap-4 rounded-lg bg-light-100 px-5 py-16 text-center">
             <span className="grid size-25 place-items-center rounded-full bg-brand-blue-100 text-brand-blue-500">
               <ShoppingCart className="size-12" strokeWidth={1.25} aria-hidden />
             </span>
             <div className="flex flex-col items-center gap-1">
-              <h1 className="text-h4 font-semibold text-dark-500">Your cart is empty</h1>
-              <p className="text-label1 text-dark-300">
+              <h1 className="text-h5 font-semibold text-dark-500 sm:text-h4">Your cart is empty</h1>
+              <p className="text-body3 text-dark-300 sm:text-label1">
                 Add tools and accessories to see them here.
               </p>
             </div>
@@ -39,7 +40,7 @@ export const CartPage = ({ initial, signedIn }: { initial: CartView; signedIn: b
               Continue Shopping
             </ButtonLink>
             {!signedIn && (
-              <p className="text-label1 text-dark-300">
+              <p className="text-body3 text-dark-300 sm:text-label1">
                 Added items before?{' '}
                 <Link
                   href="/login?next=/cart"
@@ -53,14 +54,20 @@ export const CartPage = ({ initial, signedIn }: { initial: CartView; signedIn: b
           </section>
         ) : (
           <div className="flex flex-col items-start gap-6 lg:flex-row">
-            <section className="flex w-full min-w-0 flex-1 flex-col gap-4 rounded-lg bg-light-100 p-5">
-              <h1 className="text-h6 text-dark-500">
-                <span className="font-semibold">Cart</span>{' '}
-                <span className="text-label1 text-dark-300">
+            {/* Phones (Figma 1408:30668): cards straight on the page under a back arrow and title. */}
+            <section className="flex w-full min-w-0 flex-1 flex-col gap-2 sm:gap-4 sm:rounded-lg sm:bg-light-100 sm:p-5">
+              <PhoneBackTitle
+                fallback="/products"
+                className="mb-4 sm:mb-0"
+                arrowClassName="sm:hidden"
+                titleClassName="font-normal sm:text-h6"
+              >
+                <span className="font-medium sm:font-semibold">Cart</span>{' '}
+                <span className="text-label2 font-normal text-dark-300 sm:text-label1">
                   ({count} item{count === 1 ? '' : 's'})
                 </span>
-              </h1>
-              <hr className="w-full border-t-[0.5px] border-dark-100" />
+              </PhoneBackTitle>
+              <hr className="hidden w-full border-t-[0.5px] border-dark-100 sm:block" />
               {cart.lines.map((line) => (
                 <CartRow key={line.variantId} line={line} />
               ))}
