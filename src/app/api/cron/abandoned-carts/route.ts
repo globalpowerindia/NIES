@@ -12,7 +12,9 @@ import { getPayloadClient } from '@/lib/storefront/queries'
 const ABANDONED_AFTER_HOURS = 24
 
 /**
- * Hourly (see vercel.json). Flags carts with items that nobody has touched
+ * Daily from Vercel Cron (Hobby allows no more; see vercel.json), and every
+ * 15 minutes from an external scheduler so unpaid orders release their stock
+ * soon after the payment window closes. Flags carts with items that nobody has touched
  * for a day, for the admin's Carts list and, later, reminder emails. The
  * cart stays usable; any change clears the flag. Also clears out customer
  * sessions that have expired or been revoked, old rate-limit counters and
