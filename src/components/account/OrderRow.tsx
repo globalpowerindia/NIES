@@ -30,7 +30,7 @@ const Tracker = ({ line }: { line: OrderLine }) => {
       {/* One dashed rule behind the circles stands in for the design's three segments. */}
       <li
         aria-hidden
-        className="absolute top-5 right-5 left-5 border-t border-dashed border-light-600"
+        className="absolute top-4 right-4 left-4 border-t sm:top-5 sm:right-5 sm:left-5 border-dashed border-light-600"
       />
       {ORDER_STEPS.map((label, index) => {
         const reached = index <= line.step
@@ -46,14 +46,14 @@ const Tracker = ({ line }: { line: OrderLine }) => {
           >
             <span
               className={cn(
-                'grid size-10 place-items-center rounded-full',
+                'grid size-8 place-items-center rounded-full sm:size-10',
                 reached ? 'bg-green-400 text-light-100' : 'bg-neutral-500 text-light-100',
               )}
             >
-              <Check className="size-6" strokeWidth={2} aria-hidden />
+              <Check className="size-5 sm:size-6" strokeWidth={2} aria-hidden />
             </span>
             <span className="flex flex-col">
-              <span className="text-label1 font-medium text-dark-500">
+              <span className="text-body3 font-medium text-dark-500 sm:text-label1">
                 {label}
                 <span className="sr-only">{reached ? ' (done)' : ' (not yet)'}</span>
               </span>
@@ -68,7 +68,11 @@ const Tracker = ({ line }: { line: OrderLine }) => {
   )
 }
 
-/** One ordered item, from Figma node 1131:14376. */
+/**
+ * One ordered item, from Figma node 1131:14376. On phones the picture sits
+ * beside the item details and the tracker spans the full card below; from sm
+ * up the picture takes its own column, as in the design.
+ */
 export const OrderRow = ({ line }: { line: OrderLine }) => {
   const title = line.href ? (
     <Link href={line.href} className="hover:text-brand-blue-500">
@@ -79,35 +83,37 @@ export const OrderRow = ({ line }: { line: OrderLine }) => {
   )
 
   return (
-    <article className="flex flex-col gap-4 rounded-xl border-[0.5px] border-dark-100 px-5 py-3 sm:flex-row sm:gap-10">
-      <div className="relative size-27 shrink-0 self-center sm:self-start">
+    <article className="grid grid-cols-[5rem_minmax(0,1fr)] content-start gap-x-3 gap-y-4 rounded-xl border-[0.5px] border-dark-100 p-3 sm:grid-cols-[6.75rem_minmax(0,1fr)] sm:gap-x-10 sm:px-5">
+      <div className="relative size-20 sm:row-span-3 sm:size-27">
         <Image
           src={line.imageUrl}
           alt={line.imageAlt}
           fill
-          sizes="108px"
+          sizes="(min-width: 40rem) 108px, 80px"
           className="object-contain"
         />
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-4">
-        <div className="flex flex-col items-start gap-2">
-          <span className="rounded-full border-[0.5px] border-brand-blue-300 px-2 py-0.5 text-body3 text-brand-blue-300">
-            Order ID : {line.orderNumber}
-          </span>
-          <div className="flex flex-col gap-1">
-            <h3 className="text-h5 font-medium text-dark-500">{title}</h3>
-            {line.subtitle && <p className="text-label1 text-dark-300">{line.subtitle}</p>}
-          </div>
-          <div className="flex items-center gap-4 text-label1">
-            <span className="font-medium text-dark-500">{formatCurrency(line.unitPricePaise)}</span>
-            <span aria-hidden className="h-5 border-l border-light-600" />
-            <span className="text-dark-300">Qty: {line.quantity}</span>
-          </div>
+      <div className="flex min-w-0 flex-col items-start gap-2">
+        <span className="rounded-full border-[0.5px] border-brand-blue-300 px-2 py-0.5 text-body3 text-brand-blue-300">
+          Order ID : {line.orderNumber}
+        </span>
+        <div className="flex flex-col gap-1">
+          <h3 className="line-clamp-2 text-label1 font-medium text-dark-500 sm:text-h5">{title}</h3>
+          {line.subtitle && (
+            <p className="text-body3 text-dark-300 sm:text-label1">{line.subtitle}</p>
+          )}
         </div>
+        <div className="flex items-center gap-3 text-body3 sm:gap-4 sm:text-label1">
+          <span className="font-medium text-dark-500">{formatCurrency(line.unitPricePaise)}</span>
+          <span aria-hidden className="h-5 border-l border-light-600" />
+          <span className="text-dark-300">Qty: {line.quantity}</span>
+        </div>
+      </div>
 
-        <hr className="border-neutral-300" />
+      <hr className="col-span-2 border-neutral-300 sm:col-span-1 sm:col-start-2" />
 
+      <div className="col-span-2 sm:col-span-1 sm:col-start-2">
         {line.step >= 0 ? (
           <Tracker line={line} />
         ) : (

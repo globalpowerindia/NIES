@@ -33,7 +33,7 @@ export type AddressCardData = {
 }
 
 const actionClass =
-  'flex items-center gap-1 text-body1 font-medium transition-opacity hover:opacity-80'
+  'flex items-center gap-1 text-body3 font-medium transition-opacity hover:opacity-80 sm:text-body1'
 
 /** One saved address, from Figma node 1131:14257. Remove asks in a dialog before it deletes. */
 export const AddressCard = ({ address }: { address: AddressCardData }) => {
@@ -59,22 +59,22 @@ export const AddressCard = ({ address }: { address: AddressCardData }) => {
   }
 
   return (
-    <article className="flex flex-col justify-between gap-6 rounded-xl border-[0.5px] border-dark-100 p-5 sm:flex-row">
-      <div className="flex min-w-0 flex-col gap-6">
+    <article className="flex flex-col justify-between gap-4 rounded-xl border-[0.5px] border-dark-100 p-4 sm:flex-row sm:gap-6 sm:p-5">
+      <div className="flex min-w-0 flex-col gap-4 sm:gap-6">
         <div className="flex items-start gap-2.5">
-          <span className="grid size-13 shrink-0 place-items-center rounded-2xl border-[0.5px] border-brand-red-300 bg-brand-red-100 text-brand-red-400">
-            <Icon className="size-6" strokeWidth={1.5} aria-hidden />
+          <span className="grid size-11 shrink-0 place-items-center rounded-2xl border-[0.5px] border-brand-red-300 bg-brand-red-100 text-brand-red-400 sm:size-13">
+            <Icon className="size-5 sm:size-6" strokeWidth={1.5} aria-hidden />
           </span>
           <div className="min-w-0">
-            <p className="truncate text-h6 font-semibold text-dark-400">{address.fullName}</p>
-            <p className="text-body1 font-medium text-dark-300">{address.phone}</p>
+            <p className="truncate text-label1 font-semibold text-dark-400 sm:text-h6">{address.fullName}</p>
+            <p className="text-body3 font-medium text-dark-300 sm:text-body1">{address.phone}</p>
           </div>
         </div>
         <div className="flex flex-col items-start gap-2">
           <span className="rounded-full border-[0.5px] border-brand-blue-300 px-2 py-0.5 text-body3 text-brand-blue-300">
             {label}
           </span>
-          <address className="text-body1 text-dark-400 not-italic">
+          <address className="text-body3 text-dark-400 not-italic sm:text-body1">
             {address.lines.map((line) => (
               <span key={line} className="block">
                 {line}
@@ -85,17 +85,17 @@ export const AddressCard = ({ address }: { address: AddressCardData }) => {
       </div>
 
       <div className="flex shrink-0 flex-col items-start gap-3 sm:items-end">
-        <div className="flex items-start gap-8">
+        <div className="flex flex-wrap items-start gap-x-6 gap-y-2 sm:gap-8">
           <Link
             href={`/account/addresses/${address.id}`}
             className={`${actionClass} text-brand-blue-300`}
           >
-            <SquarePen className="size-6" strokeWidth={1.5} aria-hidden />
+            <SquarePen className="size-5 sm:size-6" strokeWidth={1.5} aria-hidden />
             Edit
           </Link>
           <AlertDialog open={confirming} onOpenChange={(open) => !removing && setConfirming(open)}>
             <AlertDialogTrigger className={`${actionClass} text-brand-red-500`}>
-              <Trash2 className="size-6" strokeWidth={1.5} aria-hidden />
+              <Trash2 className="size-5 sm:size-6" strokeWidth={1.5} aria-hidden />
               Remove
             </AlertDialogTrigger>
             <AlertDialogContent className="gap-6 rounded-xl bg-light-100 p-6 ring-0 sm:max-w-md">
