@@ -59,7 +59,7 @@ const loadRazorpay = () =>
   })
 
 const Row = ({ label, value, strong }: { label: string; value: string; strong?: boolean }) => (
-  <div className={`flex items-center justify-between gap-4 py-2 ${strong ? 'text-h6 font-semibold' : 'text-body1'} text-dark-500`}>
+  <div className={`flex items-center justify-between gap-4 py-2 ${strong ? 'text-body1 font-semibold sm:text-h6' : 'text-body3 sm:text-body1'} text-dark-500`}>
     <dt>{label}</dt>
     <dd>{value}</dd>
   </div>
@@ -187,19 +187,19 @@ export const CheckoutForm = ({
       <div className="flex w-full min-w-0 flex-1 flex-col gap-6">
         <section aria-labelledby="address-heading" className="flex flex-col gap-4 rounded-lg bg-light-100 p-5">
           <div className="flex items-center justify-between gap-4">
-            <h1 id="address-heading" className="text-h6 font-semibold text-dark-500">
+            <h1 id="address-heading" className="text-body1 font-semibold text-dark-500 sm:text-h6">
               Delivery Address
             </h1>
             <Link
               href="/account/addresses/new?next=/checkout"
-              className="flex shrink-0 items-center gap-1 text-body3 font-medium whitespace-nowrap text-brand-blue-300 hover:opacity-80 md:text-body1"
+              className="flex shrink-0 items-center gap-1 text-body3 font-medium whitespace-nowrap text-brand-blue-300 hover:opacity-80 sm:text-body1"
             >
               <Plus className="size-4" aria-hidden /> Add new address
             </Link>
           </div>
           <hr className="w-full border-t-[0.5px] border-dark-100" />
           {addresses.length === 0 ? (
-            <p className="text-label1 text-dark-300">
+            <p className="text-body3 text-dark-300 sm:text-label1">
               Add a delivery address to continue.{' '}
               <Link href="/account/addresses/new?next=/checkout" className="font-medium text-brand-blue-300 hover:underline">
                 Add address
@@ -226,8 +226,8 @@ export const CheckoutForm = ({
                       onChange={() => setAddressId(address.id)}
                       className="mt-1 size-4 accent-brand-blue-500"
                     />
-                    <span className="flex min-w-0 flex-col gap-1 text-body2 text-dark-400">
-                      <span className="flex items-center gap-2 text-body1 font-semibold text-dark-500">
+                    <span className="flex min-w-0 flex-col gap-1 text-body3 text-dark-400 sm:text-body2">
+                      <span className="flex items-center gap-2 text-body2 font-semibold text-dark-500 sm:text-body1">
                         <Icon className="size-4 shrink-0" aria-hidden />
                         {address.fullName}
                       </span>
@@ -244,11 +244,11 @@ export const CheckoutForm = ({
         </section>
 
         <section aria-labelledby="contact-heading" className="flex flex-col gap-4 rounded-lg bg-light-100 p-5">
-          <h2 id="contact-heading" className="text-h6 font-semibold text-dark-500">
+          <h2 id="contact-heading" className="text-body1 font-semibold text-dark-500 sm:text-h6">
             Order Updates
           </h2>
           <hr className="w-full border-t-[0.5px] border-dark-100" />
-          <label className="flex flex-col gap-2 text-body1 text-dark-500">
+          <label className="flex flex-col gap-2 text-body3 text-dark-500 sm:text-body1">
             Email for your receipt
             <Input
               type="email"
@@ -257,12 +257,12 @@ export const CheckoutForm = ({
               autoComplete="email"
               required
               aria-invalid={Boolean(fieldErrors.email)}
-              className="h-12 rounded-sm border-[0.5px] border-dark-100 bg-light-100 px-4 text-body1"
+              className="h-12 rounded-sm border-[0.5px] border-dark-100 bg-light-100 px-4 text-body2 sm:text-body1"
             />
-            {fieldErrors.email && <span className="text-body2 text-brand-red-500">{fieldErrors.email}</span>}
+            {fieldErrors.email && <span className="text-body3 text-brand-red-500 sm:text-body2">{fieldErrors.email}</span>}
           </label>
           {showGstin ? (
-            <label className="flex flex-col gap-2 text-body1 text-dark-500">
+            <label className="flex flex-col gap-2 text-body3 text-dark-500 sm:text-body1">
               GSTIN for a business invoice (optional)
               <Input
                 value={gstin}
@@ -271,15 +271,15 @@ export const CheckoutForm = ({
                 autoComplete="off"
                 spellCheck={false}
                 aria-invalid={Boolean(fieldErrors.gstin)}
-                className="h-12 rounded-sm border-[0.5px] border-dark-100 bg-light-100 px-4 text-body1 uppercase"
+                className="h-12 rounded-sm border-[0.5px] border-dark-100 bg-light-100 px-4 text-body2 uppercase sm:text-body1"
               />
-              {fieldErrors.gstin && <span className="text-body2 text-brand-red-500">{fieldErrors.gstin}</span>}
+              {fieldErrors.gstin && <span className="text-body3 text-brand-red-500 sm:text-body2">{fieldErrors.gstin}</span>}
             </label>
           ) : (
             <button
               type="button"
               onClick={() => setShowGstin(true)}
-              className="self-start text-body1 font-medium text-brand-blue-300 hover:opacity-80"
+              className="self-start text-body3 font-medium text-brand-blue-300 hover:opacity-80 sm:text-body1"
             >
               + Add GSTIN for a business invoice
             </button>
@@ -288,8 +288,8 @@ export const CheckoutForm = ({
       </div>
 
       <aside className="flex w-full shrink-0 flex-col gap-4 rounded-lg bg-light-100 p-5 lg:sticky lg:top-6 lg:w-127.5">
-        <h2 className="text-h6 font-semibold text-dark-500">
-          Order Summary <span className="text-label1 font-normal text-dark-300">({count} item{count === 1 ? '' : 's'})</span>
+        <h2 className="text-body1 font-semibold text-dark-500 sm:text-h6">
+          Order Summary <span className="text-body3 font-normal text-dark-300 sm:text-label1">({count} item{count === 1 ? '' : 's'})</span>
         </h2>
         <hr className="w-full border-t-[0.5px] border-dark-100" />
         <ul className="flex flex-col gap-3">
@@ -297,13 +297,13 @@ export const CheckoutForm = ({
             <li key={line.variantId} className="flex items-center gap-3">
               {/* eslint-disable-next-line @next/next/no-img-element -- small thumbnail, already optimised in the cart */}
               <img src={line.imageUrl} alt={line.imageAlt} className="size-14 shrink-0 rounded-sm bg-light-400 object-contain" />
-              <span className="flex min-w-0 flex-1 flex-col text-body2 text-dark-500">
+              <span className="flex min-w-0 flex-1 flex-col text-body3 text-dark-500 sm:text-body2">
                 <span className="truncate">{line.name}</span>
                 <span className="text-dark-300">
                   {line.variantName ? `${line.variantName} · ` : ''}Qty {line.quantity}
                 </span>
               </span>
-              <span className="text-body2 font-medium text-dark-500">{money(line.unitPricePaise * line.quantity)}</span>
+              <span className="text-body3 font-medium text-dark-500 sm:text-body2">{money(line.unitPricePaise * line.quantity)}</span>
             </li>
           ))}
         </ul>
@@ -333,10 +333,10 @@ export const CheckoutForm = ({
             </p>
           </dl>
         ) : (
-          <p className="text-body1 text-dark-300">Choose a delivery address to see delivery charges and your total.</p>
+          <p className="text-body3 text-dark-300 sm:text-body1">Choose a delivery address to see delivery charges and your total.</p>
         )}
         {error && (
-          <p role="alert" className="text-body2 text-brand-red-500">
+          <p role="alert" className="text-body3 text-brand-red-500 sm:text-body2">
             {error}
           </p>
         )}

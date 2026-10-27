@@ -153,7 +153,7 @@ export const AddressForm = ({
                 <SelectItem
                   key={state.code}
                   value={state.code}
-                  className="cursor-pointer rounded-sm px-4 py-2.5 text-body1 text-dark-500 focus:bg-brand-blue-100"
+                  className="cursor-pointer rounded-sm px-4 py-2.5 text-body2 text-dark-500 focus:bg-brand-blue-100 sm:text-body1"
                 >
                   {state.name}
                 </SelectItem>
@@ -164,7 +164,7 @@ export const AddressForm = ({
       </div>
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="mb-2 text-body1 text-dark-300">Address Type</legend>
+        <legend className="mb-2 text-body3 text-dark-300 sm:text-body1">Address Type</legend>
         <RadioGroup
           name="type"
           value={values.type}
@@ -174,7 +174,7 @@ export const AddressForm = ({
           {TYPES.map((option) => (
             <Label
               key={option.value}
-              className="flex w-40 cursor-pointer items-center gap-4 rounded-sm p-5 text-body1 font-medium text-dark-400 has-focus-visible:ring-3 has-focus-visible:ring-brand-blue-100"
+              className="flex w-40 cursor-pointer items-center gap-4 rounded-sm px-4 py-3 text-body2 font-medium text-dark-400 sm:p-5 sm:text-body1 has-focus-visible:ring-3 has-focus-visible:ring-brand-blue-100"
             >
               <RadioGroupItem
                 value={option.value}

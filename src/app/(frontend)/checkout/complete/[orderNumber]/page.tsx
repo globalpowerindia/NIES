@@ -60,11 +60,11 @@ export default async function OrderComplete(props: { params: Promise<{ orderNumb
       <div className="container-page flex flex-col gap-6 pt-6">
         <section className="flex flex-col items-center gap-3 rounded-lg bg-light-100 px-5 py-10 text-center">
           <Icon className={`size-14 ${tone}`} strokeWidth={1.5} aria-hidden />
-          <h1 className="text-h4 font-semibold text-dark-500">{title}</h1>
-          <p role={pending ? 'status' : undefined} className="max-w-[35rem] text-label1 text-dark-300">
+          <h1 className="text-h5 font-semibold text-dark-500 sm:text-h4">{title}</h1>
+          <p role={pending ? 'status' : undefined} className="max-w-[35rem] text-body3 text-dark-300 sm:text-label1">
             {text}
           </p>
-          <p className="text-body1 text-dark-500">
+          <p className="text-body3 text-dark-500 sm:text-body1">
             Order <span className="font-semibold">{order.orderNumber}</span>
             {order.invoiceNumber ? ` · Invoice ${order.invoiceNumber}` : ''}
           </p>
@@ -72,10 +72,10 @@ export default async function OrderComplete(props: { params: Promise<{ orderNumb
 
         <section className="grid gap-6 rounded-lg bg-light-100 p-5 md:grid-cols-2">
           <div className="flex flex-col gap-2">
-            <h2 className="text-h6 font-semibold text-dark-500">Items</h2>
+            <h2 className="text-body1 font-semibold text-dark-500 sm:text-h6">Items</h2>
             <ul className="flex flex-col gap-2">
               {(order.items ?? []).map((item) => (
-                <li key={item.id ?? item.sku} className="flex justify-between gap-4 text-body1 text-dark-500">
+                <li key={item.id ?? item.sku} className="flex justify-between gap-4 text-body3 text-dark-500 sm:text-body1">
                   <span>
                     {item.quantity} × {item.productName}
                   </span>
@@ -83,7 +83,7 @@ export default async function OrderComplete(props: { params: Promise<{ orderNumb
                 </li>
               ))}
             </ul>
-            <dl className="mt-2 flex flex-col gap-1 border-t-[0.5px] border-dark-100 pt-3 text-body1 text-dark-400">
+            <dl className="mt-2 flex flex-col gap-1 border-t-[0.5px] border-dark-100 pt-3 text-body3 text-dark-400 sm:text-body1">
               {order.discountPaise ? (
                 <div className="flex justify-between">
                   <dt>Coupon{order.couponCode ? ` ${order.couponCode}` : ''}</dt>
@@ -100,15 +100,15 @@ export default async function OrderComplete(props: { params: Promise<{ orderNumb
                       : 'Free'}
                 </dd>
               </div>
-              <div className="flex justify-between text-h6 font-semibold text-dark-500">
+              <div className="flex justify-between text-body1 font-semibold text-dark-500 sm:text-h6">
                 <dt>{paid ? 'Total paid' : 'Total'}</dt>
                 <dd>{money(order.grandTotalPaise)}</dd>
               </div>
             </dl>
           </div>
           <div className="flex flex-col gap-2">
-            <h2 className="text-h6 font-semibold text-dark-500">Delivering to</h2>
-            <p className="text-body1 text-dark-400">
+            <h2 className="text-body1 font-semibold text-dark-500 sm:text-h6">Delivering to</h2>
+            <p className="text-body3 text-dark-400 sm:text-body1">
               {order.customerName}
               <br />
               {order.shipLine1}

@@ -30,8 +30,8 @@ export default async function Checkout() {
     return (
       <main className="bg-light-400 pb-6">
         <section className="container-page flex flex-col items-center gap-4 pt-16 pb-10 text-center">
-          <h1 className="text-h4 font-semibold text-dark-500">Almost there</h1>
-          <p role="alert" className="max-w-[35rem] text-label1 text-dark-300">
+          <h1 className="text-h5 font-semibold text-dark-500 sm:text-h4">Almost there</h1>
+          <p role="alert" className="max-w-[35rem] text-body3 text-dark-300 sm:text-label1">
             {problem}
           </p>
           <ButtonLink href="/cart" variant="blue" className="h-12.5 w-58">
