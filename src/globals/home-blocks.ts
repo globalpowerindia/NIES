@@ -180,7 +180,48 @@ export const CollectionShowcaseBlock: Block = {
   fields: [
     hidden,
     ...heading(),
-    { name: 'featureImage', type: 'upload', relationTo: 'media', required: true },
+    {
+      name: 'featureType',
+      type: 'radio',
+      label: 'Feature',
+      required: true,
+      defaultValue: 'image',
+      options: [
+        { label: 'Image', value: 'image' },
+        { label: 'Video', value: 'video' },
+      ],
+      admin: { layout: 'horizontal' },
+    },
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'featureVideo',
+          type: 'upload',
+          relationTo: 'media',
+          filterOptions: { mimeType: { contains: 'video' } },
+          admin: {
+            width: '50%',
+            condition: (_, sibling) => sibling?.featureType === 'video',
+            description: 'MP4 or WebM, about 588 × 612. Plays muted on a loop; keep it short and under 10 MB.',
+          },
+          validate: (value: unknown, { siblingData }: { siblingData: { featureType?: string } }) =>
+            siblingData?.featureType !== 'video' || value ? true : 'Choose or upload a video file.',
+        },
+        {
+          name: 'featureImage',
+          type: 'upload',
+          relationTo: 'media',
+          filterOptions: { mimeType: { contains: 'image' } },
+          admin: {
+            width: '50%',
+            description: 'The feature picture (588 × 612). With a video, optional: shown while it loads and to visitors who turn off motion.',
+          },
+          validate: (value: unknown, { siblingData }: { siblingData: { featureType?: string } }) =>
+            siblingData?.featureType === 'video' || value ? true : 'Choose or upload an image.',
+        },
+      ],
+    },
     { name: 'products', type: 'relationship', relationTo: 'products', hasMany: true, maxRows: 6 },
     {
       type: 'row',

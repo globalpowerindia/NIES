@@ -88,8 +88,11 @@ const renderSection = async (payload: Payload, section: Section) => {
 
     case 'collectionShowcase': {
       const featureImage = mediaOf(section.featureImage)
+      const video = section.featureType === 'video' ? section.featureVideo : null
+      const featureVideo =
+        video && typeof video === 'object' && video.url ? { url: video.url, mimeType: video.mimeType ?? undefined } : null
       const cards = await toProductCards(payload, populated<Product>(section.products))
-      if (!featureImage || cards.length === 0) return null
+      if ((!featureImage && !featureVideo) || cards.length === 0) return null
       const items: CollectionItem[] = cards.map((card) => ({
         href: card.href,
         imageUrl: card.imageUrl,
@@ -101,7 +104,8 @@ const renderSection = async (payload: Payload, section: Section) => {
           eyebrow={section.eyebrow ?? undefined}
           title={section.title ?? undefined}
           description={section.description ?? undefined}
-          featureImage={featureImage.url}
+          featureImage={featureImage?.url}
+          featureVideo={featureVideo}
           items={items}
           ctaLabel={section.buttonLabel ?? undefined}
           ctaHref={hrefOf(section.buttonLink)}

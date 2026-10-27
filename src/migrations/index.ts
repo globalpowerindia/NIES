@@ -14,6 +14,7 @@ import * as migration_20261023_060455_staff_roles from './20261023_060455_staff_
 import * as migration_20261023_065728_product_360_view from './20261023_065728_product_360_view';
 import * as migration_20261023_084941_product_3d_model from './20261023_084941_product_3d_model';
 import * as migration_20261026_084712_product_drafts from './20261026_084712_product_drafts';
+import * as migration_20261027_091528_collection_showcase_video from './20261027_091528_collection_showcase_video';
 
 export const migrations = [
   {
@@ -94,6 +95,11 @@ export const migrations = [
   {
     up: migration_20261026_084712_product_drafts.up,
     down: migration_20261026_084712_product_drafts.down,
-    name: '20261026_084712_product_drafts'
+    name: '20261026_084712_product_drafts',
+  },
+  {
+    up: migration_20261027_091528_collection_showcase_video.up,
+    down: migration_20261027_091528_collection_showcase_video.down,
+    name: '20261027_091528_collection_showcase_video'
   },
 ];

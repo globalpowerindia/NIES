@@ -2371,7 +2371,15 @@ export interface CollectionShowcaseBlock {
    */
   title?: string | null;
   description?: string | null;
-  featureImage: number | Media;
+  featureType: 'image' | 'video';
+  /**
+   * MP4 or WebM, about 588 × 612. Plays muted on a loop; keep it short and under 10 MB.
+   */
+  featureVideo?: (number | null) | Media;
+  /**
+   * The feature picture (588 × 612). With a video, optional: shown while it loads and to visitors who turn off motion.
+   */
+  featureImage?: (number | null) | Media;
   products?: (number | Product)[] | null;
   buttonLabel?: string | null;
   buttonLink?: {
@@ -2807,6 +2815,8 @@ export interface CollectionShowcaseBlockSelect<T extends boolean = true> {
   eyebrow?: T;
   title?: T;
   description?: T;
+  featureType?: T;
+  featureVideo?: T;
   featureImage?: T;
   products?: T;
   buttonLabel?: T;

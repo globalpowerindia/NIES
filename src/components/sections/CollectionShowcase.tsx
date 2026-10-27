@@ -21,7 +21,9 @@ export type CollectionShowcaseProps = {
   eyebrow?: string
   title?: string
   description?: string
-  featureImage: string
+  featureImage?: string
+  /** Plays muted on a loop in place of the image; the image becomes its poster. */
+  featureVideo?: { url: string; mimeType?: string } | null
   items: CollectionItem[]
   ctaLabel?: string
   ctaHref?: string | null
@@ -34,10 +36,24 @@ export const CollectionShowcase = ({
   title,
   description,
   featureImage,
+  featureVideo,
   items,
   ctaLabel,
   ctaHref,
 }: CollectionShowcaseProps) => {
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  // Visitors who turn off motion get the still poster instead of a looping video.
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const apply = () => (query.matches ? video.pause() : video.play().catch(() => {}))
+    apply()
+    query.addEventListener('change', apply)
+    return () => query.removeEventListener('change', apply)
+  }, [featureVideo?.url])
+
   const trackRef = useRef<HTMLUListElement>(null)
   const [scroll, setScroll] = useState<ScrollState>({ pages: 1, page: 0, ratio: 1, offset: 0 })
 
@@ -92,7 +108,23 @@ export const CollectionShowcase = ({
 
       <div className="flex flex-col items-center gap-4 md:gap-6 lg:flex-row">
         <div className="relative h-[21.6875rem] w-full shrink-0 overflow-hidden rounded-2xl md:hidden lg:block lg:h-[38.25rem] lg:w-[36.75rem]">
-          <Image src={featureImage} alt="" fill sizes="588px" className="object-cover" />
+          {featureVideo ? (
+            <video
+              ref={videoRef}
+              key={featureVideo.url}
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              poster={featureImage}
+              aria-hidden
+              className="absolute inset-0 size-full object-cover"
+            >
+              <source src={featureVideo.url} type={featureVideo.mimeType} />
+            </video>
+          ) : (
+            featureImage && <Image src={featureImage} alt="" fill sizes="588px" className="object-cover" />
+          )}
         </div>
 
         <div className="flex w-full min-w-0 flex-1 flex-col items-center justify-center gap-4 lg:h-[40.25rem]">
