@@ -10,7 +10,10 @@ import { getPayloadClient } from '@/lib/storefront/queries'
 
 export const metadata: Metadata = { title: 'My Address', robots: { index: false, follow: false } }
 
-/** Saved addresses (Figma 1131:11298), or the empty state (1077:26997) when there are none. */
+/**
+ * Saved addresses (Figma 1131:11298; phones 1412:31867), or the empty state
+ * (1077:26997) when there are none.
+ */
 export default async function AddressesPage() {
   const customer = await getCurrentCustomer()
   if (!customer) redirect('/login?next=/account/addresses')
@@ -19,8 +22,8 @@ export default async function AddressesPage() {
 
   if (addresses.length === 0) {
     return (
-      <AccountShell customer={customer} title="My Address">
-        <AccountCard title="My Address" grow>
+      <AccountShell customer={customer} title="My Address" phoneScreen>
+        <AccountCard title="My Address" grow plainOnPhone>
           <AccountEmpty
             image="/illustrations/empty-address.svg"
             title="Save Your Address"
@@ -37,20 +40,30 @@ export default async function AddressesPage() {
   }
 
   return (
-    <AccountShell customer={customer} title="My Address">
+    <AccountShell
+      customer={customer}
+      title="My Address"
+      phoneScreen
+      phoneAction={
+        <ButtonLink
+          href="/account/addresses/new"
+          variant="blue"
+          className="h-10 w-[9.6875rem] text-body3"
+        >
+          Add New Address
+        </ButtonLink>
+      }
+    >
       <AccountCard
         title="My Address"
+        plainOnPhone
         action={
-          <ButtonLink
-            href="/account/addresses/new"
-            variant="blue"
-            className="h-12.5 w-full sm:w-58"
-          >
+          <ButtonLink href="/account/addresses/new" variant="blue" className="h-12.5 w-58">
             Add New Address
           </ButtonLink>
         }
       >
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2 sm:gap-4">
           {addresses.map((address) => (
             <AddressCard key={address.id} address={address} />
           ))}

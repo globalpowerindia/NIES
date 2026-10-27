@@ -10,7 +10,7 @@ import { getPayloadClient } from '@/lib/storefront/queries'
 
 export const metadata: Metadata = { title: 'Wishlist', robots: { index: false, follow: false } }
 
-/** Saved products (Figma 1100:28047), or the empty state (1080:27250). */
+/** Saved products (Figma 1100:28047; phones 1412:32192), or the empty state (1080:27250). */
 export default async function WishlistPage() {
   const customer = await getCurrentCustomer()
   if (!customer) redirect('/login?next=/account/wishlist')
@@ -18,8 +18,8 @@ export default async function WishlistPage() {
   const items = await getWishlist(await getPayloadClient(), customer.id)
 
   return (
-    <AccountShell customer={customer} title="Wishlist">
-      <AccountCard title="Wishlist" grow>
+    <AccountShell customer={customer} title="Wishlist" phoneScreen>
+      <AccountCard title="Wishlist" grow plainOnPhone>
         {items.length === 0 ? (
           <AccountEmpty
             image="/illustrations/empty-wishlist.svg"
@@ -32,7 +32,7 @@ export default async function WishlistPage() {
             }
           />
         ) : (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2 sm:gap-4">
             {items.map((item) => (
               <WishlistRow key={item.productId} item={item} />
             ))}
