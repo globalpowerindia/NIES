@@ -9,6 +9,7 @@ import { smsSender } from '@/lib/otp/sms'
 import { readPendingSignIn } from '@/lib/pending-signin'
 import { clientIp } from '@/lib/request-ip'
 import { getPayloadClient } from '@/lib/storefront/queries'
+import { turnstileEnabled, verifyTurnstile } from '@/lib/turnstile'
 import { otpRequestSchema } from '@/lib/validations/auth'
 
 /**
@@ -44,6 +45,15 @@ export const POST = async (request: Request): Promise<NextResponse> => {
 
   const destination =
     channel === 'sms' ? normalisePhone(parsed.data.destination) : normaliseEmail(parsed.data.destination)
+
+  // Before issuing, so a refused request doesn't use up the number's allowance either.
+  if (turnstileEnabled()) {
+    const human = await verifyTurnstile(parsed.data.captchaToken, clientIp(request)).catch((error) => {
+      payload.logger.error({ err: error }, 'Turnstile check failed')
+      return false
+    })
+    if (!human) return fail(400, 'Please complete the security check, then try again.')
+  }
 
   const issued = await issueChallenge(payload, {
     channel: channel === 'sms' ? 'SMS' : 'EMAIL',
