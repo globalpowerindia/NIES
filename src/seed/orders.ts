@@ -2,6 +2,7 @@ import { getPayload } from 'payload'
 
 import config from '../payload.config.js'
 import { computeCartTotals, DEFAULT_GST_RATE_BPS } from '../lib/money.js'
+import { refuseOnProduction } from './guard.js'
 
 type Seed = {
   customerName: string
@@ -41,6 +42,9 @@ const SEEDS: Seed[] = [
 ]
 
 const run = async () => {
+  // Demo orders take real numbers from the order series and count as sales on
+  // the dashboard, so no flag lets this one near production.
+  refuseOnProduction('seed:orders', { overridable: false })
   const payload = await getPayload({ config })
 
   const financialYear = '2627'
