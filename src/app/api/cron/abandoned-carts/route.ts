@@ -8,12 +8,16 @@ import { deleteOldChallenges } from '@/lib/otp/challenges'
 import { deleteStaleRateLimits } from '@/lib/rate-limit'
 import { getPayloadClient } from '@/lib/storefront/queries'
 
+// Room for expireUnpaidOrders' 25-second budget plus the cleanup around it.
+// Within what Vercel Hobby allows.
+export const maxDuration = 60
+
 /** A cart with items left untouched this long counts as abandoned. */
 const ABANDONED_AFTER_HOURS = 24
 
 /**
  * Daily from Vercel Cron (Hobby allows no more; see vercel.json), and every
- * 15 minutes from an external scheduler so unpaid orders release their stock
+ * 15 minutes from cron-job.org (README → Scheduled jobs) so unpaid orders release their stock
  * soon after the payment window closes. Flags carts with items that nobody has touched
  * for a day, for the admin's Carts list and, later, reminder emails. The
  * cart stays usable; any change clears the flag. Also clears out customer

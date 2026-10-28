@@ -1,26 +1,19 @@
-name: Scheduled jobs
+name: Scheduled jobs (manual)
 
-# Vercel Hobby runs cron once a day, but an unpaid order holds its stock for
-# a 30-minute payment window. This calls the same job every 15 minutes so the
-# stock comes back soon after the window closes (see
-# src/app/api/cron/abandoned-carts/route.ts). GitHub may start scheduled runs
-# a few minutes late; the job is safe to run at any time and any number of times.
+# Runs the scheduled job once, on demand, from the Actions tab: a backup for
+# when the regular caller is down. The every-15-minutes schedule lives on
+# cron-job.org instead (README → Scheduled jobs): GitHub bills each run as at
+# least a minute, and 96 runs a day would use up a private repository's free
+# Actions minutes, CI included, within the month.
 #
 # Needs two repository secrets: SITE_URL (the production origin, no trailing
 # slash) and CRON_SECRET (the same value as on Vercel). Without them the run
-# only prints a notice. Set them in one repository only, if the code is
-# pushed to more than one.
+# only prints a notice.
 
 on:
-  schedule:
-    - cron: '*/15 * * * *'
   workflow_dispatch:
 
 permissions: {}
-
-concurrency:
-  group: scheduled-jobs
-  cancel-in-progress: false
 
 jobs:
   run:
