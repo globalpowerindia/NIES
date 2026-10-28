@@ -18,7 +18,8 @@ const money = (paise: number | null | undefined) => formatCurrency(paise ?? 0, {
 
 const siteUrl = () => process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'http://localhost:3000'
 
-const orderUrl = (order: Order) => `${siteUrl()}/checkout/complete/${encodeURIComponent(order.orderNumber)}`
+// Every order email is about a paid order, so it links to the account's order page, which tracks it.
+const orderUrl = (order: Order) => `${siteUrl()}/account/orders/${encodeURIComponent(order.orderNumber)}`
 
 const addressText = (order: Order) =>
   [order.shipLine1, order.shipLine2, order.shipLandmark, `${order.shipCity}, ${order.shipStateName} - ${order.shipPincode}`]
