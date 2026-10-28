@@ -637,51 +637,75 @@ const notifyConfirmed = async (payload: Payload, order: Order, backordered: numb
   ).catch((err) => payload.logger.error({ err, orderNumber: order.orderNumber }, 'Order alert failed'))
 }
 
+const EXPIRY_BATCH = 100
+/** Stops starting new batches after this, well inside a serverless time limit; the next run carries on. */
+const EXPIRY_TIME_BUDGET_MS = 25_000
+
 /**
  * Gives up on orders nobody paid for in time. Each is checked with Razorpay
  * first: a payment whose webhook is late confirms the order instead.
+ *
+ * Works through the whole backlog in id order rather than one batch, so a
+ * busy hour can't leave stock held past the next run. Walking by id matters:
+ * an order Razorpay couldn't answer for stays pending on purpose, and simply
+ * re-querying would fetch it again forever.
  */
 export const expireUnpaidOrders = async (
   payload: Payload,
   keys: RazorpayKeys | null = razorpayKeys(),
 ): Promise<{ cancelled: number; confirmed: number }> => {
-  const { docs } = await payload.find({
-    collection: 'orders',
-    where: {
-      and: [{ status: { equals: 'PENDING_PAYMENT' } }, { paymentExpiresAt: { less_than: new Date().toISOString() } }],
-    },
-    limit: 100,
-    depth: 0,
-    overrideAccess: true,
-  })
+  const started = Date.now()
+  const now = new Date().toISOString()
+  let afterId = 0
   let cancelled = 0
   let confirmed = 0
-  for (const order of docs) {
-    if (keys && order.razorpayOrderId) {
-      const payments = await fetchOrderPayments(keys, order.razorpayOrderId).catch(() => null)
-      // Can't tell whether it was paid: leave it for the next run rather than cancel a paid order.
-      if (!payments) continue
-      const paid = payments.find((payment) => payment.status === 'captured')
-      if (paid) {
-        const result = await confirmPayment(payload, {
-          razorpayOrderId: order.razorpayOrderId,
-          razorpayPaymentId: paid.id,
-          amountPaise: paid.amount,
-        })
-        if (result.status === 'CONFIRMED') confirmed += 1
-        continue
-      }
-    }
-    await inTransaction(payload, order.razorpayOrderId ? [orderLock(order.razorpayOrderId)] : [], async (req) => {
-      await req.payload.update({
-        collection: 'orders',
-        where: { and: [{ id: { equals: order.id } }, { status: { equals: 'PENDING_PAYMENT' } }] },
-        data: { status: 'CANCELLED', cancelReason: 'EXPIRED', notes: 'Payment was not completed in time.' },
-        overrideAccess: true,
-        req,
-      })
+
+  while (Date.now() - started < EXPIRY_TIME_BUDGET_MS) {
+    const { docs } = await payload.find({
+      collection: 'orders',
+      where: {
+        and: [
+          { status: { equals: 'PENDING_PAYMENT' } },
+          { paymentExpiresAt: { less_than: now } },
+          { id: { greater_than: afterId } },
+        ],
+      },
+      sort: 'id',
+      limit: EXPIRY_BATCH,
+      depth: 0,
+      overrideAccess: true,
     })
-    cancelled += 1
+
+    for (const order of docs) {
+      if (keys && order.razorpayOrderId) {
+        const payments = await fetchOrderPayments(keys, order.razorpayOrderId).catch(() => null)
+        // Can't tell whether it was paid: leave it for the next run rather than cancel a paid order.
+        if (!payments) continue
+        const paid = payments.find((payment) => payment.status === 'captured')
+        if (paid) {
+          const result = await confirmPayment(payload, {
+            razorpayOrderId: order.razorpayOrderId,
+            razorpayPaymentId: paid.id,
+            amountPaise: paid.amount,
+          })
+          if (result.status === 'CONFIRMED') confirmed += 1
+          continue
+        }
+      }
+      await inTransaction(payload, order.razorpayOrderId ? [orderLock(order.razorpayOrderId)] : [], async (req) => {
+        await req.payload.update({
+          collection: 'orders',
+          where: { and: [{ id: { equals: order.id } }, { status: { equals: 'PENDING_PAYMENT' } }] },
+          data: { status: 'CANCELLED', cancelReason: 'EXPIRED', notes: 'Payment was not completed in time.' },
+          overrideAccess: true,
+          req,
+        })
+      })
+      cancelled += 1
+    }
+
+    if (docs.length < EXPIRY_BATCH) break
+    afterId = docs[docs.length - 1].id
   }
   return { cancelled, confirmed }
 }
