@@ -33,6 +33,9 @@ const csp = [
 const nextConfig: NextConfig = {
   output: 'standalone',
   poweredByHeader: false,
+  // Two root layouts (storefront and admin), so an unmatched URL needs
+  // app/global-not-found.tsx to get a storefront-styled 404.
+  experimental: { globalNotFound: true },
   async headers() {
     return [{ source: '/:path*', headers: [
       { key: 'Content-Security-Policy-Report-Only', value: csp },
