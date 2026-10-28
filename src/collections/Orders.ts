@@ -164,6 +164,11 @@ export const Orders: CollectionConfig = {
       admin: { position: 'sidebar' },
     },
     {
+      name: 'invoiceLink',
+      type: 'ui',
+      admin: { position: 'sidebar', components: { Field: '/admin/components/InvoiceLink#InvoiceLink' } },
+    },
+    {
       name: 'cancelReason',
       type: 'select',
       options: CANCEL_REASON_OPTIONS,

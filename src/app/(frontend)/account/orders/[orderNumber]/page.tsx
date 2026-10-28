@@ -1,9 +1,12 @@
+import { FileText } from 'lucide-react'
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 
 import { AccountCard, AccountShell } from '@/components/account/AccountShell'
 import { ENDED, OrderTracker, TrackingLine } from '@/components/account/OrderRow'
 import { OrderSummary } from '@/components/account/OrderSummary'
+import { ButtonLink } from '@/components/ui/button'
+import { invoiceSeller } from '@/lib/invoice/invoice-data'
 import { getCustomerOrder, orderStep } from '@/lib/storefront/account'
 import { getCurrentCustomer } from '@/lib/storefront/customer'
 import { getPayloadClient } from '@/lib/storefront/queries'
@@ -24,15 +27,37 @@ export default async function OrderDetailsPage(props: PageProps<'/account/orders
   const customer = await getCurrentCustomer()
   if (!customer) redirect(`/login?next=${encodeURIComponent(path)}`)
 
-  const order = await getCustomerOrder(await getPayloadClient(), customer.id, orderNumber)
+  const payload = await getPayloadClient()
+  const order = await getCustomerOrder(payload, customer.id, orderNumber)
   if (!order) notFound()
   if (!order.paidAt) redirect(`/checkout/complete/${encodeURIComponent(orderNumber)}`)
 
   const step = orderStep(order.status)
+  // Offered only once staff have filled in the seller details an invoice must carry.
+  const invoiceReady =
+    Boolean(order.invoiceNumber) &&
+    invoiceSeller(await payload.findGlobal({ slug: 'checkout-settings', depth: 0, overrideAccess: true })) !== null
 
   return (
     <AccountShell customer={customer} title={`Order ${order.orderNumber}`} parent={{ label: 'My Orders', href: '/account/orders' }}>
-      <AccountCard title={`Order ${order.orderNumber}`}>
+      <AccountCard
+        title={`Order ${order.orderNumber}`}
+        action={
+          invoiceReady ? (
+            <ButtonLink
+              href={`/api/account/orders/${encodeURIComponent(order.orderNumber)}/invoice`}
+              variant="outline"
+              className="h-10"
+              target="_blank"
+              rel="noopener noreferrer"
+              prefetch={false}
+            >
+              <FileText className="size-4" aria-hidden />
+              Download Invoice
+            </ButtonLink>
+          ) : undefined
+        }
+      >
         <div className="flex flex-col gap-5">
           <p className="text-body3 text-dark-300 sm:text-label1">
             Placed on {placedOn.format(new Date(order.placedAt))}

@@ -32,6 +32,7 @@ import { VariantsList as VariantsList_4dc3bbc82c72b6ea4e556ad376225a60 } from '.
 import { StockAdjuster as StockAdjuster_e6c07d7b46582096ac85c3aefa1bb399 } from '../../../admin/components/StockAdjuster'
 import { InventoryList as InventoryList_5d56bc2e3872b7879aff01e95db4f32c } from '../../../admin/views/InventoryList'
 import { StockMovementsList as StockMovementsList_6bd1338c5b306a7fa96da9372946c5c3 } from '../../../admin/views/StockMovementsList'
+import { InvoiceLink as InvoiceLink_4c5466287248b1e2e73403dd4a14092a } from '../../../admin/components/InvoiceLink'
 import { OrdersList as OrdersList_5d6bed559100f816229134e5933cc150 } from '../../../admin/views/OrdersList'
 import { CouponsList as CouponsList_8d9e368d47db834ee206b9b9ed13518d } from '../../../admin/views/CouponsList'
 import { PermissionGrid as PermissionGrid_e6180bd9fec25929f767683a791d0f5d } from '../../../admin/components/PermissionGrid'
@@ -80,6 +81,7 @@ export const importMap = {
   "/admin/components/StockAdjuster#StockAdjuster": StockAdjuster_e6c07d7b46582096ac85c3aefa1bb399,
   "/admin/views/InventoryList#InventoryList": InventoryList_5d56bc2e3872b7879aff01e95db4f32c,
   "/admin/views/StockMovementsList#StockMovementsList": StockMovementsList_6bd1338c5b306a7fa96da9372946c5c3,
+  "/admin/components/InvoiceLink#InvoiceLink": InvoiceLink_4c5466287248b1e2e73403dd4a14092a,
   "/admin/views/OrdersList#OrdersList": OrdersList_5d6bed559100f816229134e5933cc150,
   "/admin/views/CouponsList#CouponsList": CouponsList_8d9e368d47db834ee206b9b9ed13518d,
   "/admin/components/PermissionGrid#PermissionGrid": PermissionGrid_e6180bd9fec25929f767683a791d0f5d,
