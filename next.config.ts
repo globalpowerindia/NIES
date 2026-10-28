@@ -23,7 +23,8 @@ const csp = [
   `media-src 'self' blob: ${r2Origin}`,
   // Razorpay's payment window is an iframe from api.razorpay.com.
   'frame-src https://www.youtube-nocookie.com https://www.youtube.com https://api.razorpay.com https://checkout.razorpay.com',
-  "connect-src 'self' https://*.r2.cloudflarestorage.com https://api.razorpay.com https://lumberjack.razorpay.com",
+  // *.sentry.io: browser error reports, once NEXT_PUBLIC_SENTRY_DSN is set.
+  "connect-src 'self' https://*.r2.cloudflarestorage.com https://api.razorpay.com https://lumberjack.razorpay.com https://*.sentry.io",
   "form-action 'self' https://accounts.google.com",
   "frame-ancestors 'self'",
   "base-uri 'self'",

@@ -3,7 +3,7 @@ import { resendAdapter } from '@payloadcms/email-resend'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { s3Storage } from '@payloadcms/storage-s3'
 import path from 'path'
-import { buildConfig } from 'payload'
+import { buildConfig, defaultLoggerOptions } from 'payload'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
@@ -47,6 +47,7 @@ import { enforceCommerceInvariants } from './lib/commerce-constraints'
 import { addRateLimitTable } from './lib/rate-limit'
 import { enforceIntegerMoney } from './lib/schema-constraints'
 import { addSearchVector } from './lib/search-schema'
+import { forwardErrorLogs } from './lib/monitoring'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -71,6 +72,8 @@ const r2Files = {
 export default buildConfig({
   serverURL: siteUrl(),
   csrf: [siteUrl()],
+  // Payload's own pretty output, plus every error it logs sent to Sentry (src/lib/monitoring.ts).
+  logger: { options: { hooks: { logMethod: forwardErrorLogs } }, destination: defaultLoggerOptions },
   upload: { limits: { fileSize: 25 * 1024 * 1024 }, abortOnLimit: true },
   admin: {
     user: Users.slug,

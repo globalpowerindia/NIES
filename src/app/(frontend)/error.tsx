@@ -1,5 +1,6 @@
 'use client'
 
+import * as Sentry from '@sentry/nextjs'
 import { TriangleAlert } from 'lucide-react'
 import { useEffect } from 'react'
 
@@ -14,6 +15,7 @@ import { Button, ButtonLink } from '@/components/ui/button'
 export default function StorefrontError({ error, retry }: { error: unknown; retry: () => void }) {
   useEffect(() => {
     console.error(error)
+    Sentry.captureException(error)
   }, [error])
 
   const digest = error instanceof Error && 'digest' in error ? String(error.digest) : null

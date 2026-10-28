@@ -30,6 +30,8 @@ const envSchema = z.object({
   EMAIL_FROM_NAME: z.string().min(1).optional(),
   // Where "new order" alerts go. Comma-separated; unset sends none.
   ORDER_ALERT_EMAILS: z.string().min(1).optional(),
+  // Error monitoring; see src/lib/monitoring.ts. Unset, nothing is sent.
+  NEXT_PUBLIC_SENTRY_DSN: z.url().optional(),
 })
 
 const parsed = envSchema.safeParse(process.env)
