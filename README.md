@@ -62,6 +62,22 @@ Alternatively, you can use [Docker](https://www.docker.com) to spin up this temp
 
 That's it! The Docker instance will help you get up and running quickly while also standardizing the development environment across your teams.
 
+## State management
+
+Pick by what the state is, and don't add another library for it.
+
+| State | Where it lives | How |
+| --- | --- | --- |
+| Server data (products, orders, account) | The database, read in Server Components | After a change, call the API route, then `router.refresh()`. No client-side copy. |
+| Shared client state (cart, wishlist) | A Zustand store next to its components, e.g. `src/components/cart/cart-store.ts` | Export a hook and plain action functions; components never call `setState` themselves. |
+| Form state | The form component | `useState`, or `useActionState` with a server action. |
+| Filters, sort, pagination | The URL | `searchParams`, parsed in `src/lib/storefront/listing-params.ts`. |
+| Per-device preferences | `localStorage` | Read after mount, in try/catch; never anything that must persist or be shared. |
+
+Avoid React Query/SWR (it would be a second cache beside Next's), Redux, and Context for state that changes often (every consumer re-renders).
+
+Prices, stock and totals always come from the server. Stores hold the server's last reply, never a computed copy.
+
 ## Questions
 
 If you have any issues or questions, reach out to us on [Discord](https://discord.com/invite/payload) or start a [GitHub discussion](https://github.com/payloadcms/payload/discussions).

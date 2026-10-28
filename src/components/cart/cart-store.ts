@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useSyncExternalStore } from 'react'
+import { useEffect } from 'react'
+import { create } from 'zustand'
 
 import type { CartView } from '@/lib/storefront/cart'
 
@@ -15,20 +16,13 @@ export type CartToast = { id: number; kind: 'added' | 'notice' | 'error'; messag
 
 type State = { loaded: boolean; cart: CartView | null; toast: CartToast | null }
 
-let state: State = { loaded: false, cart: null, toast: null }
+// The server render (and the first client render, before hydration) sees this
+// initial state, so markup matches until the cart has loaded.
+const useCartStore = create<State>(() => ({ loaded: false, cart: null, toast: null }))
+const { setState } = useCartStore
+
 let loading: Promise<void> | null = null
 let toastId = 0
-const listeners = new Set<() => void>()
-
-const setState = (next: Partial<State>) => {
-  state = { ...state, ...next }
-  listeners.forEach((listener) => listener())
-}
-
-const subscribe = (listener: () => void) => {
-  listeners.add(listener)
-  return () => listeners.delete(listener)
-}
 
 type Reply = { ok?: boolean; cart?: CartView; error?: string; notice?: string | null }
 
@@ -65,14 +59,8 @@ const send = async (method: string, path: string, body?: unknown): Promise<CartR
   return { ok: true, notice: reply.notice ?? undefined }
 }
 
-const SERVER_STATE: State = { loaded: false, cart: null, toast: null }
-
 export const useCart = () => {
-  const current = useSyncExternalStore(
-    subscribe,
-    () => state,
-    () => SERVER_STATE,
-  )
+  const current = useCartStore()
   useEffect(() => {
     void load()
   }, [])

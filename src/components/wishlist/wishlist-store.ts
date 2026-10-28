@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useSyncExternalStore } from 'react'
+import { useEffect } from 'react'
+import { create } from 'zustand'
 
 /**
  * Which products the shopper has hearted, shared by every heart on the page.
@@ -12,19 +13,11 @@ import { useEffect, useSyncExternalStore } from 'react'
 
 type State = { loaded: boolean; signedIn: boolean; ids: ReadonlySet<number> }
 
-let state: State = { loaded: false, signedIn: false, ids: new Set() }
+// The server render sees this initial state, so markup matches until the hearts have loaded.
+const useWishlistStore = create<State>(() => ({ loaded: false, signedIn: false, ids: new Set() }))
+const { getState, setState } = useWishlistStore
+
 let loading: Promise<void> | null = null
-const listeners = new Set<() => void>()
-
-const setState = (next: State) => {
-  state = next
-  listeners.forEach((listener) => listener())
-}
-
-const subscribe = (listener: () => void) => {
-  listeners.add(listener)
-  return () => listeners.delete(listener)
-}
 
 const load = () => {
   loading ??= fetch('/api/account/wishlist', { cache: 'no-store' })
@@ -36,18 +29,12 @@ const load = () => {
         ids: new Set(reply.productIds ?? []),
       }),
     )
-    .catch(() => setState({ ...state, loaded: true }))
+    .catch(() => setState({ loaded: true }))
   return loading
 }
 
-const SERVER_STATE: State = { loaded: false, signedIn: false, ids: new Set() }
-
 export const useWishlist = () => {
-  const current = useSyncExternalStore(
-    subscribe,
-    () => state,
-    () => SERVER_STATE,
-  )
+  const current = useWishlistStore()
   useEffect(() => {
     void load()
   }, [])
@@ -60,13 +47,14 @@ export const useWishlist = () => {
  */
 export const toggleWishlist = async (productId: number): Promise<boolean> => {
   await load()
-  if (!state.signedIn) return false
+  const before = getState()
+  if (!before.signedIn) return false
 
-  const had = state.ids.has(productId)
-  const optimistic = new Set(state.ids)
+  const had = before.ids.has(productId)
+  const optimistic = new Set(before.ids)
   if (had) optimistic.delete(productId)
   else optimistic.add(productId)
-  setState({ ...state, ids: optimistic })
+  setState({ ids: optimistic })
 
   const response = await fetch(
     had ? `/api/account/wishlist/${productId}` : '/api/account/wishlist',
@@ -80,10 +68,12 @@ export const toggleWishlist = async (productId: number): Promise<boolean> => {
   ).catch(() => null)
 
   if (!response?.ok) {
-    const reverted = new Set(state.ids)
+    // Read again: other hearts may have changed while this request was out.
+    const now = getState()
+    const reverted = new Set(now.ids)
     if (had) reverted.add(productId)
     else reverted.delete(productId)
-    setState({ ...state, ids: reverted, signedIn: response?.status !== 401 && state.signedIn })
+    setState({ ids: reverted, signedIn: response?.status !== 401 && now.signedIn })
     return response?.status !== 401
   }
   return true
