@@ -20,6 +20,29 @@ const STAFF_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
 export const staffCanMoveOrder = (from: OrderStatus, to: OrderStatus): boolean =>
   from === to || STAFF_TRANSITIONS[from].includes(to)
 
+export type StatusEmail = 'SHIPPED' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED' | 'RETURNED'
+
+/**
+ * The email a status change sends the customer, if any. Only a real change
+ * sends one, so saving an order again never repeats it. A cancellation is
+ * news only for an order that was paid: an unpaid one that expired or was
+ * replaced by a newer checkout cancels quietly.
+ */
+export const statusEmailFor = (from: OrderStatus, to: OrderStatus): StatusEmail | null => {
+  if (from === to) return null
+  switch (to) {
+    case 'SHIPPED':
+    case 'OUT_FOR_DELIVERY':
+    case 'DELIVERED':
+    case 'RETURNED':
+      return to
+    case 'CANCELLED':
+      return from === 'CONFIRMED' || from === 'PACKED' ? 'CANCELLED' : null
+    default:
+      return null
+  }
+}
+
 /**
  * What the customer was charged, and for what. Fixed once the order exists:
  * a correction is a cancellation or a return, never an edit, so the GST

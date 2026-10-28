@@ -2,6 +2,7 @@ import type { Payload } from 'payload'
 
 import { env } from '@/lib/env'
 import { formatCurrency } from '@/lib/money'
+import type { StatusEmail } from '@/lib/order-rules'
 import type { Order } from '@/payload-types'
 
 /**
@@ -104,6 +105,138 @@ export const sendOrderConfirmation = async (payload: Payload, order: Order): Pro
       <p style="margin: 24px 0;">
         <a href="${orderUrl(order)}" style="background: #293681; color: #fefefe; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 15px;">View your order</a>
       </p>`,
+    ),
+  })
+}
+
+const istDate = (iso: string | null | undefined) =>
+  iso
+    ? new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' }).format(new Date(iso))
+    : null
+
+const paragraph = (html: string) => `<p style="font-size: 15px; line-height: 1.6; color: #434343;">${html}</p>`
+
+const itemsList = (order: Order) =>
+  (order.items ?? []).map((item) => `${item.quantity} × ${item.productName}`)
+
+/** Staff refund manually from the Razorpay dashboard, so the promise is the bank's usual timing, not an automatic refund. */
+const refundLine = (order: Order) =>
+  `We'll refund ${money(order.grandTotalPaise)} to your original payment method. Banks usually take 5–7 working days to show it.`
+
+type StatusCopy = { subject: string; title: string; lines: string[] }
+
+const statusCopy = (order: Order, kind: StatusEmail): StatusCopy => {
+  const number = order.orderNumber
+  switch (kind) {
+    case 'SHIPPED': {
+      const tracking = [
+        order.trackingCarrier ? `Courier: ${order.trackingCarrier}` : null,
+        order.trackingNumber ? `Tracking number: ${order.trackingNumber}` : null,
+      ].filter((line): line is string => Boolean(line))
+      const shipped = istDate(order.shippedAt)
+      return {
+        subject: `Order ${number} has shipped`,
+        title: 'Your order is on its way',
+        lines: [`Order ${number} left our warehouse${shipped ? ` on ${shipped}` : ''}.`, ...tracking],
+      }
+    }
+    case 'OUT_FOR_DELIVERY':
+      return {
+        subject: `Order ${number} is out for delivery`,
+        title: 'Arriving today',
+        lines: [`Order ${number} is out for delivery and should reach you today. Please keep your phone handy for the courier.`],
+      }
+    case 'DELIVERED':
+      return {
+        subject: `Order ${number} delivered`,
+        title: 'Your order has been delivered',
+        lines: [
+          `Order ${number} has been delivered. We hope it serves you well.`,
+          'If anything is missing or damaged, contact us and quote your order number. A review on the product page helps other buyers too.',
+        ],
+      }
+    case 'CANCELLED':
+      return {
+        subject: `Order ${number} cancelled`,
+        title: 'Your order has been cancelled',
+        lines: [`Order ${number} has been cancelled.`, refundLine(order), 'If you didn’t expect this, contact us and quote your order number.'],
+      }
+    case 'RETURNED':
+      return {
+        subject: `Return received for order ${number}`,
+        title: 'We’ve received your return',
+        lines: [`We've received the items returned from order ${number}.`, refundLine(order)],
+      }
+  }
+}
+
+/**
+ * A step in the order's journey: shipped, out for delivery, delivered,
+ * cancelled after payment, or returned. Which change sends which is
+ * `statusEmailFor`'s decision. A customer who signed in by phone and gave no
+ * email gets none of these.
+ */
+export const sendOrderStatusUpdate = async (payload: Payload, order: Order, kind: StatusEmail): Promise<void> => {
+  if (!order.customerEmail) return
+  const firstName = order.customerName.split(' ')[0]
+  const { subject, title, lines } = statusCopy(order, kind)
+  const contactUrl = `${siteUrl()}/contact`
+
+  await payload.sendEmail({
+    to: order.customerEmail,
+    subject,
+    text: [
+      `Hi ${firstName},`,
+      '',
+      ...lines,
+      '',
+      ...itemsList(order),
+      '',
+      ...(kind === 'SHIPPED' || kind === 'OUT_FOR_DELIVERY' ? [`Delivering to: ${order.customerName}, ${addressText(order)}`] : []),
+      `View your order: ${orderUrl(order)}`,
+      `Contact us: ${contactUrl}`,
+    ].join('\n'),
+    html: frame(
+      escape(title),
+      `
+      ${paragraph(`Hi ${escape(firstName)},`)}
+      ${lines.map((line) => paragraph(escape(line))).join('')}
+      <p style="font-size: 14px; line-height: 1.6; color: #434343; margin: 16px 0;">${itemsList(order).map(escape).join('<br />')}</p>
+      ${
+        kind === 'SHIPPED' || kind === 'OUT_FOR_DELIVERY'
+          ? `<p style="font-size: 14px; line-height: 1.6; color: #434343;"><strong>Delivering to</strong><br />${escape(order.customerName)}<br />${escape(addressText(order))}</p>`
+          : ''
+      }
+      <p style="margin: 24px 0;">
+        <a href="${orderUrl(order)}" style="background: #293681; color: #fefefe; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 15px;">View your order</a>
+      </p>
+      <p style="font-size: 13px; color: #7b7b7b;">Questions? <a href="${contactUrl}" style="color: #293681;">Contact us</a> and quote ${escape(order.orderNumber)}.</p>`,
+    ),
+  })
+}
+
+/**
+ * Tells the shop a paid order needs refunding by hand, since nothing calls
+ * Razorpay's refund API. Sent with the customer's cancellation or return email.
+ */
+export const sendRefundDueAlert = async (payload: Payload, order: Order, kind: 'CANCELLED' | 'RETURNED'): Promise<void> => {
+  const to = env.ORDER_ALERT_EMAILS?.split(',').map((address) => address.trim()).filter(Boolean)
+  if (!to?.length) return
+  const adminUrl = `${siteUrl()}/admin/collections/orders/${order.id}`
+  const what = kind === 'CANCELLED' ? 'was cancelled after payment' : 'was returned'
+  const action = order.razorpayPaymentId
+    ? `Refund ${money(order.grandTotalPaise)} for payment ${order.razorpayPaymentId} from the Razorpay dashboard.`
+    : `Refund ${money(order.grandTotalPaise)}; no Razorpay payment is recorded on the order, so check how it was paid.`
+  await payload.sendEmail({
+    to,
+    subject: `Refund due: order ${order.orderNumber} — ${money(order.grandTotalPaise)}`,
+    text: [`Order ${order.orderNumber} (${order.customerName}) ${what}.`, action, '', adminUrl].join('\n'),
+    html: frame(
+      `Refund due: ${escape(order.orderNumber)}`,
+      `
+      ${paragraph(`${escape(order.customerName)}'s order ${what}. The customer has been told to expect a refund.`)}
+      <p style="font-size: 14px; color: #ce2d2a;">${escape(action)}</p>
+      <p><a href="${adminUrl}" style="color: #293681;">Open in admin</a></p>`,
     ),
   })
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { staffCanMoveOrder } from '@/lib/order-rules'
+import { staffCanMoveOrder, statusEmailFor } from '@/lib/order-rules'
 
 describe('staffCanMoveOrder', () => {
   it('follows the fulfilment path forwards', () => {
@@ -25,5 +25,29 @@ describe('staffCanMoveOrder', () => {
 
   it('allows saving without a status change', () => {
     expect(staffCanMoveOrder('SHIPPED', 'SHIPPED')).toBe(true)
+  })
+})
+
+describe('statusEmailFor', () => {
+  it('tells the customer each step after the parcel leaves', () => {
+    expect(statusEmailFor('PACKED', 'SHIPPED')).toBe('SHIPPED')
+    expect(statusEmailFor('SHIPPED', 'OUT_FOR_DELIVERY')).toBe('OUT_FOR_DELIVERY')
+    expect(statusEmailFor('OUT_FOR_DELIVERY', 'DELIVERED')).toBe('DELIVERED')
+    expect(statusEmailFor('DELIVERED', 'RETURNED')).toBe('RETURNED')
+  })
+
+  it('sends nothing when the status has not changed', () => {
+    expect(statusEmailFor('SHIPPED', 'SHIPPED')).toBeNull()
+  })
+
+  it('sends nothing for steps the confirmation email already covers', () => {
+    expect(statusEmailFor('PENDING_PAYMENT', 'CONFIRMED')).toBeNull()
+    expect(statusEmailFor('CONFIRMED', 'PACKED')).toBeNull()
+  })
+
+  it('reports a cancellation only for an order that was paid', () => {
+    expect(statusEmailFor('CONFIRMED', 'CANCELLED')).toBe('CANCELLED')
+    expect(statusEmailFor('PACKED', 'CANCELLED')).toBe('CANCELLED')
+    expect(statusEmailFor('PENDING_PAYMENT', 'CANCELLED')).toBeNull()
   })
 })
