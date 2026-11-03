@@ -15,6 +15,7 @@ import { ProductTabs } from '@/components/product-page/ProductTabs'
 import { ReviewsSection } from '@/components/product-page/ReviewsSection'
 import { ProductMobileBack } from '@/components/product-page/ProductMobileBack'
 import styles from '@/components/product-page/product-mobile.module.css'
+import { getDemandLine } from '@/lib/storefront/demand'
 import { getProductPage, type ProductPageData } from '@/lib/storefront/product-page'
 
 const variantParam = (value: string | string[] | undefined) =>
@@ -59,6 +60,7 @@ export default async function ProductPage(props: PageProps<'/products/[slug]'>) 
   if (!data) notFound()
 
   const { product, category, parentCategory } = data
+  const demand = await getDemandLine(product.id, product.sellOnline === true)
   const basePath = `/products/${product.slug}`
   const crumbs: Crumb[] = [
     ...(parentCategory
@@ -92,7 +94,7 @@ export default async function ProductPage(props: PageProps<'/products/[slug]'>) 
             />
           </div>
           <div className="min-w-0 flex-1">
-            <ProductSummary key={data.variant.id} data={data} basePath={basePath} />
+            <ProductSummary key={data.variant.id} data={data} basePath={basePath} demand={demand} />
           </div>
         </div>
 

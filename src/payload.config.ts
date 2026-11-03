@@ -44,6 +44,7 @@ import { siteUrl } from './lib/site-url'
 import { addDocumentCountersTable } from './lib/document-numbers'
 import { consoleEmailAdapter } from './lib/email-console'
 import { enforceCommerceInvariants } from './lib/commerce-constraints'
+import { addProductEnquiriesTable } from './lib/product-demand'
 import { addRateLimitTable } from './lib/rate-limit'
 import { enforceIntegerMoney } from './lib/schema-constraints'
 import { addSearchVector } from './lib/search-schema'
@@ -153,6 +154,7 @@ export default buildConfig({
       enforceCommerceInvariants,
       addSearchVector,
       addRateLimitTable,
+      addProductEnquiriesTable,
       addDocumentCountersTable,
     ],
   }),

@@ -1,5 +1,5 @@
 import { RichText } from '@payloadcms/richtext-lexical/react'
-import { FileText } from 'lucide-react'
+import { FileText, TrendingUp } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
@@ -71,7 +71,16 @@ const Prose = ({ data }: { data: RichTextData }) => (
 const discountPercent = (price: number, mrp: number) =>
   mrp > price ? Math.round(((mrp - price) / mrp) * 100) : null
 
-export const ProductSummary = ({ data, basePath }: { data: ProductPageData; basePath: string }) => {
+export const ProductSummary = ({
+  data,
+  basePath,
+  demand,
+}: {
+  data: ProductPageData
+  basePath: string
+  /** E.g. "12 sold in the last 24 hours"; null until the product has enough to show. */
+  demand: string | null
+}) => {
   const { product, variant, options, rating } = data
   const discount = variant.sellingPricePaise > 0 ? discountPercent(variant.sellingPricePaise, variant.mrpPaise) : null
   const sellOnline = product.sellOnline === true
@@ -98,6 +107,12 @@ export const ProductSummary = ({ data, basePath }: { data: ProductPageData; base
                 : 'No reviews yet'}
             </Link>
           </div>
+          {demand && (
+            <p className="flex items-center gap-1.5 text-body3 font-medium text-dark-400 lg:text-body2">
+              <TrendingUp className="size-4 shrink-0 text-green-400 lg:size-5" aria-hidden />
+              {demand}
+            </p>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

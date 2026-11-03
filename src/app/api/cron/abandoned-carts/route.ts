@@ -5,6 +5,7 @@ import { expireUnpaidOrders } from '@/lib/checkout'
 import { isCronRequest } from '@/lib/cron-auth'
 import { deleteDeadSessions } from '@/lib/customer-sessions'
 import { deleteOldChallenges } from '@/lib/otp/challenges'
+import { deleteOldEnquiries } from '@/lib/product-demand'
 import { deleteStaleRateLimits } from '@/lib/rate-limit'
 import { getPayloadClient } from '@/lib/storefront/queries'
 
@@ -39,6 +40,7 @@ export const GET = async (request: Request): Promise<NextResponse> => {
   `)
   await deleteDeadSessions(payload)
   await deleteStaleRateLimits(payload)
+  await deleteOldEnquiries(payload)
   await deleteOldChallenges(payload)
   const orders = await expireUnpaidOrders(payload)
   return NextResponse.json({ ok: true, flagged: result.rows.length, orders })
