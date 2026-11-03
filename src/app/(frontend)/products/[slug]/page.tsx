@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { getImageProps } from 'next/image'
 import { notFound } from 'next/navigation'
 
 import { Breadcrumbs, type Crumb } from '@/components/catalog/Breadcrumbs'
@@ -14,10 +15,24 @@ import { ProductTabs } from '@/components/product-page/ProductTabs'
 import { ReviewsSection } from '@/components/product-page/ReviewsSection'
 import { ProductMobileBack } from '@/components/product-page/ProductMobileBack'
 import styles from '@/components/product-page/product-mobile.module.css'
-import { getProductPage } from '@/lib/storefront/product-page'
+import { getProductPage, type ProductPageData } from '@/lib/storefront/product-page'
 
 const variantParam = (value: string | string[] | undefined) =>
   Array.isArray(value) ? value[0] : value
+
+/** What search results and shared links say about the product. Never empty. */
+const descriptionOf = ({ product, brandName }: ProductPageData) =>
+  product.metaDescription ||
+  product.shortDesc ||
+  product.subtitle ||
+  `Shop ${product.name}${brandName ? ` by ${brandName}` : ''}.`
+
+/**
+ * A 1200px copy for link previews: WhatsApp and others drop an image that's too
+ * heavy, and uploads can run to several MB. 600 asks for 1200, the 2x copy.
+ */
+const previewImageUrl = (src: string) =>
+  getImageProps({ src, alt: '', width: 600, height: 600 }).props.src
 
 export async function generateMetadata(props: PageProps<'/products/[slug]'>): Promise<Metadata> {
   const [{ slug }, search] = await Promise.all([props.params, props.searchParams])
@@ -26,12 +41,14 @@ export async function generateMetadata(props: PageProps<'/products/[slug]'>): Pr
   const { product, images } = data
   return {
     title: product.metaTitle || product.name,
-    description: product.metaDescription || product.shortDesc || product.subtitle || undefined,
+    description: descriptionOf(data),
     alternates: { canonical: `/products/${product.slug}` },
     openGraph: {
+      type: 'website',
+      url: `/products/${product.slug}`,
       images: images
         .slice(0, 1)
-        .map((image) => ({ url: image.url, alt: image.alt || product.name })),
+        .map((image) => ({ url: previewImageUrl(image.url), alt: image.alt || product.name })),
     },
   }
 }
@@ -71,6 +88,7 @@ export default async function ProductPage(props: PageProps<'/products/[slug]'>) 
               spin={data.spin}
               modelUrl={data.modelUrl}
               name={product.name}
+              description={descriptionOf(data)}
             />
           </div>
           <div className="min-w-0 flex-1">

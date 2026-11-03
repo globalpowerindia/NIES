@@ -7,6 +7,7 @@ import { useRef, useState, type PointerEvent } from 'react'
 
 import { ProductImageViewer } from '@/components/product-page/ProductImageViewer'
 import { ProductSpin } from '@/components/product-page/ProductSpin'
+import { ShareButton } from '@/components/product-page/ShareButton'
 import { WishlistHeart } from '@/components/wishlist/WishlistHeart'
 import type { MediaInfo } from '@/lib/storefront/content'
 import type { GalleryVideo, ProductSpinData } from '@/lib/storefront/product-page'
@@ -174,6 +175,7 @@ export const ProductGallery = ({
   spin = null,
   modelUrl = null,
   name,
+  description,
 }: {
   productId: number
   images: MediaInfo[]
@@ -181,6 +183,7 @@ export const ProductGallery = ({
   spin?: ProductSpinData | null
   modelUrl?: string | null
   name: string
+  description: string
 }) => {
   const imageItems: Item[] = images.map((image) => ({ kind: 'image' as const, image }))
   // Right after the main photo, where it's seen before scrolling the thumbnails.
@@ -282,13 +285,20 @@ export const ProductGallery = ({
           </video>
         )}
         {(current?.kind === 'image' || current?.kind === 'spin' || current?.kind === 'model') && (
-          <WishlistHeart
-            productId={productId}
-            label={name}
-            className="absolute top-3 right-3 lg:top-5 lg:right-5"
-            iconClassName="size-5 lg:size-[2.8125rem]"
-            strokeWidth={1.25}
-          />
+          <div className="absolute top-3 right-3 flex items-center gap-3 lg:top-5 lg:right-5 lg:gap-4">
+            <ShareButton
+              name={name}
+              description={description}
+              iconClassName="size-5 lg:size-[2.8125rem]"
+              strokeWidth={1.25}
+            />
+            <WishlistHeart
+              productId={productId}
+              label={name}
+              iconClassName="size-5 lg:size-[2.8125rem]"
+              strokeWidth={1.25}
+            />
+          </div>
         )}
       </div>
 
