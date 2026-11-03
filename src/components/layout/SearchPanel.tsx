@@ -99,21 +99,24 @@ export const SearchPanel = ({ recents, tiles, onPick, onClear }: SearchPanelProp
     {tiles.length > 0 && (
       <section className="flex flex-col gap-3">
         <h2 className="text-body2 font-medium text-dark-500">Top Moving Products</h2>
-        <ul className="flex flex-wrap gap-2">
+        {/* Two compact columns on a phone: the desktop tiles would stack one per row and fill the screen. */}
+        <ul className="grid grid-cols-2 gap-2 md:flex md:flex-wrap">
           {tiles.map((tile) => (
-            <li key={`${tile.label}-${tile.href}`}>
+            <li key={`${tile.label}-${tile.href}`} className="min-w-0">
               <Link
                 href={tile.href}
-                className="flex h-[5.4375rem] items-center gap-2 rounded-lg border-[0.5px] border-light-600 bg-light-500 pt-1 pr-4 pb-2 pl-2 transition-colors hover:border-brand-blue-300"
+                className="flex h-[3.75rem] items-center gap-1.5 rounded-lg border-[0.5px] border-light-600 bg-light-500 p-1.5 transition-colors hover:border-brand-blue-300 md:h-[5.4375rem] md:gap-2 md:pt-1 md:pr-4 md:pb-2 md:pl-2"
               >
                 <Image
                   src={tile.image.url}
                   alt={tile.image.alt || tile.label}
                   width={57}
                   height={57}
-                  className="size-[3.5625rem] shrink-0 object-contain"
+                  className="size-10 shrink-0 object-contain md:size-[3.5625rem]"
                 />
-                <span className="text-body2 font-medium whitespace-nowrap text-dark-500">{tile.label}</span>
+                <span className="line-clamp-2 min-w-0 text-body3 font-medium text-dark-500 md:line-clamp-none md:text-body2 md:whitespace-nowrap">
+                  {tile.label}
+                </span>
               </Link>
             </li>
           ))}
