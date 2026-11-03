@@ -1,5 +1,5 @@
 @media (width < 64rem) {
-  :global(body):has(.page) > header,
+  /* Would sit on top of the fixed buy bar. */
   :global(body):has(.page) > a[aria-label='Chat with us on WhatsApp'] {
     display: none;
   }

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'rea
 
 import { FormAlert, TextField } from '@/components/auth/fields'
 import { useAuthSubmit } from '@/components/auth/useAuthSubmit'
+import { useTurnstile } from '@/components/auth/useTurnstile'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -40,19 +41,35 @@ const useCountdown = () => {
  * `channels` lists the ones that can deliver here, first as the default. It
  * may be empty (no SMS provider and no email provider yet), leaving only the
  * `google` block.
+ *
+ * The Turnstile check sits outside the steps, so the same widget is still
+ * there to issue a fresh token when the code step asks for a new code.
  */
-export const OtpSignIn = ({
-  next,
-  purpose = 'signin',
-  channels,
-  google,
-}: {
+export const OtpSignIn = (props: Props) => {
+  const turnstile = useTurnstile()
+  return (
+    <div className="flex flex-col gap-4">
+      <OtpSteps {...props} turnstile={turnstile} />
+      {turnstile.widget}
+    </div>
+  )
+}
+
+type Props = {
   next: string
   purpose?: 'signin' | 'link'
   channels: Channel[]
   /** The "Continue with Google" block, shown on the first step only. */
   google?: ReactNode
-}) => {
+}
+
+const OtpSteps = ({
+  next,
+  purpose = 'signin',
+  channels,
+  google,
+  turnstile,
+}: Props & { turnstile: ReturnType<typeof useTurnstile> }) => {
   const [step, setStep] = useState<Step>('enter')
   const [channel, setChannel] = useState<Channel>(channels[0] ?? 'sms')
   const [destination, setDestination] = useState('')
@@ -70,7 +87,9 @@ export const OtpSignIn = ({
   const profile = useAuthSubmit('/api/auth/profile')
 
   const sendCode = async () => {
-    const reply = await request.submit({ channel, destination, purpose })
+    const reply = await request.submit({ channel, destination, purpose, captchaToken: turnstile.token ?? undefined })
+    // Spent either way: the next send needs a new one.
+    turnstile.reset()
     if (!reply) return false
     setResendIn(reply.resendAfter)
     return true
@@ -249,7 +268,7 @@ export const OtpSignIn = ({
               Didn’t get it?{' '}
               <button
                 type="button"
-                disabled={request.pending}
+                disabled={request.pending || !turnstile.ready}
                 onClick={() => void sendCode()}
                 className="font-medium text-brand-blue-500 hover:underline disabled:opacity-60"
               >
@@ -351,10 +370,10 @@ export const OtpSignIn = ({
           type="submit"
           variant="blue"
           size="tall"
-          disabled={request.pending}
+          disabled={request.pending || !turnstile.ready}
           className="w-full"
         >
-          {request.pending ? 'Sending code…' : 'Send code'}
+          {request.pending ? 'Sending code…' : turnstile.ready ? 'Send code' : 'Checking your browser…'}
         </Button>
 
         {channels.length > 1 && (

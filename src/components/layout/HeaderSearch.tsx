@@ -91,6 +91,7 @@ export const HeaderSearch = ({ tiles }: { tiles: TopMovingTile[] }) => {
         }}
         className="flex h-[3.1875rem] w-full items-center justify-between rounded-xl border-[0.5px] border-dark-200 bg-brand-blue-100 py-3 pr-2.5 pl-4 md:h-[3.625rem]"
       >
+        {/* 16px on phones: iOS Safari zooms the whole page when focusing anything smaller. */}
         <Input
           ref={input}
           type="search"
@@ -103,7 +104,7 @@ export const HeaderSearch = ({ tiles }: { tiles: TopMovingTile[] }) => {
             setTerm(event.target.value)
             setOpen(true)
           }}
-          className="min-w-0 flex-1 bg-transparent text-body3 text-dark-500 outline-none placeholder:text-dark-400 md:text-body1"
+          className="min-w-0 flex-1 bg-transparent text-body2 text-dark-500 outline-none placeholder:text-dark-400 md:text-body1"
         />
         <button
           type="submit"
@@ -116,7 +117,7 @@ export const HeaderSearch = ({ tiles }: { tiles: TopMovingTile[] }) => {
 
       {open && hasPanel && (
         // The design sizes this for desktop, where it never gets near the cap.
-        // On a phone the tiles stack one per row and would otherwise run off
+        // On a phone a long list of recents and tiles would otherwise run off
         // the bottom of the screen with nothing to show more is there.
         <div className="absolute inset-x-0 top-full z-50 mt-2 max-h-[70vh] overflow-y-auto">
           {typing ? (

@@ -7,7 +7,7 @@ import { stateName } from '@/lib/indian-states'
 import { displayPhone } from '@/lib/phone'
 import { mediaOf } from '@/lib/storefront/content'
 import { loadPricing, PLACEHOLDER_IMAGE } from '@/lib/storefront/products'
-import type { Address, Customer, Product } from '@/payload-types'
+import type { Address, Customer, Order, Product } from '@/payload-types'
 
 /**
  * Reads for the account pages. Every query is scoped to the customer passed
@@ -147,6 +147,9 @@ const STEP_REACHED: Partial<Record<OrderStatus, number>> = {
   DELIVERED: 3,
 }
 
+/** Index into ORDER_STEPS of the last step reached; -1 for cancelled or returned. */
+export const orderStep = (status: OrderStatus): number => STEP_REACHED[status] ?? -1
+
 const ACTIVE: OrderStatus[] = ['CONFIRMED', 'PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY']
 const PAST: OrderStatus[] = ['DELIVERED', 'CANCELLED', 'RETURNED']
 
@@ -156,6 +159,8 @@ export type OrderLine = {
   status: OrderStatus
   placedAt: string
   shippedAt: string | null
+  trackingCarrier: string | null
+  trackingNumber: string | null
   /** Index into ORDER_STEPS of the last step reached; -1 for cancelled or returned. */
   step: number
   name: string
@@ -202,7 +207,9 @@ export const getOrderLines = async (
         status: order.status,
         placedAt: order.placedAt,
         shippedAt: order.shippedAt ?? null,
-        step: STEP_REACHED[order.status] ?? -1,
+        trackingCarrier: order.trackingCarrier ?? null,
+        trackingNumber: order.trackingNumber ?? null,
+        step: orderStep(order.status),
         name: item.productName,
         subtitle: product?.subtitle ?? null,
         href: product && product.status === 'ACTIVE' ? `/products/${product.slug}` : null,
@@ -213,4 +220,20 @@ export const getOrderLines = async (
       }
     }),
   )
+}
+
+/** One of the customer's own orders by number, or null when it isn't theirs. */
+export const getCustomerOrder = async (
+  payload: Payload,
+  customerId: number,
+  orderNumber: string,
+): Promise<Order | null> => {
+  const { docs } = await payload.find({
+    collection: 'orders',
+    where: { and: [{ orderNumber: { equals: orderNumber } }, { customer: { equals: customerId } }] },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+  return docs[0] ?? null
 }

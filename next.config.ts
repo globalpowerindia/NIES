@@ -16,14 +16,16 @@ const r2Host = process.env.R2_PUBLIC_URL ? new URL(process.env.R2_PUBLIC_URL) : 
 const r2Origin = r2Host?.origin ?? ''
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline' https://checkout.razorpay.com${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''}`,
+  // challenges.cloudflare.com: the Turnstile check on sign-in, once its keys are set.
+  `script-src 'self' 'unsafe-inline' https://checkout.razorpay.com https://challenges.cloudflare.com${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com",
   `img-src 'self' data: blob: https://i.ytimg.com https://*.razorpay.com ${r2Origin}`,
   `media-src 'self' blob: ${r2Origin}`,
   // Razorpay's payment window is an iframe from api.razorpay.com.
-  'frame-src https://www.youtube-nocookie.com https://www.youtube.com https://api.razorpay.com https://checkout.razorpay.com',
-  "connect-src 'self' https://*.r2.cloudflarestorage.com https://api.razorpay.com https://lumberjack.razorpay.com",
+  'frame-src https://www.youtube-nocookie.com https://www.youtube.com https://api.razorpay.com https://checkout.razorpay.com https://challenges.cloudflare.com',
+  // *.sentry.io: browser error reports, once NEXT_PUBLIC_SENTRY_DSN is set.
+  "connect-src 'self' https://*.r2.cloudflarestorage.com https://api.razorpay.com https://lumberjack.razorpay.com https://*.sentry.io",
   "form-action 'self' https://accounts.google.com",
   "frame-ancestors 'self'",
   "base-uri 'self'",
@@ -33,6 +35,9 @@ const csp = [
 const nextConfig: NextConfig = {
   output: 'standalone',
   poweredByHeader: false,
+  // Two root layouts (storefront and admin), so an unmatched URL needs
+  // app/global-not-found.tsx to get a storefront-styled 404.
+  experimental: { globalNotFound: true },
   async headers() {
     return [{ source: '/:path*', headers: [
       { key: 'Content-Security-Policy-Report-Only', value: csp },

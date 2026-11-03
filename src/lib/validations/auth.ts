@@ -26,9 +26,17 @@ const codeSchema = z
  */
 const purposeSchema = z.enum(['signin', 'link']).default('signin')
 
+/** Cloudflare Turnstile's token, required only while Turnstile is configured. */
+const captchaSchema = z.string().max(2048).optional()
+
 export const otpRequestSchema = z.discriminatedUnion('channel', [
-  z.object({ channel: z.literal('sms'), destination: phoneSchema, purpose: purposeSchema }),
-  z.object({ channel: z.literal('email'), destination: emailSchema, purpose: z.literal('signin').default('signin') }),
+  z.object({ channel: z.literal('sms'), destination: phoneSchema, purpose: purposeSchema, captchaToken: captchaSchema }),
+  z.object({
+    channel: z.literal('email'),
+    destination: emailSchema,
+    purpose: z.literal('signin').default('signin'),
+    captchaToken: captchaSchema,
+  }),
 ])
 
 export const otpVerifySchema = z.discriminatedUnion('channel', [

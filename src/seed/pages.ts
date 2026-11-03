@@ -1,6 +1,7 @@
 import { getPayload } from 'payload'
 
 import config from '../payload.config.js'
+import { refuseOnProduction } from './guard.js'
 
 /**
  * First drafts of the storefront's content pages: About Us, Contact Us and
@@ -197,6 +198,8 @@ const PAGES: { slug: string; title: string; metaDescription: string; content: Bl
 ]
 
 const run = async () => {
+  // The pages go live with their [placeholders] showing.
+  refuseOnProduction('seed:pages', { overridable: true })
   const payload = await getPayload({ config })
   for (const page of PAGES) {
     const existing = await payload.count({ collection: 'pages', where: { slug: { equals: page.slug } }, overrideAccess: true })

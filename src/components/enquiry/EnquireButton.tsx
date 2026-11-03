@@ -16,6 +16,18 @@ export const EnquiryProvider = ({ whatsapp, children }: { whatsapp: string | nul
   <WhatsAppNumber.Provider value={whatsapp}>{children}</WhatsAppNumber.Provider>
 )
 
+/** Feeds the count on the product page. Best effort: it must never get in the way of the chat. */
+const countEnquiry = (href: string) => {
+  const slug = href.match(/^\/products\/([^/?#]+)/)?.[1]
+  if (!slug) return
+  void fetch('/api/product-enquiries', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ slug }),
+    keepalive: true,
+  }).catch(() => {})
+}
+
 type Props = {
   productName: string
   /** The product page path, so staff can see exactly what was asked about. */
@@ -33,6 +45,7 @@ export const EnquireButton = ({ productName, href, className, compact = false }:
     const url = new URL(href, window.location.origin).toString()
     const text = `Hi, I'd like to know the price and availability of ${productName}.\n${url}`
     window.open(`https://wa.me/${whatsapp}?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer')
+    countEnquiry(href)
   }
 
   return (

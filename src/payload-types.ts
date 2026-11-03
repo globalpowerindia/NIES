@@ -2640,6 +2640,23 @@ export interface CheckoutSetting {
    * Enter each variant’s weight (Products → variant → Weight) so customers are charged correctly.
    */
   defaultWeightKg: number;
+  /**
+   * Printed on every GST invoice. Customers can download invoices once the legal name, GSTIN and address are filled in.
+   */
+  invoice?: {
+    legalName?: string | null;
+    /**
+     * Must be a Kerala (32) registration: tax is split as if the shop is in Kerala.
+     */
+    gstin?: string | null;
+    address?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    /**
+     * Optional, e.g. warranty or returns terms.
+     */
+    footer?: string | null;
+  };
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -3008,6 +3025,16 @@ export interface CheckoutSettingsSelect<T extends boolean = true> {
   extraPerKgWithinStatePaise?: T;
   extraPerKgOtherStatesPaise?: T;
   defaultWeightKg?: T;
+  invoice?:
+    | T
+    | {
+        legalName?: T;
+        gstin?: T;
+        address?: T;
+        phone?: T;
+        email?: T;
+        footer?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

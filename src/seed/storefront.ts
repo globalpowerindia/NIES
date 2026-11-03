@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url'
 import { toSlug } from '../fields/slug.js'
 import config from '../payload.config.js'
 import { BRANDS, trimmedLogo, trimmedLogoName } from './brand-logos.js'
+import { refuseOnProduction } from './guard.js'
 
 /**
  * Fills an empty database with the catalogue, stock, homepage and header /
@@ -280,8 +281,10 @@ const PRODUCTS: ProductSeed[] = [
 ]
 
 const run = async () => {
+  // Demo products and the Figma homepage would mix into the live catalogue.
+  refuseOnProduction('seed:storefront', { overridable: true })
   const payload = await getPayload({ config })
-  const log = (message: string) => payload.logger.info(`[seed] ${message}`)
+  const log =(message: string) => payload.logger.info(`[seed] ${message}`)
 
   // Brands
   const brandIds = new Map<string, number>()

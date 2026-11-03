@@ -1,11 +1,13 @@
 'use client'
 
-import { Play, Rotate3d } from 'lucide-react'
+import { Play, Rotate3d, ZoomIn } from 'lucide-react'
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
-import { useState } from 'react'
+import { useRef, useState, type PointerEvent } from 'react'
 
+import { ProductImageViewer } from '@/components/product-page/ProductImageViewer'
 import { ProductSpin } from '@/components/product-page/ProductSpin'
+import { ShareButton } from '@/components/product-page/ShareButton'
 import { WishlistHeart } from '@/components/wishlist/WishlistHeart'
 import type { MediaInfo } from '@/lib/storefront/content'
 import type { GalleryVideo, ProductSpinData } from '@/lib/storefront/product-page'
@@ -14,6 +16,11 @@ import { cn } from '@/lib/utils'
 const ProductModel = dynamic(() => import('./ProductModel').then((module) => module.ProductModel), {
   ssr: false,
 })
+
+const GALLERY_SIZES = '(max-width: 1024px) 100vw, 682px'
+const IMAGE_CLASS =
+  'object-contain px-[min(13.8%,3.125rem)] pt-[2.125rem] pb-2 lg:p-[7.5%_7.5%_10%]'
+const HOVER_SCALE = 2.5
 
 type Item =
   | { kind: 'model'; url: string }
@@ -85,6 +92,81 @@ const Thumb = ({ item }: { item: Item }) => {
   )
 }
 
+/**
+ * The main photo: magnifies under a mouse in place, and opens the full-screen
+ * viewer on click or tap. Touch never magnifies here, so the page still scrolls.
+ */
+const HoverZoomImage = ({
+  image,
+  name,
+  onOpen,
+}: {
+  image: MediaInfo
+  name: string
+  onOpen: () => void
+}) => {
+  const layer = useRef<HTMLSpanElement>(null)
+  const [hovering, setHovering] = useState(false)
+  // Fetched on first hover: the page's own copy is too soft at this size.
+  const [wantsSharp, setWantsSharp] = useState(false)
+  const [sharpLoaded, setSharpLoaded] = useState(false)
+  const alt = image.alt || name
+
+  // Written straight to the element: the cursor moves too often to re-render for.
+  const follow = (event: PointerEvent<HTMLButtonElement>) => {
+    if (event.pointerType !== 'mouse' || !layer.current) return
+    const rect = event.currentTarget.getBoundingClientRect()
+    const x = ((event.clientX - rect.left) / rect.width) * 100
+    const y = ((event.clientY - rect.top) / rect.height) * 100
+    layer.current.style.transformOrigin = `${x}% ${y}%`
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      onPointerEnter={(event) => {
+        if (event.pointerType !== 'mouse') return
+        follow(event)
+        setHovering(true)
+        setWantsSharp(true)
+      }}
+      onPointerMove={follow}
+      onPointerLeave={() => setHovering(false)}
+      aria-label={`Zoom in on ${alt}`}
+      className="absolute inset-0 block cursor-zoom-in focus-visible:ring-2 focus-visible:ring-brand-blue-500 focus-visible:ring-inset focus-visible:outline-none"
+    >
+      <span
+        ref={layer}
+        className="absolute inset-0 block"
+        style={{ transform: hovering ? `scale(${HOVER_SCALE})` : undefined }}
+      >
+        <Image
+          src={image.url}
+          alt={alt}
+          fill
+          preload
+          sizes={GALLERY_SIZES}
+          className={IMAGE_CLASS}
+        />
+        {wantsSharp && (
+          <Image
+            src={image.url}
+            alt=""
+            fill
+            sizes="1800px"
+            onLoad={() => setSharpLoaded(true)}
+            className={cn(IMAGE_CLASS, !sharpLoaded && 'opacity-0')}
+          />
+        )}
+      </span>
+      <span className="absolute bottom-3 left-3 grid size-9 place-items-center rounded-full bg-light-100/90 text-dark-500 shadow-sm lg:bottom-5 lg:left-5 lg:size-11">
+        <ZoomIn className="size-4 lg:size-5" aria-hidden />
+      </span>
+    </button>
+  )
+}
+
 /** Thumbnails down the left, the selected image or video large on the right. */
 export const ProductGallery = ({
   productId,
@@ -93,6 +175,7 @@ export const ProductGallery = ({
   spin = null,
   modelUrl = null,
   name,
+  description,
 }: {
   productId: number
   images: MediaInfo[]
@@ -100,6 +183,7 @@ export const ProductGallery = ({
   spin?: ProductSpinData | null
   modelUrl?: string | null
   name: string
+  description: string
 }) => {
   const imageItems: Item[] = images.map((image) => ({ kind: 'image' as const, image }))
   // Right after the main photo, where it's seen before scrolling the thumbnails.
@@ -112,6 +196,7 @@ export const ProductGallery = ({
   ]
   const [active, setActive] = useState(0)
   const current = items[active] ?? items[0]
+  const [viewing, setViewing] = useState<number | null>(null)
 
   return (
     <div className="flex flex-col-reverse gap-[0.8125rem] lg:flex-row lg:gap-4">
@@ -166,13 +251,11 @@ export const ProductGallery = ({
             No product image available
           </span>
         ) : current.kind === 'image' ? (
-          <Image
-            src={current.image.url}
-            alt={current.image.alt || name}
-            fill
-            priority
-            sizes="(max-width: 1024px) 100vw, 682px"
-            className="object-contain px-[min(13.8%,3.125rem)] pt-[2.125rem] pb-2 lg:p-[7.5%_7.5%_10%]"
+          <HoverZoomImage
+            key={current.image.url}
+            image={current.image}
+            name={name}
+            onOpen={() => setViewing(images.indexOf(current.image))}
           />
         ) : current.kind === 'model' ? (
           <ProductModel key={current.url} src={current.url} name={name} />
@@ -202,15 +285,34 @@ export const ProductGallery = ({
           </video>
         )}
         {(current?.kind === 'image' || current?.kind === 'spin' || current?.kind === 'model') && (
-          <WishlistHeart
-            productId={productId}
-            label={name}
-            className="absolute top-3 right-3 lg:top-5 lg:right-5"
-            iconClassName="size-5 lg:size-[2.8125rem]"
-            strokeWidth={1.25}
-          />
+          <div className="absolute top-3 right-3 flex items-center gap-3 lg:top-5 lg:right-5 lg:gap-4">
+            <ShareButton
+              name={name}
+              description={description}
+              iconClassName="size-5 lg:size-[2.8125rem]"
+              strokeWidth={1.25}
+            />
+            <WishlistHeart
+              productId={productId}
+              label={name}
+              iconClassName="size-5 lg:size-[2.8125rem]"
+              strokeWidth={1.25}
+            />
+          </div>
         )}
       </div>
+
+      {viewing !== null && (
+        <ProductImageViewer
+          images={images}
+          name={name}
+          startIndex={viewing}
+          onClose={(index) => {
+            setViewing(null)
+            setActive(items.findIndex((item) => item.kind === 'image' && item.image === images[index]))
+          }}
+        />
+      )}
     </div>
   )
 }

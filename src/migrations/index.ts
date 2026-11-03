@@ -15,6 +15,8 @@ import * as migration_20261023_065728_product_360_view from './20261023_065728_p
 import * as migration_20261023_084941_product_3d_model from './20261023_084941_product_3d_model';
 import * as migration_20261026_084712_product_drafts from './20261026_084712_product_drafts';
 import * as migration_20261027_091528_collection_showcase_video from './20261027_091528_collection_showcase_video';
+import * as migration_20261028_092431_invoice_seller_details from './20261028_092431_invoice_seller_details';
+import * as migration_20261103_061727_product_enquiries from './20261103_061727_product_enquiries';
 
 export const migrations = [
   {
@@ -100,6 +102,16 @@ export const migrations = [
   {
     up: migration_20261027_091528_collection_showcase_video.up,
     down: migration_20261027_091528_collection_showcase_video.down,
-    name: '20261027_091528_collection_showcase_video'
+    name: '20261027_091528_collection_showcase_video',
+  },
+  {
+    up: migration_20261028_092431_invoice_seller_details.up,
+    down: migration_20261028_092431_invoice_seller_details.down,
+    name: '20261028_092431_invoice_seller_details',
+  },
+  {
+    up: migration_20261103_061727_product_enquiries.up,
+    down: migration_20261103_061727_product_enquiries.down,
+    name: '20261103_061727_product_enquiries'
   },
 ];

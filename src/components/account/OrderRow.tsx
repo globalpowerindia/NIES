@@ -20,11 +20,23 @@ const shortDate = (iso: string | null) => {
   return `${part('day')} ${part('month')}`
 }
 
-const ENDED: Record<string, string> = { CANCELLED: 'Cancelled', RETURNED: 'Returned' }
+export const ENDED: Record<string, string> = { CANCELLED: 'Cancelled', RETURNED: 'Returned' }
+
+/** "Courier: Delhivery · Tracking no. 1234", once staff have entered either. */
+export const TrackingLine = ({ carrier, number }: { carrier: string | null; number: string | null }) =>
+  carrier || number ? (
+    <p className="text-body3 text-dark-400 sm:text-label1">
+      {carrier && <>Courier: <span className="font-medium text-dark-500">{carrier}</span></>}
+      {carrier && number && <span aria-hidden> · </span>}
+      {number && <>Tracking no. <span className="font-medium text-dark-500 select-all">{number}</span></>}
+    </p>
+  ) : null
+
+type TrackerProps = Pick<OrderLine, 'step' | 'placedAt' | 'shippedAt'>
 
 /** Placed → Shipped → Out for Delivery → Delivered, green up to where the order has got. */
-const Tracker = ({ line }: { line: OrderLine }) => {
-  const dates = [shortDate(line.placedAt), shortDate(line.shippedAt), null, null]
+export const OrderTracker = ({ step, placedAt, shippedAt }: TrackerProps) => {
+  const dates = [shortDate(placedAt), shortDate(shippedAt), null, null]
   return (
     <ol className="relative flex justify-between gap-2">
       {/* One dashed rule behind the circles stands in for the design's three segments. */}
@@ -33,12 +45,12 @@ const Tracker = ({ line }: { line: OrderLine }) => {
         className="absolute top-4 right-4 left-4 border-t sm:top-5 sm:right-5 sm:left-5 border-dashed border-light-600"
       />
       {ORDER_STEPS.map((label, index) => {
-        const reached = index <= line.step
+        const reached = index <= step
         const last = index === ORDER_STEPS.length - 1
         return (
           <li
             key={label}
-            aria-current={index === line.step ? 'step' : undefined}
+            aria-current={index === step ? 'step' : undefined}
             className={cn(
               'relative flex flex-col gap-3',
               last ? 'items-end text-right' : 'items-start',
@@ -113,14 +125,23 @@ export const OrderRow = ({ line }: { line: OrderLine }) => {
 
       <hr className="col-span-2 border-neutral-300 sm:col-span-1 sm:col-start-2" />
 
-      <div className="col-span-2 sm:col-span-1 sm:col-start-2">
+      <div className="col-span-2 flex flex-col gap-3 sm:col-span-1 sm:col-start-2">
         {line.step >= 0 ? (
-          <Tracker line={line} />
+          <OrderTracker step={line.step} placedAt={line.placedAt} shippedAt={line.shippedAt} />
         ) : (
           <p className="text-label1 font-medium text-brand-red-500">
             {ENDED[line.status] ?? line.status}
           </p>
         )}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+          {line.step >= 1 ? <TrackingLine carrier={line.trackingCarrier} number={line.trackingNumber} /> : <span />}
+          <Link
+            href={`/account/orders/${encodeURIComponent(line.orderNumber)}`}
+            className="text-body3 font-medium text-brand-blue-500 hover:underline sm:text-label1"
+          >
+            Order details
+          </Link>
+        </div>
       </div>
     </article>
   )

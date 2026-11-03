@@ -78,6 +78,20 @@ Avoid React Query/SWR (it would be a second cache beside Next's), Redux, and Con
 
 Prices, stock and totals always come from the server. Stores hold the server's last reply, never a computed copy.
 
+## Scheduled jobs
+
+`/api/cron/abandoned-carts` flags abandoned carts, clears expired sessions, sign-in codes and rate-limit counters, and cancels orders whose 30-minute payment window has passed, releasing their stock. It answers only to `Authorization: Bearer <CRON_SECRET>`, and is safe to call at any time and any number of times.
+
+- **Vercel Cron** calls it once a day (`vercel.json`). Hobby allows no more.
+- **cron-job.org** calls it every 15 minutes so unpaid orders give their stock back soon after the window closes. Free; set up once:
+  1. Create an account at cron-job.org → **Create cronjob**.
+  2. URL: `https://<production domain>/api/cron/abandoned-carts`. Schedule: every 15 minutes.
+  3. **Advanced → Headers**: add `Authorization` with the value `Bearer <CRON_SECRET>` (the same secret as on Vercel).
+  4. Turn on failure notifications, save, then **Test run**: it should answer `200` with `{"ok":true,...}`. A `401` means the header or secret is wrong.
+- **GitHub Actions → Scheduled jobs (manual)** runs it once on demand, as a backup. It needs the `SITE_URL` and `CRON_SECRET` repository secrets.
+
+On Vercel Pro, replace cron-job.org with a `*/15 * * * *` entry in `vercel.json`.
+
 ## Questions
 
 If you have any issues or questions, reach out to us on [Discord](https://discord.com/invite/payload) or start a [GitHub discussion](https://github.com/payloadcms/payload/discussions).

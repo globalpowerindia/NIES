@@ -4,6 +4,9 @@ import { can } from '@/access/permissions'
 import { allow, anyone } from '@/access/roles'
 import { paiseField } from '@/fields/paise'
 
+// Seller's state code first: checkout splits tax on the shop being in Kerala.
+const GSTIN = /^32[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/
+
 /**
  * Delivery charges by parcel weight. Read by checkout on every quote, so a
  * change here applies to the next order (orders already placed keep the fee
@@ -87,6 +90,45 @@ export const CheckoutSettings: GlobalConfig = {
         step: 0.1,
         description: 'Enter each variant’s weight (Products → variant → Weight) so customers are charged correctly.',
       },
+    },
+    {
+      name: 'invoice',
+      label: 'Tax invoice',
+      type: 'group',
+      admin: {
+        description:
+          'Printed on every GST invoice. Customers can download invoices once the legal name, GSTIN and address are filled in.',
+      },
+      fields: [
+        {
+          type: 'row',
+          fields: [
+            { name: 'legalName', label: 'Registered business name', type: 'text', admin: { width: '60%' } },
+            {
+              name: 'gstin',
+              label: 'GSTIN',
+              type: 'text',
+              admin: { width: '40%', description: 'Must be a Kerala (32) registration: tax is split as if the shop is in Kerala.' },
+              validate: (value: string | null | undefined) =>
+                !value || GSTIN.test(value) ? true : 'Enter a valid 15-character Kerala GSTIN, starting 32.',
+            },
+          ],
+        },
+        { name: 'address', label: 'Registered address', type: 'textarea', admin: { rows: 3 } },
+        {
+          type: 'row',
+          fields: [
+            { name: 'phone', type: 'text', admin: { width: '50%' } },
+            { name: 'email', type: 'email', admin: { width: '50%' } },
+          ],
+        },
+        {
+          name: 'footer',
+          label: 'Note at the foot of the invoice',
+          type: 'textarea',
+          admin: { rows: 2, description: 'Optional, e.g. warranty or returns terms.' },
+        },
+      ],
     },
   ],
 }

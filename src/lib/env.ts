@@ -30,6 +30,11 @@ const envSchema = z.object({
   EMAIL_FROM_NAME: z.string().min(1).optional(),
   // Where "new order" alerts go. Comma-separated; unset sends none.
   ORDER_ALERT_EMAILS: z.string().min(1).optional(),
+  // Error monitoring; see src/lib/monitoring.ts. Unset, nothing is sent.
+  NEXT_PUBLIC_SENTRY_DSN: z.url().optional(),
+  // Bot check before sending sign-in codes; see src/lib/turnstile.ts. Off unless both are set.
+  NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string().min(1).optional(),
+  TURNSTILE_SECRET_KEY: z.string().min(1).optional(),
 })
 
 const parsed = envSchema.safeParse(process.env)

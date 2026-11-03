@@ -1,3 +1,4 @@
+import { after } from 'next/server'
 import {
   APIError,
   type CollectionAfterChangeHook,
@@ -8,8 +9,10 @@ import {
 import { bulkOrderStatus } from '@/admin/endpoints/bulkOrderStatus'
 import { allow, isSuperAdmin } from '@/access/roles'
 import { paiseField } from '@/fields/paise'
-import { LOCKED_ORDER_FIELDS, staffCanMoveOrder } from '@/lib/order-rules'
+import { sendOrderStatusUpdate, sendRefundDueAlert } from '@/lib/order-emails'
+import { LOCKED_ORDER_FIELDS, staffCanMoveOrder, statusEmailFor } from '@/lib/order-rules'
 import { releaseOrderStock } from '@/lib/order-stock'
+import type { Order } from '@/payload-types'
 
 export const ORDER_STATUSES = [
   'PENDING_PAYMENT',
@@ -62,6 +65,10 @@ const enforceOrderRules: CollectionBeforeChangeHook = ({ data, originalDoc, oper
     throw new APIError(`An order can't go from "${label(from)}" to "${label(to)}".`, 400)
   }
   if (to === 'CANCELLED' && from !== 'CANCELLED') data.cancelReason = 'STAFF'
+  // The shipping email gives this date; the bulk action sets it, a single edit may not.
+  if (to === 'SHIPPED' && from !== 'SHIPPED' && !data.shippedAt && !originalDoc.shippedAt) {
+    data.shippedAt = new Date().toISOString()
+  }
   return data
 }
 
@@ -69,6 +76,35 @@ const enforceOrderRules: CollectionBeforeChangeHook = ({ data, originalDoc, oper
 const releaseUnpaidStock: CollectionAfterChangeHook = async ({ doc, previousDoc, operation, req }) => {
   if (operation === 'update' && previousDoc?.status === 'PENDING_PAYMENT' && doc.status === 'CANCELLED') {
     await releaseOrderStock(req, doc.id)
+  }
+  return doc
+}
+
+/**
+ * Emails the customer when their order moves on (see `statusEmailFor`), and
+ * the shop when a paid order now needs refunding. Sent after the response,
+ * so a save that rolls back sends nothing and the admin isn't kept waiting.
+ * Outside a Next request (scripts) there is no "after", so it sends inline.
+ */
+const emailStatusChange: CollectionAfterChangeHook<Order> = async ({ doc, previousDoc, operation, req }) => {
+  if (operation !== 'update' || !previousDoc) return doc
+  const kind = statusEmailFor(previousDoc.status, doc.status)
+  if (!kind) return doc
+
+  const send = async () => {
+    await sendOrderStatusUpdate(req.payload, doc, kind).catch((err) =>
+      req.payload.logger.error({ err, orderNumber: doc.orderNumber, kind }, 'Order status email failed'),
+    )
+    if (kind === 'CANCELLED' || kind === 'RETURNED') {
+      await sendRefundDueAlert(req.payload, doc, kind).catch((err) =>
+        req.payload.logger.error({ err, orderNumber: doc.orderNumber, kind }, 'Refund alert failed'),
+      )
+    }
+  }
+  try {
+    after(send)
+  } catch {
+    await send()
   }
   return doc
 }
@@ -92,7 +128,7 @@ export const Orders: CollectionConfig = {
     // Tax records: only a super admin, and never through the role grid.
     delete: isSuperAdmin,
   },
-  hooks: { beforeChange: [enforceOrderRules], afterChange: [releaseUnpaidStock] },
+  hooks: { beforeChange: [enforceOrderRules], afterChange: [releaseUnpaidStock, emailStatusChange] },
   endpoints: [{ path: '/bulk-status', method: 'post', handler: bulkOrderStatus }],
   fields: [
     {
@@ -126,6 +162,11 @@ export const Orders: CollectionConfig = {
       index: true,
       options: ORDER_STATUS_OPTIONS,
       admin: { position: 'sidebar' },
+    },
+    {
+      name: 'invoiceLink',
+      type: 'ui',
+      admin: { position: 'sidebar', components: { Field: '/admin/components/InvoiceLink#InvoiceLink' } },
     },
     {
       name: 'cancelReason',
