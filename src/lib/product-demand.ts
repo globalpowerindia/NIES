@@ -90,7 +90,7 @@ export const deleteOldEnquiries = async (payload: Payload): Promise<void> => {
   await payload.db.drizzle.execute(sql`DELETE FROM product_enquiries WHERE created_at < now() - interval '8 days'`)
 }
 
-export type ProductActivity = { views7Days: number; views30Days: number; sold30Days: number; soldAllTime: number }
+export type ProductActivity = { views7Days: number; views30Days: number; sold24Hours: number; sold30Days: number; soldAllTime: number }
 
 /** Views and online sales for one page of the admin's product list. One query each, however long the page. */
 export const loadProductActivity = async (payload: Payload, productIds: number[]): Promise<Map<number, ProductActivity>> => {
@@ -108,6 +108,7 @@ export const loadProductActivity = async (payload: Payload, productIds: number[]
     `),
     payload.db.drizzle.execute(sql`
       SELECT i.product_id,
+        COALESCE(SUM(i.quantity) FILTER (WHERE o.placed_at >= now() - interval '24 hours'), 0) AS sold_24,
         COALESCE(SUM(i.quantity) FILTER (WHERE o.placed_at >= now() - interval '30 days'), 0) AS sold_30,
         COALESCE(SUM(i.quantity), 0) AS sold_all
       FROM orders_items i JOIN orders o ON o.id = i._parent_id
@@ -118,7 +119,7 @@ export const loadProductActivity = async (payload: Payload, productIds: number[]
   const entry = (id: number) => {
     const existing = activity.get(id)
     if (existing) return existing
-    const fresh = { views7Days: 0, views30Days: 0, sold30Days: 0, soldAllTime: 0 }
+    const fresh = { views7Days: 0, views30Days: 0, sold24Hours: 0, sold30Days: 0, soldAllTime: 0 }
     activity.set(id, fresh)
     return fresh
   }
@@ -126,7 +127,7 @@ export const loadProductActivity = async (payload: Payload, productIds: number[]
     Object.assign(entry(Number(row.product_id)), { views7Days: Number(row.views_7), views30Days: Number(row.views_30) })
   }
   for (const row of sold.rows as Record<string, unknown>[]) {
-    Object.assign(entry(Number(row.product_id)), { sold30Days: Number(row.sold_30), soldAllTime: Number(row.sold_all) })
+    Object.assign(entry(Number(row.product_id)), { sold24Hours: Number(row.sold_24), sold30Days: Number(row.sold_30), soldAllTime: Number(row.sold_all) })
   }
   return activity
 }

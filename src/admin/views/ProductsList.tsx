@@ -134,7 +134,7 @@ export const ProductsList = async ({ payload, searchParams }: ListViewServerProp
         {
           t: 'text',
           v: countFmt.format(counts?.sold30Days ?? 0),
-          sub: `${countFmt.format((counts?.soldAllTime ?? 0) + pastUnits)} all time${pastUnits ? ` (${countFmt.format(pastUnits)} past)` : ''}`,
+          sub: `${countFmt.format(counts?.sold24Hours ?? 0)} in 24 hours · ${countFmt.format((counts?.soldAllTime ?? 0) + pastUnits)} all time${pastUnits ? ` (${countFmt.format(pastUnits)} past)` : ''}`,
         },
         { t: 'text', v: product.hsnCode, sub: `${(product.gstRateBps / 100).toFixed(0)}% GST` },
         {
@@ -187,7 +187,7 @@ export const ProductsList = async ({ payload, searchParams }: ListViewServerProp
         { header: 'Price', align: 'right', width: 110 },
         { header: 'Stock', width: 190 },
         { header: 'Views (7 days)', width: 120 },
-        { header: 'Sold (30 days)', width: 170 },
+        { header: 'Sold (30 days)', width: 210 },
         { header: 'Tax', width: 110 },
         { header: 'Status', width: 240 },
         { header: 'Updated', width: 140 },
