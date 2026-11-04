@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { demandLine } from './demand-line'
+import { demandLine, viewersLine } from './demand-line'
 
 const sold = (last24Hours: number, last7Days: number, last30Days: number, viewsLast7Days = 0) =>
   demandLine({ kind: 'sold', last24Hours, last7Days, last30Days, allTime: last30Days, viewsLast7Days })
@@ -72,5 +72,17 @@ describe('the demand line on a product page', () => {
     it('still prefers a busy last day', () => {
       expect(demandLine({ kind: 'sold', last24Hours: 6, last7Days: 6, last30Days: 6, allTime: 6, viewsLast7Days: 0, past: { units: 500, since: 2018 } })).toBe('6 sold in the last 24 hours')
     })
+  })
+})
+
+describe('the live line on a product page', () => {
+  it('shows nothing when the shopper is alone', () => {
+    expect(viewersLine(0)).toBeNull()
+    expect(viewersLine(1)).toBeNull()
+  })
+
+  it('shows the exact count from two viewers up', () => {
+    expect(viewersLine(2)).toBe('2 people viewing this now')
+    expect(viewersLine(17)).toBe('17 people viewing this now')
   })
 })

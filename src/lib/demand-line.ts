@@ -45,3 +45,10 @@ export const demandLine = (counts: DemandCounts): string | null => {
   }
   return counts.viewsLast7Days >= DEMAND_MINIMUM ? `${roundedDown(counts.viewsLast7Days)} views in the last 7 days` : null
 }
+
+/**
+ * The live line on a product page, or null when the shopper is alone here. A real
+ * count, never padded or randomised: see the note on {@link demandLine}.
+ */
+export const viewersLine = (viewers: number): string | null =>
+  viewers >= 2 ? `${viewers} people viewing this now` : null

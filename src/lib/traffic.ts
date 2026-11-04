@@ -83,9 +83,44 @@ export const productViewCount = async (payload: Payload, productId: number): Pro
   return num(rows[0]?.total)
 }
 
+/** Different visitors with this product open in the last 5 minutes. */
+export const productViewersNow = async (payload: Payload, productId: number): Promise<number> => {
+  const rows = await rowsOf(payload, sql`
+    SELECT COUNT(DISTINCT visitor_key) AS total FROM page_views
+    WHERE product_id = ${productId} AND created_at >= now() - interval '5 minutes'
+  `)
+  return num(rows[0]?.total)
+}
+
 /** Housekeeping for the scheduled job. Enough for the 90-day range and the 90 days it compares with. */
 export const deleteOldPageViews = async (payload: Payload): Promise<void> => {
   await payload.db.drizzle.execute(sql`DELETE FROM page_views WHERE created_at < now() - interval '190 days'`)
+}
+
+export type LiveVisitors = { visitors: number; pages: { path: string; visitors: number }[] }
+
+/**
+ * Who has opened a page in the last 5 minutes. There is no connection held open
+ * per shopper: someone reading one page for longer drops out until their next
+ * click, so this slightly undercounts. Reads the index on created_at only.
+ */
+export const loadLiveVisitors = async (payload: Payload): Promise<LiveVisitors> => {
+  const recent = sql`v.created_at >= now() - interval '5 minutes'`
+  const [total, pages] = await Promise.all([
+    rowsOf(payload, sql`SELECT COUNT(DISTINCT v.visitor_key) AS visitors FROM page_views v WHERE ${recent}`),
+    rowsOf(payload, sql`
+      SELECT v.path, COUNT(DISTINCT v.visitor_key) AS visitors
+      FROM page_views v
+      WHERE ${recent}
+      GROUP BY 1
+      ORDER BY visitors DESC, v.path ASC
+      LIMIT 5
+    `),
+  ])
+  return {
+    visitors: num(total[0]?.visitors),
+    pages: pages.map((row) => ({ path: String(row.path), visitors: num(row.visitors) })),
+  }
 }
 
 export type TrafficPoint = { key: string; views: number; visitors: number }

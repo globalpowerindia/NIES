@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { AdminViewServerProps, Payload } from 'payload'
 
 import { can } from '@/access/permissions'
+import { LiveVisitors } from '@/admin/components/dashboard/LiveVisitors'
 import { TrendChart } from '@/admin/components/dashboard/TrendChart'
 import { ORDER_STATUS_OPTIONS } from '@/collections/Orders'
 import {
@@ -17,7 +18,7 @@ import {
   type Range,
 } from '@/lib/analytics'
 import { formatCurrency } from '@/lib/money'
-import { loadTrafficAnalytics, type TrafficData } from '@/lib/traffic'
+import { loadLiveVisitors, loadTrafficAnalytics, type LiveVisitors as LiveData, type TrafficData } from '@/lib/traffic'
 
 const STATUS_LABEL = new Map<string, string>(ORDER_STATUS_OPTIONS.map((option) => [option.value, option.label]))
 const percent = new Intl.NumberFormat('en-IN', { style: 'percent', maximumFractionDigits: 0 })
@@ -197,7 +198,7 @@ const DEVICE_LABEL: Record<string, string> = { phone: 'Phone', tablet: 'Tablet',
 const countBars = (rows: { name: string; visitors: number }[]) =>
   rows.map((row) => ({ label: row.name, value: row.visitors, display: count.format(row.visitors) }))
 
-const Traffic = ({ data, sales }: { data: TrafficData; sales: DashboardData }) => {
+const Traffic = ({ data, live, sales }: { data: TrafficData; live: LiveData; sales: DashboardData }) => {
   const { current, previous, journey } = data
   const { range } = sales
   const label = RANGES[range.key].label
@@ -213,6 +214,8 @@ const Traffic = ({ data, sales }: { data: TrafficData; sales: DashboardData }) =
           {range.key === '12m' ? ', so this range never shows a full year.' : '.'}
         </p>
       </div>
+
+      <LiveVisitors initial={live} />
 
       <div className="gpd__kpis">
         <div className="gpd__kpi">
@@ -323,7 +326,8 @@ const Traffic = ({ data, sales }: { data: TrafficData; sales: DashboardData }) =
 /** The traffic panels are extra: failing to read them must not take away the sales figures. */
 const loadTraffic = async (payload: Payload, range: Range) => {
   try {
-    return await loadTrafficAnalytics(payload, range)
+    const [data, live] = await Promise.all([loadTrafficAnalytics(payload, range), loadLiveVisitors(payload)])
+    return { data, live }
   } catch (err) {
     payload.logger.error({ err }, 'Could not load traffic analytics')
     return null
@@ -403,6 +407,17 @@ export const Dashboard = async ({ initPageResult, searchParams }: AdminViewServe
         .gpd__section { margin-top:12px; }
         .gpd__section h2 { font-size:18px; font-weight:600; margin:0; letter-spacing:-0.01em; }
         .gpd__section p { margin:2px 0 0; font-size:13px; color:var(--theme-elevation-500); }
+        .gpd__live { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px 32px; }
+        .gpd__live > div { display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; font-size:14px; }
+        .gpd__live > div b { font-size:24px; font-weight:600; line-height:1.2; font-variant-numeric:tabular-nums; }
+        .gpd__live small { flex-basis:100%; font-size:12px; color:var(--theme-elevation-500); }
+        .gpd__livedot { width:10px; height:10px; border-radius:50%; background:var(--up); animation:gpd-live 2s ease-in-out infinite; }
+        @keyframes gpd-live { 50% { opacity:.35 } }
+        @media (prefers-reduced-motion: reduce) { .gpd__livedot { animation:none } }
+        .gpd__live ul { list-style:none; margin:0; padding:0; flex:1 1 280px; max-width:520px; display:flex; flex-direction:column; gap:4px; font-size:13px; }
+        .gpd__live li { display:flex; justify-content:space-between; gap:12px; }
+        .gpd__live li span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--theme-elevation-700); }
+        .gpd__live li b { font-weight:500; font-variant-numeric:tabular-nums; }
         .gpd__note { padding:16px; border:1px dashed var(--theme-border-color); border-radius:var(--style-radius-m);
           color:var(--theme-elevation-600); font-size:13.5px; }
         @media (max-width:760px) { .gpd__head h1 { font-size:20px } .gpd__ranges { margin-left:0 } .gpd__kpi b { font-size:20px } }
@@ -429,7 +444,7 @@ export const Dashboard = async ({ initPageResult, searchParams }: AdminViewServe
       </div>
 
       {sales && <Sales data={sales} />}
-      {sales && traffic && <Traffic data={traffic} sales={sales} />}
+      {sales && traffic && <Traffic data={traffic.data} live={traffic.live} sales={sales} />}
 
       {(orders || stock) && (
         <div className="gpd__cols">
