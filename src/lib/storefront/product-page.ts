@@ -111,6 +111,7 @@ export type ReviewCard = {
   body?: string | null
   verifiedPurchase: boolean
   date: string
+  photos: MediaInfo[]
 }
 
 const COMPARE_LIMIT = 6
@@ -147,7 +148,7 @@ const loadProductPage = async (slug: string, variantSku?: string) => {
       where: { and: [{ product: { equals: product.id } }, { status: { equals: 'APPROVED' } }] },
       sort: '-createdAt',
       limit: 8,
-      depth: 0,
+      depth: 1,
     }),
     payload.find({
       collection: 'reviews',
@@ -238,6 +239,7 @@ const loadProductPage = async (slug: string, variantSku?: string) => {
       body: review.body,
       verifiedPurchase: Boolean(review.verifiedPurchase),
       date: review.createdAt,
+      photos: (review.photos ?? []).map(mediaOf).filter((photo): photo is MediaInfo => photo !== null),
     })),
     accessories: (product.freeAccessories ?? []).map((item) => ({
       name: item.name,

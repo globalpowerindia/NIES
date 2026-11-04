@@ -1,8 +1,9 @@
 import Link from 'next/link'
-import type { AdminViewServerProps } from 'payload'
+import type { AdminViewServerProps, Payload } from 'payload'
 
 import { can } from '@/access/permissions'
-import { RevenueChart } from '@/admin/components/dashboard/RevenueChart'
+import { LiveVisitors } from '@/admin/components/dashboard/LiveVisitors'
+import { TrendChart } from '@/admin/components/dashboard/TrendChart'
 import { ORDER_STATUS_OPTIONS } from '@/collections/Orders'
 import {
   change,
@@ -14,8 +15,10 @@ import {
   RANGES,
   resolveRange,
   type DashboardData,
+  type Range,
 } from '@/lib/analytics'
 import { formatCurrency } from '@/lib/money'
+import { loadLiveVisitors, loadTrafficAnalytics, type LiveVisitors as LiveData, type TrafficData } from '@/lib/traffic'
 
 const STATUS_LABEL = new Map<string, string>(ORDER_STATUS_OPTIONS.map((option) => [option.value, option.label]))
 const percent = new Intl.NumberFormat('en-IN', { style: 'percent', maximumFractionDigits: 0 })
@@ -105,7 +108,13 @@ const Sales = ({ data }: { data: DashboardData }) => {
           <h2>Revenue</h2>
           <p>Paid orders, GST included, by {range.bucket === 'month' ? 'month' : 'day'} (IST). Cancelled and returned orders are left out.</p>
         </header>
-        <RevenueChart series={data.series} bucket={range.bucket} />
+        <TrendChart
+          series={data.series.map((point) => ({ key: point.key, value: point.revenuePaise, note: point.orders }))}
+          bucket={range.bucket}
+          unit="paise"
+          label="Revenue"
+          note={['order', 'orders']}
+        />
       </section>
 
       <div className="gpd__cols">
@@ -184,6 +193,147 @@ const Sales = ({ data }: { data: DashboardData }) => {
   )
 }
 
+const DEVICE_LABEL: Record<string, string> = { phone: 'Phone', tablet: 'Tablet', desktop: 'Desktop' }
+
+const countBars = (rows: { name: string; visitors: number }[]) =>
+  rows.map((row) => ({ label: row.name, value: row.visitors, display: count.format(row.visitors) }))
+
+const Traffic = ({ data, live, sales }: { data: TrafficData; live: LiveData; sales: DashboardData }) => {
+  const { current, previous, journey } = data
+  const { range } = sales
+  const label = RANGES[range.key].label
+  const orders = sales.current.orders
+  const conversion = current.visitors ? orders / current.visitors : 0
+
+  return (
+    <>
+      <div className="gpd__section">
+        <h2>Traffic</h2>
+        <p>
+          Someone returning on another day counts as a new visitor. Visits are kept for about 6 months
+          {range.key === '12m' ? ', so this range never shows a full year.' : '.'}
+        </p>
+      </div>
+
+      <LiveVisitors initial={live} />
+
+      <div className="gpd__kpis">
+        <div className="gpd__kpi">
+          <span>Visitors</span>
+          <b>{count.format(current.visitors)}</b>
+          <Delta current={current.visitors} previous={previous.visitors} label={label} none="No visitors" />
+        </div>
+        <div className="gpd__kpi">
+          <span>Page views</span>
+          <b>{count.format(current.views)}</b>
+          <Delta current={current.views} previous={previous.views} label={label} none="No page views" />
+        </div>
+        <div className="gpd__kpi">
+          <span>Visitors who ordered</span>
+          <b>{new Intl.NumberFormat('en-IN', { style: 'percent', maximumFractionDigits: 1 }).format(conversion)}</b>
+          <span className="gpd__delta">
+            {count.format(orders)} paid {orders === 1 ? 'order' : 'orders'}
+          </span>
+        </div>
+      </div>
+
+      <section className="gpd__panel">
+        <header>
+          <h2>Visitors</h2>
+          <p>By {range.bucket === 'month' ? 'month' : 'day'} (IST)</p>
+        </header>
+        <TrendChart
+          series={data.series.map((point) => ({ key: point.key, value: point.visitors, note: point.views }))}
+          bucket={range.bucket}
+          unit="count"
+          label="Visitors"
+          note={['page view', 'page views']}
+        />
+      </section>
+
+      <div className="gpd__cols">
+        <section className="gpd__panel">
+          <header>
+            <h2>Visitor journey</h2>
+            <p>How far visitors got towards buying</p>
+          </header>
+          <BarList
+            empty="No visitors in this period."
+            rows={
+              current.visitors
+                ? [
+                    { label: 'Visited the shop', value: current.visitors, display: count.format(current.visitors) },
+                    { label: 'Viewed a product', value: journey.products, display: count.format(journey.products) },
+                    { label: 'Opened the cart', value: journey.cart, display: count.format(journey.cart) },
+                    { label: 'Reached checkout', value: journey.checkout, display: count.format(journey.checkout) },
+                    { label: 'Paid orders', value: orders, display: count.format(orders) },
+                  ]
+                : []
+            }
+          />
+        </section>
+
+        <section className="gpd__panel">
+          <header>
+            <h2>Where visitors came from</h2>
+            <p>Direct means a typed address, a bookmark or an app with no link details</p>
+          </header>
+          <BarList empty="No visitors in this period." rows={countBars(data.sources.slice(0, 8))} />
+        </section>
+
+        <section className="gpd__panel">
+          <header>
+            <h2>Most viewed products</h2>
+            <p>By page views</p>
+          </header>
+          <BarList
+            empty="No product views in this period."
+            rows={data.topProducts.map((product) => ({
+              label: product.name,
+              value: product.views,
+              display: count.format(product.views),
+              href: `/admin/collections/products/${product.productId}`,
+            }))}
+          />
+        </section>
+
+        <section className="gpd__panel">
+          <header>
+            <h2>Most viewed pages</h2>
+            <p>By page views</p>
+          </header>
+          <BarList
+            empty="No page views in this period."
+            rows={data.topPages.map((page) => ({ label: page.path, value: page.views, display: count.format(page.views) }))}
+          />
+        </section>
+
+        <section className="gpd__panel">
+          <header>
+            <h2>Devices</h2>
+            <p>Visitors on each</p>
+          </header>
+          <BarList
+            empty="No visitors in this period."
+            rows={countBars(data.devices.map((row) => ({ ...row, name: DEVICE_LABEL[row.name] ?? row.name })))}
+          />
+        </section>
+      </div>
+    </>
+  )
+}
+
+/** The traffic panels are extra: failing to read them must not take away the sales figures. */
+const loadTraffic = async (payload: Payload, range: Range) => {
+  try {
+    const [data, live] = await Promise.all([loadTrafficAnalytics(payload, range), loadLiveVisitors(payload)])
+    return { data, live }
+  } catch (err) {
+    payload.logger.error({ err }, 'Could not load traffic analytics')
+    return null
+  }
+}
+
 /**
  * The admin home page. Sales figures need the "Sales analytics" permission;
  * the "needs attention" lists show to anyone who can see orders or stock.
@@ -199,8 +349,9 @@ export const Dashboard = async ({ initPageResult, searchParams }: AdminViewServe
   const rangeKey = isRangeKey(rangeParam) ? rangeParam : DEFAULT_RANGE
   const range = resolveRange(rangeKey)
 
-  const [sales, orders, stock] = await Promise.all([
+  const [sales, traffic, orders, stock] = await Promise.all([
     mayReports ? loadSalesAnalytics(payload, range) : null,
+    mayReports ? loadTraffic(payload, range) : null,
     mayOrders ? loadOrdersToShip(payload) : null,
     mayStock ? loadLowStock(payload) : null,
   ])
@@ -253,6 +404,20 @@ export const Dashboard = async ({ initPageResult, searchParams }: AdminViewServe
         .gpd__pill[data-tone="warning"] { background:#fbf1d9; color:#8a6300; }
         .gpd__pill[data-tone="danger"] { background:#ffe3e0; color:#ce2d2a; }
         .gpd__pill[data-tone="brand"] { background:#eaebf2; color:#293681; }
+        .gpd__section { margin-top:12px; }
+        .gpd__section h2 { font-size:18px; font-weight:600; margin:0; letter-spacing:-0.01em; }
+        .gpd__section p { margin:2px 0 0; font-size:13px; color:var(--theme-elevation-500); }
+        .gpd__live { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px 32px; }
+        .gpd__live > div { display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; font-size:14px; }
+        .gpd__live > div b { font-size:24px; font-weight:600; line-height:1.2; font-variant-numeric:tabular-nums; }
+        .gpd__live small { flex-basis:100%; font-size:12px; color:var(--theme-elevation-500); }
+        .gpd__livedot { width:10px; height:10px; border-radius:50%; background:var(--up); animation:gpd-live 2s ease-in-out infinite; }
+        @keyframes gpd-live { 50% { opacity:.35 } }
+        @media (prefers-reduced-motion: reduce) { .gpd__livedot { animation:none } }
+        .gpd__live ul { list-style:none; margin:0; padding:0; flex:1 1 280px; max-width:520px; display:flex; flex-direction:column; gap:4px; font-size:13px; }
+        .gpd__live li { display:flex; justify-content:space-between; gap:12px; }
+        .gpd__live li span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--theme-elevation-700); }
+        .gpd__live li b { font-weight:500; font-variant-numeric:tabular-nums; }
         .gpd__note { padding:16px; border:1px dashed var(--theme-border-color); border-radius:var(--style-radius-m);
           color:var(--theme-elevation-600); font-size:13.5px; }
         @media (max-width:760px) { .gpd__head h1 { font-size:20px } .gpd__ranges { margin-left:0 } .gpd__kpi b { font-size:20px } }
@@ -279,6 +444,7 @@ export const Dashboard = async ({ initPageResult, searchParams }: AdminViewServe
       </div>
 
       {sales && <Sales data={sales} />}
+      {sales && traffic && <Traffic data={traffic.data} live={traffic.live} sales={sales} />}
 
       {(orders || stock) && (
         <div className="gpd__cols">

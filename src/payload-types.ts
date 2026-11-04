@@ -73,6 +73,7 @@ export interface Config {
     products: Product;
     'product-variants': ProductVariant;
     reviews: Review;
+    'review-photos': ReviewPhoto;
     inventory: Inventory;
     'stock-movements': StockMovement;
     media: Media;
@@ -123,6 +124,7 @@ export interface Config {
     products: ProductsSelect<false> | ProductsSelect<true>;
     'product-variants': ProductVariantsSelect<false> | ProductVariantsSelect<true>;
     reviews: ReviewsSelect<false> | ReviewsSelect<true>;
+    'review-photos': ReviewPhotosSelect<false> | ReviewPhotosSelect<true>;
     inventory: InventorySelect<false> | InventorySelect<true>;
     'stock-movements': StockMovementsSelect<false> | StockMovementsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
@@ -355,6 +357,14 @@ export interface Product {
    */
   sellOnline?: boolean | null;
   sortOrder?: number | null;
+  /**
+   * Real sales made outside this website, from your invoices or Tally. Customers see this plus online orders, so use a figure your records prove and keep those records.
+   */
+  pastUnitsSold?: number | null;
+  /**
+   * The year those sales start, e.g. 2019. Shown as "sold since 2019".
+   */
+  pastSalesSince?: number | null;
   /**
    * Stored x100. Maintained from approved reviews.
    */
@@ -661,6 +671,10 @@ export interface Review {
   verifiedPurchase?: boolean | null;
   title?: string | null;
   body?: string | null;
+  /**
+   * Uploaded by the customer. Check these before approving: they go public with the review.
+   */
+  photos?: (number | ReviewPhoto)[] | null;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   updatedAt: string;
   createdAt: string;
@@ -715,6 +729,27 @@ export interface AuthIdentity {
   lastUsedAt?: string | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "review-photos".
+ */
+export interface ReviewPhoto {
+  id: number;
+  customer?: (number | null) | Customer;
+  prefix?: string | null;
+  _objectKey?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1367,6 +1402,10 @@ export interface PayloadLockedDocument {
         value: number | Review;
       } | null)
     | ({
+        relationTo: 'review-photos';
+        value: number | ReviewPhoto;
+      } | null)
+    | ({
         relationTo: 'inventory';
         value: number | Inventory;
       } | null)
@@ -1555,6 +1594,8 @@ export interface ProductsSelect<T extends boolean = true> {
   status?: T;
   sellOnline?: T;
   sortOrder?: T;
+  pastUnitsSold?: T;
+  pastSalesSince?: T;
   ratingAvg?: T;
   ratingCount?: T;
   subtitle?: T;
@@ -1666,9 +1707,30 @@ export interface ReviewsSelect<T extends boolean = true> {
   verifiedPurchase?: T;
   title?: T;
   body?: T;
+  photos?: T;
   status?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "review-photos_select".
+ */
+export interface ReviewPhotosSelect<T extends boolean = true> {
+  customer?: T;
+  prefix?: T;
+  _objectKey?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

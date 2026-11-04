@@ -60,6 +60,7 @@ const nextConfig: NextConfig = {
       : [],
     localPatterns: [
       { pathname: '/api/media/file/**' },
+      { pathname: '/api/review-photos/file/**' },
       { pathname: '/banners/**' },
       { pathname: '/products/**' },
       { pathname: '/icons/**' },

@@ -10,6 +10,7 @@ import { CollectionShowcase, type CollectionItem } from '@/components/sections/C
 import { HeroCarousel } from '@/components/sections/HeroCarousel'
 import { Newsletter } from '@/components/sections/Newsletter'
 import { ProductCarousel } from '@/components/sections/ProductCarousel'
+import { RecentlyViewed } from '@/components/sections/RecentlyViewed'
 import { TrustedBrands, type TrustedBrand } from '@/components/sections/TrustedBrands'
 import { ValueProps } from '@/components/sections/ValueProps'
 import { bannerOf, fileUrlOf, hrefOf, isBanner, mediaOf } from '@/lib/storefront/content'
@@ -189,6 +190,8 @@ export const HomeSections = async ({ payload, sections }: { payload: Payload; se
       {rendered.map((node, index) => (
         <div key={visible[index].id ?? index} className="contents">
           {node}
+          {/* Near the top, under the hero, so a returning shopper finds it without scrolling. */}
+          {index === 0 && <RecentlyViewed />}
         </div>
       ))}
     </>

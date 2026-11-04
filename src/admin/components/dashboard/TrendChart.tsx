@@ -2,13 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import type { Bucket, SeriesPoint } from '@/lib/analytics'
+import type { Bucket } from '@/lib/analytics'
 import { formatCurrency } from '@/lib/money'
 
 const HEIGHT = 240
 const PAD = { top: 12, right: 12, bottom: 26, left: 56 }
 
-const compact = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', notation: 'compact', maximumFractionDigits: 1 })
+const compactRupees = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', notation: 'compact', maximumFractionDigits: 1 })
+const compactCount = new Intl.NumberFormat('en-IN', { notation: 'compact', maximumFractionDigits: 1 })
+const fullCount = new Intl.NumberFormat('en-IN')
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 /** `2026-10-25` → `25 Oct`; `2026-10` → `Oct 2026`. */
@@ -24,13 +26,32 @@ const niceStep = (max: number) => {
   return ([1, 2, 2.5, 5, 10].find((f) => f * magnitude >= raw) ?? 10) * magnitude
 }
 
+export type TrendPoint = { key: string; value: number; note: number }
+
 /**
- * Revenue over the selected range, one point per day (or month). A single
+ * One measure over the selected range, one point per day (or month). A single
  * series, so the panel title names it and there's no legend; hovering shows
- * the bucket's revenue and order count, and the table below carries every
+ * the bucket's value and a supporting count, and the table below carries every
  * value for anyone who can't use the chart.
  */
-export const RevenueChart = ({ series, bucket }: { series: SeriesPoint[]; bucket: Bucket }) => {
+export const TrendChart = ({
+  series,
+  bucket,
+  unit,
+  label,
+  note,
+}: {
+  series: TrendPoint[]
+  bucket: Bucket
+  /** Paise are drawn in rupees, counts as they are. */
+  unit: 'paise' | 'count'
+  label: string
+  /** What `note` counts, singular then plural. */
+  note: [string, string]
+}) => {
+  const scale = unit === 'paise' ? 100 : 1
+  const axisLabel = (tick: number) => (unit === 'paise' ? compactRupees : compactCount).format(tick)
+  const fullValue = (value: number) => (unit === 'paise' ? formatCurrency(value) : fullCount.format(value))
   const wrapRef = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(720)
   const [hover, setHover] = useState<number | null>(null)
@@ -44,19 +65,20 @@ export const RevenueChart = ({ series, bucket }: { series: SeriesPoint[]; bucket
   }, [])
 
   const geometry = useMemo(() => {
-    const maxRupees = Math.max(...series.map((point) => point.revenuePaise), 0) / 100
-    const step = maxRupees > 0 ? niceStep(maxRupees) : 1000
-    const top = step * Math.max(1, Math.ceil(maxRupees / step))
+    const max = Math.max(...series.map((point) => point.value), 0) / scale
+    // Counts are whole, so an axis tick of 0.25 visitors would be nonsense.
+    const step = max > 0 ? (unit === 'count' ? Math.max(1, niceStep(max)) : niceStep(max)) : unit === 'count' ? 1 : 1000
+    const top = step * Math.max(1, Math.ceil(max / step))
     const ticks = Array.from({ length: Math.round(top / step) + 1 }, (_, i) => i * step)
     const innerW = width - PAD.left - PAD.right
     const innerH = HEIGHT - PAD.top - PAD.bottom
     const x = (i: number) => PAD.left + (series.length > 1 ? (i / (series.length - 1)) * innerW : innerW / 2)
-    const y = (paise: number) => PAD.top + innerH - (paise / 100 / top) * innerH
-    const line = series.map((point, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(point.revenuePaise).toFixed(1)}`).join('')
+    const y = (value: number) => PAD.top + innerH - (value / scale / top) * innerH
+    const line = series.map((point, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(point.value).toFixed(1)}`).join('')
     const area = `${line}L${x(series.length - 1).toFixed(1)},${y(0)}L${x(0).toFixed(1)},${y(0)}Z`
     const labelEvery = Math.max(1, Math.ceil(series.length / Math.max(2, Math.floor(innerW / 80))))
     return { ticks, x, y, line, area, labelEvery }
-  }, [series, width])
+  }, [series, width, scale, unit])
 
   const onMove = (e: React.PointerEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect()
@@ -87,6 +109,7 @@ export const RevenueChart = ({ series, bucket }: { series: SeriesPoint[]; bucket
         .rc__table { margin-top:6px; font-size:12.5px; }
         .rc__table summary { cursor:pointer; color:var(--theme-elevation-500); width:max-content; }
         .rc__table table { width:100%; border-collapse:collapse; margin-top:6px; font-variant-numeric:tabular-nums; }
+        .rc__table th { text-transform:capitalize; }
         .rc__table th, .rc__table td { text-align:right; padding:4px 8px; border-bottom:1px solid var(--theme-elevation-100); }
         .rc__table th:first-child, .rc__table td:first-child { text-align:left; }
         .rc__scroll { max-height:240px; overflow-y:auto; }
@@ -96,15 +119,15 @@ export const RevenueChart = ({ series, bucket }: { series: SeriesPoint[]; bucket
         width={width}
         height={HEIGHT}
         role="img"
-        aria-label="Revenue over the selected period. A table of the values follows."
+        aria-label={`${label} over the selected period. A table of the values follows.`}
         onPointerMove={onMove}
         onPointerLeave={() => setHover(null)}
       >
         {geometry.ticks.map((tick) => (
           <g key={tick}>
-            <line className={tick === 0 ? 'rc__base' : 'rc__grid'} x1={PAD.left} x2={width - PAD.right} y1={geometry.y(tick * 100)} y2={geometry.y(tick * 100)} />
-            <text className="rc__tick" x={PAD.left - 8} y={geometry.y(tick * 100)} dy="0.32em" textAnchor="end">
-              {compact.format(tick)}
+            <line className={tick === 0 ? 'rc__base' : 'rc__grid'} x1={PAD.left} x2={width - PAD.right} y1={geometry.y(tick * scale)} y2={geometry.y(tick * scale)} />
+            <text className="rc__tick" x={PAD.left - 8} y={geometry.y(tick * scale)} dy="0.32em" textAnchor="end">
+              {axisLabel(tick)}
             </text>
           </g>
         ))}
@@ -120,7 +143,7 @@ export const RevenueChart = ({ series, bucket }: { series: SeriesPoint[]; bucket
         {point && hover !== null && (
           <>
             <line className="rc__cross" x1={geometry.x(hover)} x2={geometry.x(hover)} y1={PAD.top} y2={HEIGHT - PAD.bottom} />
-            <circle className="rc__dot" cx={geometry.x(hover)} cy={geometry.y(point.revenuePaise)} r={5} />
+            <circle className="rc__dot" cx={geometry.x(hover)} cy={geometry.y(point.value)} r={5} />
           </>
         )}
       </svg>
@@ -131,9 +154,9 @@ export const RevenueChart = ({ series, bucket }: { series: SeriesPoint[]; bucket
           style={geometry.x(hover) > width / 2 ? { right: width - geometry.x(hover) + 10 } : { left: geometry.x(hover) + 10 }}
         >
           <span>{labelOf(point.key, bucket)}</span>
-          <b>{formatCurrency(point.revenuePaise)}</b>
+          <b>{fullValue(point.value)}</b>
           <span>
-            {point.orders} {point.orders === 1 ? 'order' : 'orders'}
+            {fullCount.format(point.note)} {point.note === 1 ? note[0] : note[1]}
           </span>
         </div>
       )}
@@ -145,16 +168,16 @@ export const RevenueChart = ({ series, bucket }: { series: SeriesPoint[]; bucket
             <thead>
               <tr>
                 <th scope="col">{bucket === 'month' ? 'Month' : 'Day'}</th>
-                <th scope="col">Orders</th>
-                <th scope="col">Revenue</th>
+                <th scope="col">{note[1]}</th>
+                <th scope="col">{label}</th>
               </tr>
             </thead>
             <tbody>
               {series.map((p) => (
                 <tr key={p.key}>
                   <td>{labelOf(p.key, bucket)}</td>
-                  <td>{p.orders}</td>
-                  <td>{formatCurrency(p.revenuePaise)}</td>
+                  <td>{fullCount.format(p.note)}</td>
+                  <td>{fullValue(p.value)}</td>
                 </tr>
               ))}
             </tbody>
@@ -165,4 +188,4 @@ export const RevenueChart = ({ series, bucket }: { series: SeriesPoint[]; bucket
   )
 }
 
-export default RevenueChart
+export default TrendChart

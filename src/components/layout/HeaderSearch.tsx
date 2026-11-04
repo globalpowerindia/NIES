@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
 import { Input } from '@/components/ui/input'
+import { DEFAULT_SEARCH_HINT, SearchHint } from '@/components/layout/SearchHint'
 import { SearchPanel, SuggestionList, type TopMovingTile } from '@/components/layout/SearchPanel'
 import { addRecentSearch, clearRecentSearches, readRecentSearches } from '@/lib/recent-searches'
 import type { Suggestion } from '@/lib/storefront/search'
 
-export const HeaderSearch = ({ tiles }: { tiles: TopMovingTile[] }) => {
+export const HeaderSearch = ({ tiles, hints }: { tiles: TopMovingTile[]; hints: string[] }) => {
   const router = useRouter()
   const root = useRef<HTMLDivElement>(null)
   const input = useRef<HTMLInputElement>(null)
@@ -91,21 +92,25 @@ export const HeaderSearch = ({ tiles }: { tiles: TopMovingTile[] }) => {
         }}
         className="flex h-[3.1875rem] w-full items-center justify-between rounded-xl border-[0.5px] border-dark-200 bg-brand-blue-100 py-3 pr-2.5 pl-4 md:h-[3.625rem]"
       >
-        {/* 16px on phones: iOS Safari zooms the whole page when focusing anything smaller. */}
-        <Input
-          ref={input}
-          type="search"
-          name="q"
-          placeholder="Search Power Tools, Hand Tools..."
-          aria-label="Search products"
-          aria-expanded={open && hasPanel}
-          onFocus={() => setOpen(true)}
-          onChange={(event) => {
-            setTerm(event.target.value)
-            setOpen(true)
-          }}
-          className="min-w-0 flex-1 bg-transparent text-body2 text-dark-500 outline-none placeholder:text-dark-400 md:text-body1"
-        />
+        <div className="relative min-w-0 flex-1 self-stretch">
+          {/* 16px on phones: iOS Safari zooms the whole page when focusing anything smaller. */}
+          <Input
+            ref={input}
+            type="search"
+            name="q"
+            // Transparent, as SearchHint draws it; still needed for :placeholder-shown.
+            placeholder={DEFAULT_SEARCH_HINT}
+            aria-label="Search products"
+            aria-expanded={open && hasPanel}
+            onFocus={() => setOpen(true)}
+            onChange={(event) => {
+              setTerm(event.target.value)
+              setOpen(true)
+            }}
+            className="peer h-full bg-transparent text-body2 text-dark-500 outline-none placeholder:text-transparent md:text-body1"
+          />
+          <SearchHint hints={hints} />
+        </div>
         <button
           type="submit"
           aria-label="Search"

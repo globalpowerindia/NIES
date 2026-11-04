@@ -9,12 +9,15 @@ import { useAuthSubmit } from '@/components/auth/useAuthSubmit'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
+import { ReviewPhotoPicker, type PickedPhoto } from './ReviewPhotoPicker'
+
 type OwnReview = {
   rating: number
   title: string
   body: string
   status: 'PENDING' | 'APPROVED' | 'REJECTED'
   verifiedPurchase: boolean
+  photos?: PickedPhoto[]
 }
 
 const statuses = {
@@ -29,6 +32,7 @@ export const ReviewForm = ({ productId }: { productId: number }) => {
   const [eligibleProduct, setEligibleProduct] = useState<number | null>(null)
   const [review, setReview] = useState<OwnReview | null>(null)
   const [values, setValues] = useState({ rating: 0, title: '', body: '' })
+  const [photos, setPhotos] = useState<PickedPhoto[]>([])
   const [saved, setSaved] = useState(false)
   const submit = useAuthSubmit<{ review: OwnReview }>('/api/product-reviews')
   const prefix = `review-${productId}`
@@ -48,6 +52,7 @@ export const ReviewForm = ({ productId }: { productId: number }) => {
         }
         setReview(data.review)
         setValues(data.review ? { rating: data.review.rating, title: data.review.title, body: data.review.body } : { rating: 0, title: '', body: '' })
+        setPhotos(data.review?.photos ?? [])
         setOpen(false)
         setSaved(false)
         setEligibleProduct(productId)
@@ -61,7 +66,7 @@ export const ReviewForm = ({ productId }: { productId: number }) => {
 
   const save = async (event: FormEvent) => {
     event.preventDefault()
-    const reply = await submit.submit({ productId, ...values })
+    const reply = await submit.submit({ productId, ...values, photoIds: photos.map((photo) => photo.id) })
     if (!reply) return
     setReview(reply.review)
     setSaved(true)
@@ -123,6 +128,11 @@ export const ReviewForm = ({ productId }: { productId: number }) => {
                   onChange={(event) => { setValues({ ...values, body: event.target.value }); setSaved(false); submit.clearField('body') }}
                   className="w-full rounded-lg border border-dark-200 bg-white p-3 text-body2 focus-visible:outline-brand-blue-500" />
                 {submit.fields.body && <p id={`${prefix}-body-error`} className="text-body3 text-brand-red-500">{submit.fields.body}</p>}
+                <ReviewPhotoPicker
+                  productId={productId}
+                  photos={photos}
+                  onChange={(next) => { setPhotos(next); setSaved(false) }}
+                />
                 <Button type="submit" variant="blue">{submit.pending ? 'Submitting…' : review ? 'Update review' : 'Submit review'}</Button>
               </fieldset>
             </form>

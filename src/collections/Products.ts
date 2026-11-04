@@ -174,6 +174,28 @@ export const Products: CollectionConfig = {
     },
     { name: 'sortOrder', type: 'number', defaultValue: 0, admin: { position: 'sidebar' } },
     {
+      name: 'pastUnitsSold',
+      label: 'Past units sold',
+      type: 'number',
+      min: 0,
+      validate: (value: unknown) =>
+        value === null || value === undefined || (Number.isInteger(value) && Number(value) >= 0) || 'Enter a whole number.',
+      admin: {
+        position: 'sidebar',
+        step: 1,
+        description:
+          'Real sales made outside this website, from your invoices or Tally. Customers see this plus online orders, so use a figure your records prove and keep those records.',
+      },
+    },
+    {
+      name: 'pastSalesSince',
+      label: 'Sold since (year)',
+      type: 'number',
+      min: 1950,
+      max: 2100,
+      admin: { position: 'sidebar', step: 1, description: 'The year those sales start, e.g. 2019. Shown as "sold since 2019".' },
+    },
+    {
       name: 'ratingAvg',
       type: 'number',
       defaultValue: 0,

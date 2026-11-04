@@ -1,17 +1,19 @@
 import { unstable_cache } from 'next/cache'
 
-import { demandLine } from '@/lib/demand-line'
+import { demandLine, type PastSales } from '@/lib/demand-line'
 import { enquiryCount, soldCounts } from '@/lib/product-demand'
 import { CACHE_VERSION, STOREFRONT_TAG } from '@/lib/revalidate'
 import { getPayloadClient } from '@/lib/storefront/queries'
+import { productViewCount } from '@/lib/traffic'
 
-const load = async (productId: number, sellOnline: boolean): Promise<string | null> => {
+const load = async (productId: number, sellOnline: boolean, past?: PastSales): Promise<string | null> => {
   const payload = await getPayloadClient()
   try {
+    const viewsLast7Days = await productViewCount(payload, productId)
     return demandLine(
       sellOnline
-        ? { kind: 'sold', ...(await soldCounts(payload, productId)) }
-        : { kind: 'enquiries', last7Days: await enquiryCount(payload, productId) },
+        ? { kind: 'sold', past, viewsLast7Days, ...(await soldCounts(payload, productId)) }
+        : { kind: 'enquiries', past, viewsLast7Days, last7Days: await enquiryCount(payload, productId) },
     )
   } catch (err) {
     // A nice-to-have: failing to count must never take the product page down.

@@ -17,6 +17,9 @@ import * as migration_20261026_084712_product_drafts from './20261026_084712_pro
 import * as migration_20261027_091528_collection_showcase_video from './20261027_091528_collection_showcase_video';
 import * as migration_20261028_092431_invoice_seller_details from './20261028_092431_invoice_seller_details';
 import * as migration_20261103_061727_product_enquiries from './20261103_061727_product_enquiries';
+import * as migration_20261104_063240_page_views from './20261104_063240_page_views';
+import * as migration_20261104_065001_review_photos from './20261104_065001_review_photos';
+import * as migration_20261104_075401_product_past_sales from './20261104_075401_product_past_sales';
 
 export const migrations = [
   {
@@ -112,6 +115,21 @@ export const migrations = [
   {
     up: migration_20261103_061727_product_enquiries.up,
     down: migration_20261103_061727_product_enquiries.down,
-    name: '20261103_061727_product_enquiries'
+    name: '20261103_061727_product_enquiries',
+  },
+  {
+    up: migration_20261104_063240_page_views.up,
+    down: migration_20261104_063240_page_views.down,
+    name: '20261104_063240_page_views',
+  },
+  {
+    up: migration_20261104_065001_review_photos.up,
+    down: migration_20261104_065001_review_photos.down,
+    name: '20261104_065001_review_photos',
+  },
+  {
+    up: migration_20261104_075401_product_past_sales.up,
+    down: migration_20261104_075401_product_past_sales.down,
+    name: '20261104_075401_product_past_sales'
   },
 ];

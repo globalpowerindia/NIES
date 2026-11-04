@@ -27,6 +27,7 @@ import { Orders } from './collections/Orders'
 import { Pages } from './collections/Pages'
 import { Products } from './collections/Products'
 import { ProductVariants } from './collections/ProductVariants'
+import { ReviewPhotos } from './collections/ReviewPhotos'
 import { Reviews } from './collections/Reviews'
 import { Roles } from './collections/Roles'
 import { SearchSynonyms } from './collections/SearchSynonyms'
@@ -46,6 +47,7 @@ import { consoleEmailAdapter } from './lib/email-console'
 import { enforceCommerceInvariants } from './lib/commerce-constraints'
 import { addProductEnquiriesTable } from './lib/product-demand'
 import { addRateLimitTable } from './lib/rate-limit'
+import { addPageViewsTable } from './lib/traffic'
 import { enforceIntegerMoney } from './lib/schema-constraints'
 import { addSearchVector } from './lib/search-schema'
 import { forwardErrorLogs } from './lib/monitoring'
@@ -105,6 +107,7 @@ export default buildConfig({
     Products,
     ProductVariants,
     Reviews,
+    ReviewPhotos,
     Inventory,
     StockMovements,
     Media,
@@ -155,6 +158,7 @@ export default buildConfig({
       addSearchVector,
       addRateLimitTable,
       addProductEnquiriesTable,
+      addPageViewsTable,
       addDocumentCountersTable,
     ],
   }),
@@ -175,7 +179,7 @@ export default buildConfig({
       // Large files (videos, big photos) can't pass through a Vercel function,
       // so once R2's CORS allows it the browser uploads them directly.
       clientUploads: env.R2_CLIENT_UPLOADS === 'true' ? { access: ({ req, collectionSlug }) => can(req.user, collectionSlug === 'datasheets' ? 'datasheets' : 'media', 'create') } : false,
-      collections: { media: r2Files, datasheets: r2Files },
+      collections: { media: r2Files, datasheets: r2Files, 'review-photos': r2Files },
       bucket: r2?.bucket ?? '',
       config: {
         region: 'auto',

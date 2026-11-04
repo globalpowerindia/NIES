@@ -19,6 +19,7 @@ export type HeaderProps = {
   utilityLinks: { label: string; href: string; icon: keyof typeof ICONS; download: boolean }[]
   categories: { label: string; href: string }[]
   searchTiles: TopMovingTile[]
+  searchHints: string[]
 }
 
 export const Header = ({
@@ -28,6 +29,7 @@ export const Header = ({
   utilityLinks,
   categories,
   searchTiles,
+  searchHints,
 }: HeaderProps) => (
   <header>
     <div className="bg-brand-blue-600 text-light-100">
@@ -66,7 +68,7 @@ export const Header = ({
           />
         </Link>
 
-        <HeaderSearch tiles={searchTiles} />
+        <HeaderSearch tiles={searchTiles} hints={searchHints} />
 
         <div className="flex shrink-0 items-center gap-4 md:gap-5 lg:gap-7">
           <CartLink />

@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils'
 
 import { BuyRow } from './BuyRow'
 import { RatingBadge } from './RatingBadge'
+import { ProductViewers } from './ProductViewers'
 
 const Divider = () => <hr className="w-full border-t-[0.5px] border-dark-200" />
 
@@ -113,6 +114,7 @@ export const ProductSummary = ({
               {demand}
             </p>
           )}
+          <ProductViewers productId={product.id} />
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

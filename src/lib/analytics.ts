@@ -103,8 +103,8 @@ export const fillSeries = (keys: string[], rows: SeriesPoint[]): SeriesPoint[] =
 export const change = (current: number, previous: number): number | null =>
   previous > 0 ? (current - previous) / previous : null
 
-const at = (date: Date) => sql`${date.toISOString()}::timestamptz`
-const num = (value: unknown) => Number(value ?? 0)
+export const at = (date: Date) => sql`${date.toISOString()}::timestamptz`
+export const num = (value: unknown) => Number(value ?? 0)
 
 export type Totals = { revenuePaise: number; orders: number; units: number; discountPaise: number; newCustomers: number }
 
@@ -119,7 +119,7 @@ export type DashboardData = {
   states: { name: string; orders: number; revenuePaise: number }[]
 }
 
-const rowsOf = async (payload: Payload, query: ReturnType<typeof sql>) =>
+export const rowsOf = async (payload: Payload, query: ReturnType<typeof sql>) =>
   (await payload.db.drizzle.execute(query)).rows as Record<string, unknown>[]
 
 /** Everything the dashboard's sales panels show, for one range. */

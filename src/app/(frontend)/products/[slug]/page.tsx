@@ -15,6 +15,7 @@ import { ProductTabs } from '@/components/product-page/ProductTabs'
 import { ReviewsSection } from '@/components/product-page/ReviewsSection'
 import { ProductMobileBack } from '@/components/product-page/ProductMobileBack'
 import styles from '@/components/product-page/product-mobile.module.css'
+import { TrackRecentlyViewed } from '@/components/sections/RecentlyViewed'
 import { getDemandLine } from '@/lib/storefront/demand'
 import { getProductPage, type ProductPageData } from '@/lib/storefront/product-page'
 
@@ -60,7 +61,11 @@ export default async function ProductPage(props: PageProps<'/products/[slug]'>) 
   if (!data) notFound()
 
   const { product, category, parentCategory } = data
-  const demand = await getDemandLine(product.id, product.sellOnline === true)
+  const demand = await getDemandLine(
+    product.id,
+    product.sellOnline === true,
+    product.pastUnitsSold ? { units: product.pastUnitsSold, since: product.pastSalesSince ?? null } : undefined,
+  )
   const basePath = `/products/${product.slug}`
   const crumbs: Crumb[] = [
     ...(parentCategory
@@ -72,6 +77,7 @@ export default async function ProductPage(props: PageProps<'/products/[slug]'>) 
 
   return (
     <main className={`${styles.page} bg-light-400 pb-6`}>
+      <TrackRecentlyViewed productId={product.id} />
       <div className="container-page">
         <ProductMobileBack fallback={category ? `/category/${category.slug}` : '/products'} />
       </div>

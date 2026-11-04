@@ -5,8 +5,9 @@ import { CartToast } from '@/components/cart/CartToast'
 import { EnquiryProvider } from '@/components/enquiry/EnquireButton'
 import { Footer } from '@/components/layout/Footer'
 import { Header } from '@/components/layout/Header'
+import { PageViewTracker } from '@/components/layout/PageViewTracker'
 import { fileUrlOf, hrefOf, mediaOf, type MediaInfo } from '@/lib/storefront/content'
-import { getSiteSettings } from '@/lib/storefront/queries'
+import { getSearchHints, getSiteSettings } from '@/lib/storefront/queries'
 
 /**
  * The storefront's whole document: fonts, header, footer and the WhatsApp
@@ -15,7 +16,7 @@ import { getSiteSettings } from '@/lib/storefront/queries'
  * look like the shop. Both import `(frontend)/styles.css` themselves.
  */
 export const StorefrontDocument = async ({ children }: { children: ReactNode }) => {
-  const settings = await getSiteSettings()
+  const [settings, searchHints] = await Promise.all([getSiteSettings(), getSearchHints()])
   const logoUrl = mediaOf(settings.logo)?.url ?? '/brand/logo.png'
 
   const utilityLinks = (settings.utilityLinks ?? []).flatMap((item) => {
@@ -72,11 +73,13 @@ export const StorefrontDocument = async ({ children }: { children: ReactNode }) 
           utilityLinks={utilityLinks}
           categories={categories}
           searchTiles={searchTiles}
+          searchHints={searchHints}
         />
         <EnquiryProvider whatsapp={whatsapp || null}>
           <div className="flex-1">{children}</div>
         </EnquiryProvider>
         <CartToast />
+        <PageViewTracker />
         <Footer
           siteName={settings.siteName}
           logoUrl={logoUrl}
