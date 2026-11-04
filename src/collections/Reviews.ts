@@ -4,6 +4,7 @@ import { can } from '@/access/permissions'
 import { allow } from '@/access/roles'
 import { sql } from 'drizzle-orm'
 import { relId } from '@/lib/relations'
+import { MAX_REVIEW_PHOTOS } from '@/lib/review-photo-rules'
 import { purgeStorefront } from '@/lib/revalidate'
 import { readDB, transactionDB } from '@/lib/transaction'
 
@@ -101,6 +102,14 @@ export const Reviews: CollectionConfig = {
     },
     { name: 'title', type: 'text', maxLength: 120 },
     { name: 'body', type: 'textarea', maxLength: 2500 },
+    {
+      name: 'photos',
+      type: 'upload',
+      relationTo: 'review-photos',
+      hasMany: true,
+      maxRows: MAX_REVIEW_PHOTOS,
+      admin: { description: 'Uploaded by the customer. Check these before approving: they go public with the review.' },
+    },
     {
       name: 'status',
       type: 'select',

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Customer, Review } from '@/payload-types'
 import { reviewSchema } from '@/lib/validations/reviews'
-import { ownReview, ReviewEligibilityError, submitReview } from './reviews'
+import { ownReview, ReviewEligibilityError, ReviewPhotoError, submitReview } from './reviews'
 
 vi.mock('@/lib/transaction', () => ({
   inTransaction: async (_payload: unknown, _keys: string[], run: (req: object) => unknown) => run({ transactionID: 'test' }),
@@ -39,11 +39,26 @@ describe('review validation and privacy', () => {
   })
   it('never returns customer relationships or internal IDs to the client', () => {
     const result = ownReview({ id: 8, customer, product: 12, ...input, status: 'PENDING' } as unknown as Review)
-    expect(Object.keys(result).sort()).toEqual(['body', 'rating', 'status', 'title', 'verifiedPurchase'])
+    expect(Object.keys(result).sort()).toEqual(['body', 'photos', 'rating', 'status', 'title', 'verifiedPurchase'])
+  })
+  it('returns only what the form needs about the customer\'s own photos', () => {
+    const photos = [{ id: 3, url: 'https://files.test/a.webp', customer, filename: 'a.webp' }, 4]
+    const result = ownReview({ id: 8, customer, product: 12, ...input, status: 'PENDING', photos } as unknown as Review)
+    expect(result.photos).toEqual([{ id: 3, url: 'https://files.test/a.webp' }])
   })
 })
 
 describe('review submission', () => {
+  it('refuses photos that this customer did not upload', async () => {
+    count.mockReset().mockResolvedValueOnce({ totalDocs: 1 }).mockResolvedValueOnce({ totalDocs: 1 }).mockResolvedValueOnce({ totalDocs: 1 })
+    await expect(submitReview(payload, customer, { ...input, photoIds: [3, 4] })).rejects.toThrow(ReviewPhotoError)
+    expect(create).not.toHaveBeenCalled()
+  })
+  it('attaches photos the customer uploaded', async () => {
+    count.mockReset().mockResolvedValueOnce({ totalDocs: 1 }).mockResolvedValueOnce({ totalDocs: 1 }).mockResolvedValueOnce({ totalDocs: 2 })
+    await submitReview(payload, customer, { ...input, photoIds: [3, 4] })
+    expect(create.mock.calls[0][0].data.photos).toEqual([3, 4])
+  })
   it('creates a pending review under the authenticated customer without exposing their full name', async () => {
     const result = await submitReview(payload, customer, input)
     expect(create.mock.calls[0][0].data).toMatchObject({ customer: 7, product: 12, status: 'PENDING', verifiedPurchase: true, authorName: 'Alex S' })

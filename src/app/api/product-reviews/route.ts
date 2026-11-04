@@ -3,7 +3,7 @@ import { guardMutation } from '@/lib/request-security'
 import { rateLimit } from '@/lib/rate-limit'
 import { getCurrentCustomer } from '@/lib/storefront/customer'
 import { getPayloadClient } from '@/lib/storefront/queries'
-import { canReviewProduct, ownReview, ReviewEligibilityError, submitReview } from '@/lib/storefront/reviews'
+import { canReviewProduct, ownReview, ReviewEligibilityError, ReviewPhotoError, submitReview } from '@/lib/storefront/reviews'
 import { reviewSchema } from '@/lib/validations/reviews'
 
 const writeLimit = { limit: 10, windowSeconds: 60 * 60 }
@@ -17,7 +17,7 @@ export const GET = async (request: Request) => {
   const { docs } = await payload.find({
     collection: 'reviews',
     where: { and: [{ customer: { equals: customer.id } }, { product: { equals: productId } }] },
-    limit: 1, depth: 0, overrideAccess: true,
+    limit: 1, depth: 1, overrideAccess: true,
   })
   return ok({ signedIn: true, eligible: await canReviewProduct(payload, customer.id, productId), review: docs[0] ? ownReview(docs[0]) : null })
 }
@@ -37,6 +37,7 @@ export const POST = async (request: Request) => {
     return review ? ok({ review }) : fail(404, 'That product is no longer available.')
   } catch (err) {
     if (err instanceof ReviewEligibilityError) return fail(403, err.message)
+    if (err instanceof ReviewPhotoError) return fail(422, err.message)
     payload.logger.error({ err }, 'Review submission failed')
     return fail(500, 'We could not save your review. Please try again.')
   }

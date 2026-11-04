@@ -7,7 +7,9 @@ import { deleteDeadSessions } from '@/lib/customer-sessions'
 import { deleteOldChallenges } from '@/lib/otp/challenges'
 import { deleteOldEnquiries } from '@/lib/product-demand'
 import { deleteStaleRateLimits } from '@/lib/rate-limit'
+import { deleteUnusedReviewPhotos } from '@/lib/review-photos'
 import { getPayloadClient } from '@/lib/storefront/queries'
+import { deleteOldPageViews } from '@/lib/traffic'
 
 // Room for expireUnpaidOrders' 25-second budget plus the cleanup around it.
 // Within what Vercel Hobby allows.
@@ -41,6 +43,8 @@ export const GET = async (request: Request): Promise<NextResponse> => {
   await deleteDeadSessions(payload)
   await deleteStaleRateLimits(payload)
   await deleteOldEnquiries(payload)
+  await deleteOldPageViews(payload)
+  await deleteUnusedReviewPhotos(payload)
   await deleteOldChallenges(payload)
   const orders = await expireUnpaidOrders(payload)
   return NextResponse.json({ ok: true, flagged: result.rows.length, orders })

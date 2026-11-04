@@ -4,6 +4,7 @@ import type { ProductPageData } from '@/lib/storefront/product-page'
 
 import { RatingBadge } from './RatingBadge'
 import { ReviewForm } from './ReviewForm'
+import { ReviewPhotoGallery } from './ReviewPhotoGallery'
 
 const Stars = ({ filled }: { filled: number }) => (
   <span className="flex gap-1" aria-hidden>
@@ -118,6 +119,7 @@ export const ReviewsSection = ({
                     {review.title && <p className="text-h6 font-semibold">{review.title}</p>}
                     {review.body && <p className="text-label1">{review.body}</p>}
                   </div>
+                  {review.photos.length > 0 && <ReviewPhotoGallery photos={review.photos} author={review.authorName} />}
                   <div className="mt-auto flex items-start gap-2">
                     <span
                       aria-hidden

@@ -95,6 +95,7 @@
 
   --animate-ticker: ticker 9s ease-in-out infinite;
   --animate-marquee: marquee 40s linear infinite;
+  --animate-search-hint: search-hint 3.5s ease-in-out infinite;
 }
 
 @keyframes marquee {
@@ -124,9 +125,26 @@
   }
 }
 
+@keyframes search-hint {
+  0% {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  10%,
+  90% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-ticker,
-  .animate-marquee {
+  .animate-marquee,
+  .animate-search-hint {
     animation: none;
   }
 }

@@ -68,4 +68,6 @@ export const LIMITS = {
   checkout: { limit: 10, windowSeconds: 10 * 60 },
   /** Only feeds a public figure, so a ceiling against anyone trying to inflate it. */
   productEnquiry: { limit: 30, windowSeconds: 60 * 60 },
+  /** Well above anyone browsing by hand; also a public figure, so also a ceiling on inflating it. */
+  pageView: { limit: 60, windowSeconds: 60 },
 } satisfies Record<string, RateLimit>

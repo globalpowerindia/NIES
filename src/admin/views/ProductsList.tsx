@@ -1,8 +1,9 @@
-import type { ListViewServerProps } from 'payload'
+import type { ListViewServerProps, Payload } from 'payload'
 
 import { DataList } from '@/admin/components/list/DataList'
 import { combineWhere, readListParams, searchWhere } from '@/admin/components/list/params'
 import type { ListRow, Tone } from '@/admin/components/list/types'
+import { loadProductActivity, type ProductActivity } from '@/lib/product-demand'
 import { loadUnpublishedDrafts } from '@/lib/product-drafts'
 import { isPriced, loadProductStock, type ProductStock } from '@/lib/product-stock'
 
@@ -48,6 +49,18 @@ const LEVEL: Record<ProductStock['level'], { label: string; tone: Tone }> = {
   OUT_OF_STOCK: { label: 'Out of stock', tone: 'danger' },
 }
 
+const countFmt = new Intl.NumberFormat('en-IN')
+
+/** Extra columns: failing to read them must not take away the list staff work from. */
+const readActivity = async (payload: Payload, ids: number[]) => {
+  try {
+    return await loadProductActivity(payload, ids)
+  } catch (err) {
+    payload.logger.error({ err }, 'Could not load product activity')
+    return new Map<number, ProductActivity>()
+  }
+}
+
 export const ProductsList = async ({ payload, searchParams }: ListViewServerProps) => {
   const { view, q, page, limit } = readListParams(searchParams)
 
@@ -82,11 +95,14 @@ export const ProductsList = async ({ payload, searchParams }: ListViewServerProp
     payload.count({ collection: 'products', where: { sellOnline: { equals: true } } }),
   ])
   const total = active.totalDocs + draft.totalDocs + archived.totalDocs
+  const activity = await readActivity(payload, result.docs.map((product) => product.id))
 
   const rows: ListRow[] = result.docs.map((product) => {
     const status = STATUS[product.status] ?? STATUS.DRAFT
     const stock = allStock.get(product.id)
     const level = stock ? LEVEL[stock.level] : LEVEL.OUT_OF_STOCK
+    const counts = activity.get(product.id)
+    const pastUnits = product.pastUnitsSold ?? 0
     return {
       id: String(product.id),
       href: `/admin/collections/products/${product.id}`,
@@ -110,6 +126,16 @@ export const ProductsList = async ({ payload, searchParams }: ListViewServerProp
               ],
             }
           : { t: 'empty' },
+        {
+          t: 'text',
+          v: countFmt.format(counts?.views7Days ?? 0),
+          sub: `${countFmt.format(counts?.views30Days ?? 0)} in 30 days`,
+        },
+        {
+          t: 'text',
+          v: countFmt.format(counts?.sold30Days ?? 0),
+          sub: `${countFmt.format((counts?.soldAllTime ?? 0) + pastUnits)} all time${pastUnits ? ` (${countFmt.format(pastUnits)} past)` : ''}`,
+        },
         { t: 'text', v: product.hsnCode, sub: `${(product.gstRateBps / 100).toFixed(0)}% GST` },
         {
           t: 'pills',
@@ -160,6 +186,8 @@ export const ProductsList = async ({ payload, searchParams }: ListViewServerProp
         { header: 'Category', width: 150 },
         { header: 'Price', align: 'right', width: 110 },
         { header: 'Stock', width: 190 },
+        { header: 'Views (7 days)', width: 120 },
+        { header: 'Sold (30 days)', width: 170 },
         { header: 'Tax', width: 110 },
         { header: 'Status', width: 240 },
         { header: 'Updated', width: 140 },

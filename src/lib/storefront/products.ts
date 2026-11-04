@@ -110,7 +110,7 @@ const ACTIVE: Where = { status: { equals: 'ACTIVE' } }
 export type CarouselSource = 'new' | 'bestSeller' | 'offers' | 'category' | 'manual'
 
 /** Cards for these products, in this order, skipping any no longer active. */
-const cardsInOrder = async (payload: Payload, ids: number[]): Promise<ProductCardProps[]> => {
+export const getCardsInOrder = async (payload: Payload, ids: number[]): Promise<ProductCardProps[]> => {
   if (ids.length === 0) return []
   const found = await payload.find({
     collection: 'products',
@@ -155,11 +155,11 @@ export const getCarouselCards = async (
   const { source, limit } = options
 
   // Keep the order staff arranged, not the database's.
-  if (source === 'manual') return cardsInOrder(payload, options.productIds ?? [])
+  if (source === 'manual') return getCardsInOrder(payload, options.productIds ?? [])
 
   // "On offer" depends on variant prices, so it is chosen in SQL; picking from
   // a pool of newest products first could miss every discounted one.
-  if (source === 'offers') return cardsInOrder(payload, await offerProductIds(payload, limit))
+  if (source === 'offers') return getCardsInOrder(payload, await offerProductIds(payload, limit))
 
   const filter: Where | undefined =
     source === 'new'
