@@ -40,7 +40,13 @@ const published =
   ({ req }) =>
     can(req.user, key, 'read') ? true : where
 
-export const publishedProducts = published('products', { status: { equals: 'ACTIVE' } })
+/**
+ * `_status` as well: with `?draft=true`, Payload checks this against the latest
+ * version, so `status` alone would show anyone a draft edit of a live product.
+ */
+export const publishedProducts = published('products', {
+  and: [{ status: { equals: 'ACTIVE' } }, { _status: { equals: 'published' } }],
+})
 export const publishedVariants = published('product-variants', {
   and: [{ isActive: { equals: true } }, { 'product.status': { equals: 'ACTIVE' } }],
 })
