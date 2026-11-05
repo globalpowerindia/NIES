@@ -1,10 +1,10 @@
 'use client'
 
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
-import Image from 'next/image'
-import Link from 'next/link'
+import Image, { getImageProps } from 'next/image'
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 
+import { HoverPrefetchLink } from '@/components/product/HoverPrefetchLink'
 import { SectionHeading } from '@/components/sections/SectionHeading'
 import { ButtonLink } from '@/components/ui/button'
 import { formatCurrency } from '@/lib/money'
@@ -43,16 +43,33 @@ export const CollectionShowcase = ({
 }: CollectionShowcaseProps) => {
   const videoRef = useRef<HTMLVideoElement>(null)
 
+  // Nothing downloads until the video is nearly on screen, and it stops when it scrolls away.
   // Visitors who turn off motion get the still poster instead of a looping video.
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
     const query = window.matchMedia('(prefers-reduced-motion: reduce)')
-    const apply = () => (query.matches ? video.pause() : video.play().catch(() => {}))
-    apply()
+    let near = false
+    const apply = () => (near && !query.matches ? video.play().catch(() => {}) : video.pause())
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        near = entry.isIntersecting
+        apply()
+      },
+      { rootMargin: '200px' },
+    )
+    observer.observe(video)
     query.addEventListener('change', apply)
-    return () => query.removeEventListener('change', apply)
+    return () => {
+      observer.disconnect()
+      query.removeEventListener('change', apply)
+    }
   }, [featureVideo?.url])
+
+  // A resized copy: the poster shows before anything else here, and originals can be large.
+  const posterUrl = featureImage
+    ? getImageProps({ src: featureImage, alt: '', width: 588, height: 347, quality: 75 }).props.src
+    : undefined
 
   const trackRef = useRef<HTMLUListElement>(null)
   const [scroll, setScroll] = useState<ScrollState>({ pages: 1, page: 0, ratio: 1, offset: 0 })
@@ -115,8 +132,8 @@ export const CollectionShowcase = ({
               muted
               loop
               playsInline
-              preload="metadata"
-              poster={featureImage}
+              preload="none"
+              poster={posterUrl}
               aria-hidden
               className="absolute inset-0 size-full object-cover"
             >
@@ -137,25 +154,25 @@ export const CollectionShowcase = ({
               <Fragment key={item.href}>
                 {index > 0 && <li aria-hidden className="w-px shrink-0 self-stretch bg-neutral-300" />}
                 <li className="flex w-[14.8125rem] max-w-[85vw] shrink-0 snap-start flex-col items-center gap-4 pb-6 md:w-[23.1875rem]">
-                  <Link
+                  <HoverPrefetchLink
                     href={item.href}
                     className="flex h-[15.875rem] w-full items-center justify-center rounded-xl p-4 md:h-[18.75rem] lg:h-[24.625rem]"
                   >
                     <span className="relative block size-[11.875rem] md:size-[15.75rem]">
                       <Image src={item.imageUrl} alt={item.name} fill sizes="252px" className="object-contain" />
                     </span>
-                  </Link>
+                  </HoverPrefetchLink>
                   <p className="w-full text-center text-body1 font-medium text-balance text-dark-500">{item.name}</p>
                   <p className="text-label1 font-semibold text-dark-500">
                     {item.pricePaise > 0 ? formatCurrency(item.pricePaise, { showPaise: true }) : 'Price on request'}
                   </p>
-                  <Link
+                  <HoverPrefetchLink
                     href={item.href}
                     className="flex items-center gap-1 py-1 text-body2 text-brand-blue-300 hover:underline"
                   >
                     Discover
                     <ArrowRight className="size-6" strokeWidth={1.5} />
-                  </Link>
+                  </HoverPrefetchLink>
                 </li>
               </Fragment>
             ))}
