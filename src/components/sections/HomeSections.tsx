@@ -15,6 +15,7 @@ import { TrustedBrands, type TrustedBrand } from '@/components/sections/TrustedB
 import { ValueProps } from '@/components/sections/ValueProps'
 import { bannerOf, fileUrlOf, hrefOf, isBanner, mediaOf } from '@/lib/storefront/content'
 import { getCarouselCards, toProductCards } from '@/lib/storefront/products'
+import { cn } from '@/lib/utils'
 import type { Brand, Category, HomePage, Product } from '@/payload-types'
 
 type Section = NonNullable<HomePage['sections']>[number]
@@ -57,8 +58,12 @@ const renderSection = async (payload: Payload, section: Section) => {
         <ProductCarousel
           eyebrow={section.eyebrow ?? undefined}
           title={section.title ?? undefined}
-          description={section.description ?? undefined}
           products={products}
+          viewAllHref={
+            section.category && typeof section.category === 'object'
+              ? `/category/${section.category.slug}`
+              : '/products'
+          }
         />
       ) : null
     }
@@ -182,18 +187,44 @@ const renderSection = async (payload: Payload, section: Section) => {
   }
 }
 
+const BANNERS: Section['blockType'][] = ['heroCarousel', 'bannerRow', 'wideBanner']
+
+/** Banners next to each other read as one group, and so does a row of deals with no heading under them. */
+const staysWithPrevious = (sections: Section[], index: number) => {
+  const section = sections[index]
+  const previous = sections[index - 1]
+  if (!previous || !BANNERS.includes(previous.blockType)) return false
+  return (
+    BANNERS.includes(section.blockType) ||
+    (section.blockType === 'productCarousel' && !section.title && !section.eyebrow)
+  )
+}
+
 export const HomeSections = async ({ payload, sections }: { payload: Payload; sections: Section[] }) => {
   const visible = sections.filter((section) => !section.hidden)
   const rendered = await Promise.all(visible.map((section) => renderSection(payload, section)))
+  // After the collection showcase, or under the hero if staff have taken that section off.
+  const recentlyViewedAfter = Math.max(
+    visible.findIndex((section) => section.blockType === 'collectionShowcase'),
+    0,
+  )
   return (
     <>
-      {rendered.map((node, index) => (
-        <div key={visible[index].id ?? index} className="contents">
-          {node}
-          {/* Near the top, under the hero, so a returning shopper finds it without scrolling. */}
-          {index === 0 && <RecentlyViewed />}
-        </div>
-      ))}
+      {rendered.map((node, index) =>
+        // A section with nothing to show (no products, say) shouldn't leave a gap behind it.
+        !node && index !== recentlyViewedAfter ? null : (
+          <div
+            key={visible[index].id ?? index}
+            className={cn(
+              'flex min-w-0 flex-col gap-8 md:gap-16',
+              staysWithPrevious(visible, index) && '-mt-3 md:-mt-12',
+            )}
+          >
+            {node}
+            {index === recentlyViewedAfter && <RecentlyViewed />}
+          </div>
+        ),
+      )}
     </>
   )
 }

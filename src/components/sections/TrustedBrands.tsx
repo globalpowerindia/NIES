@@ -16,7 +16,7 @@ const LOGO_MAX_WIDTH = 200
 export const TrustedBrands = ({ title, description, brands }: TrustedBrandsProps) => {
   if (brands.length === 0) return null
   return (
-    <section className="flex flex-col items-center gap-10 pt-10 pb-4 md:gap-12 md:py-20 lg:flex-row lg:gap-[11.375rem]">
+    <section className="flex flex-col items-center gap-6 md:gap-8 lg:flex-row lg:gap-[11.375rem]">
       <div className="flex w-full shrink-0 flex-col gap-6 lg:w-[28.125rem]">
         <h2 className="max-w-[11.25rem] text-h5 font-medium text-dark-500 md:max-w-[18.75rem] md:text-h3">{title}</h2>
         {description && <p className="text-[0.75rem] leading-4 text-dark-400 md:text-body3">{description}</p>}

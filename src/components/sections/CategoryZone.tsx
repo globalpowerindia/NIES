@@ -19,10 +19,10 @@ export type CategoryZoneProps = {
 }
 
 export const CategoryZone = ({ eyebrow, title, description, categories }: CategoryZoneProps) => (
-  <section className="flex flex-col gap-6 md:gap-10 md:rounded-xl md:bg-light-300 md:px-5 md:py-20">
+  <section className="flex flex-col gap-4 md:gap-6 md:rounded-xl md:bg-light-300 md:p-8">
     <SectionHeading eyebrow={eyebrow} title={title} description={description} />
 
-    <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:grid-cols-2 md:gap-10 lg:grid-cols-3">
+    <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:grid-cols-2 md:gap-6 lg:grid-cols-3">
       {categories.map((category, index) => (
         <article key={`${category.href}-${index}`} className="flex w-[17.125rem] shrink-0 snap-start flex-col gap-3 md:w-auto">
           <Link href={category.href} className="relative block aspect-[500/260] w-full overflow-hidden rounded-2xl">
