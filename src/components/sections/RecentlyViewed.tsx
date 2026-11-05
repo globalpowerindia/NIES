@@ -7,6 +7,7 @@ import { HoverPrefetchLink } from '@/components/product/HoverPrefetchLink'
 import { cardPrice, type ProductCardProps } from '@/components/product/ProductCard'
 import { ProductCarousel } from '@/components/sections/ProductCarousel'
 import { SectionHeading } from '@/components/sections/SectionHeading'
+import { cn } from '@/lib/utils'
 import { addRecentlyViewed, readRecentlyViewed } from '@/lib/recently-viewed'
 
 const COMPACT_BELOW = 4
@@ -46,7 +47,8 @@ export const RecentlyViewed = ({ excludeId }: { excludeId?: number }) => {
     return (
       <section className="flex flex-col gap-4">
         <SectionHeading title="Recently Viewed" />
-        <ul className="grid gap-3 sm:grid-cols-[repeat(auto-fit,minmax(18rem,1fr))]">
+        {/* Two or three share the width; a single card stays card-sized rather than stretching across the page. */}
+        <ul className={cn('grid gap-3', products.length === 1 ? 'sm:max-w-[26rem]' : 'sm:grid-cols-[repeat(auto-fit,minmax(18rem,1fr))]')}>
           {products.map((product) => (
             <li key={product.href}>
               <HoverPrefetchLink
