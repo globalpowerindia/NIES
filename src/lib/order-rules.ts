@@ -20,6 +20,48 @@ const STAFF_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
 export const staffCanMoveOrder = (from: OrderStatus, to: OrderStatus): boolean =>
   from === to || STAFF_TRANSITIONS[from].includes(to)
 
+type CheckoutDetails = {
+  grandTotalPaise: number
+  customerName?: string | null
+  customerEmail?: string | null
+  customerPhone?: string | null
+  customerGstin?: string | null
+  shipLine1?: string | null
+  shipLine2?: string | null
+  shipCity?: string | null
+  shipPincode?: string | null
+  shipStateCode?: string | null
+  couponCode?: string | null
+  items?: { sku: string; quantity: number; unitPricePaise: number }[] | null
+}
+
+const itemKeys = (details: CheckoutDetails) =>
+  (details.items ?? []).map((item) => `${item.sku}|${item.quantity}|${item.unitPricePaise}`).sort()
+
+const DETAIL_FIELDS = [
+  'customerName',
+  'customerEmail',
+  'customerPhone',
+  'customerGstin',
+  'shipLine1',
+  'shipLine2',
+  'shipCity',
+  'shipPincode',
+  'shipStateCode',
+  'couponCode',
+] as const
+
+/**
+ * Whether an open order is exactly the checkout now being asked for, so a retry
+ * can reuse it. Matching on the total isn't enough: different items at the same
+ * price would be paid for and invoiced as the old ones, and a GSTIN added on a
+ * retry would never reach the invoice.
+ */
+export const isSameCheckout = (order: CheckoutDetails, wanted: CheckoutDetails): boolean =>
+  order.grandTotalPaise === wanted.grandTotalPaise &&
+  DETAIL_FIELDS.every((field) => (order[field] ?? '') === (wanted[field] ?? '')) &&
+  itemKeys(order).join() === itemKeys(wanted).join()
+
 export type StatusEmail = 'SHIPPED' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED' | 'RETURNED'
 
 /**

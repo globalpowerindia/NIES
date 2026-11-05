@@ -5,6 +5,7 @@ import { nextDocumentNumber } from '@/lib/document-numbers'
 import { stateName } from '@/lib/indian-states'
 import { computeCartTotals, DEFAULT_GST_RATE_BPS, type CartTotals } from '@/lib/money'
 import { sendNewOrderAlert, sendOrderConfirmation } from '@/lib/order-emails'
+import { isSameCheckout } from '@/lib/order-rules'
 import { OutOfStockError, reserveOrderStock, sellOrderStock } from '@/lib/order-stock'
 import {
   createRazorpayOrder,
@@ -221,12 +222,13 @@ const recheckCoupon = async (
   if (check.discountPaise !== expectedDiscountPaise) throw new CouponChangedError(`Coupon ${rule.code} has changed.`)
 }
 
-/** A still-open order for this cart and total, so a double click or a retry doesn't open a second payment. */
+/** A still-open order for exactly this checkout, so a double click or a retry doesn't open a second payment. */
 const reusablePendingOrder = async (
   req: PayloadRequest,
   cartId: number,
   quote: CheckoutQuote,
   address: Address,
+  contact: { email: string; gstin: string | null; couponCode: string | null },
 ): Promise<Order | null> => {
   const { docs } = await req.payload.find({
     collection: 'orders',
@@ -241,15 +243,26 @@ const reusablePendingOrder = async (
   for (const order of docs) {
     const same =
       order.razorpayOrderId &&
-      order.grandTotalPaise === quote.totals.grandTotalPaise &&
-      order.shipLine1 === address.line1 &&
-      order.shipPincode === address.pincode &&
+      isSameCheckout(order, {
+        grandTotalPaise: quote.totals.grandTotalPaise,
+        customerName: address.fullName,
+        customerEmail: contact.email,
+        customerPhone: address.phone,
+        customerGstin: contact.gstin,
+        shipLine1: address.line1,
+        shipLine2: address.line2,
+        shipCity: address.city,
+        shipPincode: address.pincode,
+        shipStateCode: address.stateCode,
+        couponCode: contact.couponCode,
+        items: snapshotItems(quote),
+      }) &&
       new Date(order.paymentExpiresAt ?? 0).getTime() - now > 5 * 60_000
     if (same && !reusable) {
       reusable = order
       continue
     }
-    // Superseded: the cart, address or total changed since. Its stock goes back.
+    // Superseded: the cart, address or details changed since. Its stock goes back.
     await req.payload.update({
       collection: 'orders',
       id: order.id,
@@ -297,7 +310,11 @@ export const placeOrder = async (payload: Payload, input: PlaceOrderInput): Prom
     order = await inTransaction(payload, locks, async (req) => {
       // Under the coupon's lock: nobody else can take its last use between this check and the order holding it.
       if (couponId) await recheckCoupon(req, couponId, cartRef.id, input.customer.id, cart, quote.totals.discountPaise)
-      const existing = await reusablePendingOrder(req, cartRef.id, quote, address)
+      const existing = await reusablePendingOrder(req, cartRef.id, quote, address, {
+        email: input.email,
+        gstin: input.gstin,
+        couponCode: cart.coupon?.applied ? cart.coupon.code : null,
+      })
       if (existing) return existing
 
       const placedAt = new Date()
