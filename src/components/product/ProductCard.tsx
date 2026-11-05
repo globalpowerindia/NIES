@@ -2,7 +2,6 @@ import { ShoppingCart, Star } from 'lucide-react'
 import Image from 'next/image'
 
 import { AddToCartButton } from '@/components/cart/AddToCartButton'
-import { EnquireButton } from '@/components/enquiry/EnquireButton'
 import { HoverPrefetchLink } from '@/components/product/HoverPrefetchLink'
 import { WishlistHeart } from '@/components/wishlist/WishlistHeart'
 import { formatCurrency } from '@/lib/money'
@@ -20,7 +19,7 @@ export type ProductCardProps = {
   rating?: number
   badge?: 'new' | 'bestSeller'
   inStock?: boolean
-  /** False for products sold on enquiry only: WhatsApp instead of the cart. */
+  /** False for products sold on enquiry only: no cart buttons, and the enquiry is on the product page. */
   sellOnline?: boolean
   className?: string
 }
@@ -90,11 +89,6 @@ export const ProductCard = ({
           )}
         </HoverPrefetchLink>
 
-        {!sellOnline && (
-          <div className="absolute inset-x-4 bottom-4 flex opacity-0 transition-opacity duration-200 group-hover:opacity-100 focus-within:opacity-100">
-            <EnquireButton productName={label} href={href} className="flex-1" />
-          </div>
-        )}
         {sellOnline && inStock && (
           <div className="absolute inset-x-4 bottom-4 flex items-center gap-[0.4375rem] opacity-0 transition-opacity duration-200 group-hover:opacity-100 focus-within:opacity-100">
             <AddToCartButton productId={productId} buyNow variant="blue" className="w-[10.9375rem] flex-1">
