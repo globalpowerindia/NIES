@@ -62,6 +62,29 @@ describe('Product drafts', () => {
     expect(await live(product.id)).toMatchObject({ name: `Renamed ${stamp}`, _status: 'published' })
   })
 
+  it("doesn't show a draft edit to the public, even when asked for drafts", async () => {
+    const product = await publishedProduct('Secret')
+    await payload.update({ collection: 'products', id: product.id, data: { status: 'ACTIVE' }, overrideAccess: true })
+    const draftName = `Unreleased ${stamp}`
+    await payload.update({ collection: 'products', id: product.id, data: { name: draftName }, draft: true, overrideAccess: true })
+
+    // No user and access enforced: what an anonymous REST call gets.
+    const found = await payload.find({ collection: 'products', where: { id: { equals: product.id } }, draft: true, overrideAccess: false })
+    expect(found.docs.map((doc) => doc.name)).not.toContain(draftName)
+
+    const byName = await payload.find({ collection: 'products', where: { name: { equals: draftName } }, draft: true, overrideAccess: false })
+    expect(byName.totalDocs).toBe(0)
+
+    const byId = await payload.findByID({ collection: 'products', id: product.id, draft: true, overrideAccess: false, disableErrors: true })
+    expect(byId?.name).not.toBe(draftName)
+
+    // Staff still see it, and the published version stays public.
+    const asStaff = await payload.findByID({ collection: 'products', id: product.id, draft: true, user: staff, overrideAccess: false })
+    expect(asStaff.name).toBe(draftName)
+    const published = await payload.find({ collection: 'products', where: { id: { equals: product.id } }, overrideAccess: false })
+    expect(published.docs[0]?.name).toBe(`Secret ${stamp}`)
+  })
+
   it('never shows an unpublished product as Active', async () => {
     const product = await publishedProduct('Unpublished')
     await payload.update({ collection: 'products', id: product.id, data: { status: 'ACTIVE' }, overrideAccess: true })

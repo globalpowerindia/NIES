@@ -3,7 +3,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 
 import { AddToCartButton } from '@/components/cart/AddToCartButton'
-import { EnquireButton } from '@/components/enquiry/EnquireButton'
 import { cardPrice, ProductCard, type ProductCardProps } from '@/components/product/ProductCard'
 import { WishlistHeart } from '@/components/wishlist/WishlistHeart'
 import { formatCurrency } from '@/lib/money'
@@ -61,7 +60,8 @@ export const CatalogProductCard = (props: ProductCardProps) => {
             />
           </Link>
         </div>
-        <div className="flex min-h-[11.875rem] flex-1 flex-col gap-1.5">
+        {/* Room for the buy buttons, so only cards that have them reserve it. */}
+        <div className={cn('flex flex-1 flex-col gap-1.5', sellOnline && 'min-h-[11.875rem]')}>
           {typeof rating === 'number' && (
             <span className="flex h-[1.125rem] items-center gap-0.5 self-start rounded-full bg-green-400 pr-1.5 pl-0.5 text-[0.75rem] leading-[1.125rem] text-green-100">
               <Star className="size-3.5 fill-green-100 stroke-green-100" aria-hidden />
@@ -103,13 +103,7 @@ export const CatalogProductCard = (props: ProductCardProps) => {
             <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-current" />
             {!sellOnline ? 'Available on enquiry' : inStock ? 'In Stock' : 'Out Of Stock'}
           </span>
-          {!sellOnline ? (
-            <EnquireButton
-              productName={label}
-              href={href}
-              className="w-full px-2 text-[0.75rem] font-normal"
-            />
-          ) : (
+          {sellOnline && (
             <div className="flex gap-[0.4375rem]">
               <AddToCartButton
                 productId={productId}

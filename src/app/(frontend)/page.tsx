@@ -5,7 +5,7 @@ export default async function HomePage() {
   const [payload, home] = await Promise.all([getPayloadClient(), getHomePage()])
 
   return (
-    <main className="container-page flex flex-col gap-6 pb-6">
+    <main className="container-page flex flex-col gap-8 pb-8 md:gap-16 md:pb-16">
       {home.sections?.length ? (
         <HomeSections payload={payload} sections={home.sections} />
       ) : (

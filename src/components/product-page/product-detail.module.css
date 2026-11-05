@@ -1,0 +1,86 @@
+.reveal {
+  transition:
+    opacity 0.5s ease,
+    transform 0.5s ease;
+}
+
+.hidden {
+  opacity: 0;
+  transform: translateY(1.5rem);
+}
+
+/* A band of light across the button on hover. */
+.shine {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease;
+}
+
+.shine:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.shine::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgb(255 255 255 / 0.35) 50%, transparent 70%);
+  transform: translateX(-100%);
+  pointer-events: none;
+}
+
+.shine:hover:not(:disabled)::after {
+  transform: translateX(100%);
+  transition: transform 0.7s ease;
+}
+
+.fade {
+  animation: fade 0.25s ease;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+    transform: translateY(0.25rem);
+  }
+}
+
+/* Slides up from the bottom of the screen. */
+.stickyBar {
+  animation: slide-up 0.25s ease;
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+/* The bar shouldn't cover the end of the page, or the floating chat button. */
+@media (width >= 64rem) {
+  :global(body):has(.stickyBar) {
+    padding-bottom: 4.5rem;
+  }
+
+  :global(body):has(.stickyBar) > a[aria-label='Chat with us on WhatsApp'] {
+    bottom: 5.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .shine,
+  .shine::after,
+  .shine:hover:not(:disabled)::after {
+    transition: none;
+  }
+
+  .shine:hover:not(:disabled) {
+    transform: none;
+  }
+
+  .fade,
+  .stickyBar {
+    animation: none;
+  }
+}

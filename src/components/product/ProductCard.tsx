@@ -1,9 +1,8 @@
 import { ShoppingCart, Star } from 'lucide-react'
 import Image from 'next/image'
-import Link from 'next/link'
 
 import { AddToCartButton } from '@/components/cart/AddToCartButton'
-import { EnquireButton } from '@/components/enquiry/EnquireButton'
+import { HoverPrefetchLink } from '@/components/product/HoverPrefetchLink'
 import { WishlistHeart } from '@/components/wishlist/WishlistHeart'
 import { formatCurrency } from '@/lib/money'
 import { cn } from '@/lib/utils'
@@ -20,7 +19,7 @@ export type ProductCardProps = {
   rating?: number
   badge?: 'new' | 'bestSeller'
   inStock?: boolean
-  /** False for products sold on enquiry only: WhatsApp instead of the cart. */
+  /** False for products sold on enquiry only: no cart buttons, and the enquiry is on the product page. */
   sellOnline?: boolean
   className?: string
 }
@@ -75,7 +74,7 @@ export const ProductCard = ({
           <WishlistHeart productId={productId} label={label} iconClassName="size-7" />
         </div>
 
-        <Link href={href} className="relative block size-[10.625rem] max-w-full self-center md:aspect-square md:size-auto md:w-full">
+        <HoverPrefetchLink href={href} className="relative block size-[10.625rem] max-w-full self-center md:aspect-square md:size-auto md:w-full">
           <Image
             src={imageUrl}
             alt={imageAlt}
@@ -88,13 +87,8 @@ export const ProductCard = ({
               Out Of Stock
             </span>
           )}
-        </Link>
+        </HoverPrefetchLink>
 
-        {!sellOnline && (
-          <div className="absolute inset-x-4 bottom-4 flex opacity-0 transition-opacity duration-200 group-hover:opacity-100 focus-within:opacity-100">
-            <EnquireButton productName={label} href={href} className="flex-1" />
-          </div>
-        )}
         {sellOnline && inStock && (
           <div className="absolute inset-x-4 bottom-4 flex items-center gap-[0.4375rem] opacity-0 transition-opacity duration-200 group-hover:opacity-100 focus-within:opacity-100">
             <AddToCartButton productId={productId} buyNow variant="blue" className="w-[10.9375rem] flex-1">
@@ -115,9 +109,9 @@ export const ProductCard = ({
               {rating.toFixed(1)}
             </span>
           )}
-          <Link href={href} className="text-body2 text-dark-500 hover:underline">
+          <HoverPrefetchLink href={href} className="text-body2 text-dark-500 hover:underline">
             {label}
-          </Link>
+          </HoverPrefetchLink>
           <p className="text-label1 text-dark-300">{category}</p>
         </div>
 

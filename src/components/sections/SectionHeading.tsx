@@ -14,13 +14,13 @@ export const SectionHeading = ({
   className,
 }: SectionHeadingProps) =>
   eyebrow || title || description ? (
-    <div className={cn('flex flex-col items-center gap-4 md:gap-6', className)}>
-      <div className="flex w-full flex-col items-center gap-2 text-center">
+    <div className={cn('flex min-w-0 flex-col gap-2', className)}>
+      <div className="flex w-full flex-col gap-1">
         {eyebrow && <p className="text-[0.75rem] leading-4 text-dark-300 md:text-body2">{eyebrow}</p>}
-        {title && <h2 className="text-h5 font-semibold text-dark-500 md:text-balance md:text-h3 md:font-medium">{title}</h2>}
+        {title && <h2 className="text-h5 font-semibold text-dark-500 md:text-balance md:text-h4 md:font-medium">{title}</h2>}
       </div>
       {description && (
-        <p className="max-w-[41.125rem] font-mobile-caption text-center text-caption1 text-dark-400 md:font-sans md:text-body3">{description}</p>
+        <p className="max-w-[49.5rem] font-mobile-caption text-caption1 text-dark-400 md:font-sans md:text-body2">{description}</p>
       )}
     </div>
   ) : null

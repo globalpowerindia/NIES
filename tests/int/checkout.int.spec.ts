@@ -16,7 +16,7 @@ vi.mock('@/lib/razorpay', async (importOriginal) => ({
 }))
 
 const { confirmPayment, expireUnpaidOrders, placeOrder, quoteCheckout } = await import('@/lib/checkout')
-const { addToCart, findOrCreateCart, loadCartView } = await import('@/lib/storefront/cart')
+const { addToCart, findOrCreateCart, loadCartView, removeFromCart } = await import('@/lib/storefront/cart')
 
 let payload: Payload
 const stamp = Date.now()
@@ -144,6 +144,53 @@ describe('Checkout', () => {
     expect(second.order.orderNumber).toBe(first.order.orderNumber)
     expect(second.order.razorpayOrderId).toBe(first.order.razorpayOrderId)
     expect(await stockOf(f.variant.id)).toEqual({ onHand: 5, reserved: 2 })
+  })
+
+  it('opens a new order when a GSTIN changes on a retry', async () => {
+    const f = await fixture(5)
+    const first = await place(f)
+    if (!first.ok) throw new Error(first.error)
+
+    const view = await loadCartView(payload, f.cart)
+    const quote = await quoteCheckout(payload, view, f.address.stateCode)
+    const retry = await placeOrder(payload, {
+      customer: f.customer,
+      addressId: f.address.id,
+      email: 'asha@example.test',
+      gstin: '32ABCDE1234F1Z5',
+      expectedTotalPaise: quote.totals.grandTotalPaise,
+    })
+    if (!retry.ok) throw new Error(retry.error)
+
+    expect(retry.order.orderNumber).not.toBe(first.order.orderNumber)
+    expect((await orderOf(retry.order.orderId)).customerGstin).toBe('32ABCDE1234F1Z5')
+    expect(await orderOf(first.order.orderId)).toMatchObject({ status: 'CANCELLED', cancelReason: 'SUPERSEDED' })
+    // The old order's hold went back: stock is held once.
+    expect(await stockOf(f.variant.id)).toEqual({ onHand: 5, reserved: 2 })
+  })
+
+  it('opens a new order when different items come to the same total', async () => {
+    const f = await fixture(5)
+    const first = await place(f)
+    if (!first.ok) throw new Error(first.error)
+
+    const other = await payload.create({
+      collection: 'product-variants',
+      data: { product: f.product.id, sku: `CHK-OTHER-${stamp}`, name: 'Other', mrpPaise: 200_000, sellingPricePaise: f.variant.sellingPricePaise },
+      overrideAccess: true,
+    })
+    await payload.create({ collection: 'stock-movements', data: { variant: other.id, type: 'RECEIVED', quantity: 5 }, overrideAccess: true })
+    await removeFromCart(payload, f.cart, f.variant.id)
+    await addToCart(payload, async () => f.cart, other.id, 2)
+
+    const retry = await place(f)
+    if (!retry.ok) throw new Error(retry.error)
+
+    expect(retry.order.orderNumber).not.toBe(first.order.orderNumber)
+    expect(retry.order.amountPaise).toBe(first.order.amountPaise)
+    const items = (await orderOf(retry.order.orderId)).items ?? []
+    expect(items.map((item) => item.sku)).toEqual([`CHK-OTHER-${stamp}`])
+    expect(await stockOf(f.variant.id)).toEqual({ onHand: 5, reserved: 0 })
   })
 
   it('refuses to charge a total the shopper did not see', async () => {

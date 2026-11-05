@@ -4,7 +4,7 @@ import Link from 'next/link'
 
 import { CartLink } from '@/components/cart/CartLink'
 import { AccountLink } from '@/components/layout/AccountLink'
-import { CategoryNav } from '@/components/layout/CategoryNav'
+import { CategoryNav, type NavCategory } from '@/components/layout/CategoryNav'
 import { HeaderSearch } from '@/components/layout/HeaderSearch'
 import { MobileNavigation } from '@/components/layout/MobileNavigation'
 import { OffersTicker } from '@/components/layout/OffersTicker'
@@ -17,7 +17,7 @@ export type HeaderProps = {
   logoUrl: string
   offers: string[]
   utilityLinks: { label: string; href: string; icon: keyof typeof ICONS; download: boolean }[]
-  categories: { label: string; href: string }[]
+  categories: NavCategory[]
   searchTiles: TopMovingTile[]
   searchHints: string[]
 }

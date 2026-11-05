@@ -65,8 +65,8 @@ jobs:
       - name: Integration tests
         run: npm run test:int
 
-      - name: Dependency audit (production, critical)
-        run: npm audit --omit=dev --audit-level=critical
+      - name: Dependency audit (production, high)
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Build
         run: npm run build

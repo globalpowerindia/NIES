@@ -1,40 +1,39 @@
 'use client'
 
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
+import Link from 'next/link'
+import { useEffect, useRef, useState } from 'react'
 
 import { ProductCard, type ProductCardProps } from '@/components/product/ProductCard'
 import { SectionHeading } from '@/components/sections/SectionHeading'
+import { cn } from '@/lib/utils'
 
 export type ProductCarouselProps = {
   eyebrow?: string
   title?: string
-  description?: string
   products: ProductCardProps[]
+  /** Where "View all" leads. Without one, the row just scrolls. */
+  viewAllHref?: string
 }
 
 export const ProductCarousel = ({
   eyebrow,
   title,
-  description,
   products,
+  viewAllHref,
 }: ProductCarouselProps) => {
   const trackRef = useRef<HTMLDivElement>(null)
-  const [progress, setProgress] = useState({ ratio: 0, offset: 0 })
-
-  const updateProgress = useCallback(() => {
-    const track = trackRef.current
-    if (!track) return
-    const scrollable = track.scrollWidth - track.clientWidth
-    const ratio = track.clientWidth / track.scrollWidth
-    setProgress({ ratio, offset: scrollable > 0 ? track.scrollLeft / scrollable : 0 })
-  }, [])
+  const [canScroll, setCanScroll] = useState(false)
 
   useEffect(() => {
-    updateProgress()
-    window.addEventListener('resize', updateProgress)
-    return () => window.removeEventListener('resize', updateProgress)
-  }, [updateProgress])
+    const track = trackRef.current
+    if (!track) return
+    const measure = () => setCanScroll(track.scrollWidth > track.clientWidth + 1)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(track)
+    return () => observer.disconnect()
+  }, [products.length])
 
   const scrollByCard = (direction: 1 | -1) => {
     const track = trackRef.current
@@ -44,56 +43,54 @@ export const ProductCarousel = ({
     track.scrollBy({ left: step * direction, behavior: 'smooth' })
   }
 
+  const arrow =
+    'grid size-9 place-items-center rounded-full border border-neutral-300 text-dark-500 transition-colors hover:bg-neutral-200'
+
   return (
-    // Without a heading (e.g. deals directly under the offer strip) the section
-    // tucks up against whatever introduces it, as in the design.
-    <section className={eyebrow || title || description ? 'flex flex-col gap-4 md:gap-10 md:pt-20 md:pb-10' : 'flex flex-col max-md:-mt-6 md:py-5'}>
-      <SectionHeading eyebrow={eyebrow} title={title} description={description} />
-
-      <div className="flex flex-col gap-10 py-6 md:py-0">
-        <div
-          ref={trackRef}
-          onScroll={updateProgress}
-          className="flex snap-x snap-mandatory gap-4 overflow-x-auto md:gap-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
-          {products.map((product) => (
-            <ProductCard
-              key={product.href}
-              {...product}
-              className="w-[16.125rem] shrink-0 snap-start md:w-[18.625rem]"
-            />
-          ))}
-        </div>
-
-        <div className="hidden items-center gap-4 md:flex">
-          <div className="relative h-0.5 flex-1 bg-neutral-300">
-            <div
-              className="absolute inset-y-0 rounded-full bg-dark-500 transition-[left] duration-150"
-              style={{
-                width: `${Math.min(progress.ratio, 1) * 100}%`,
-                left: `${progress.offset * (1 - Math.min(progress.ratio, 1)) * 100}%`,
-              }}
-            />
-          </div>
-          <div className="flex shrink-0 items-center gap-3">
-            <button
-              type="button"
-              onClick={() => scrollByCard(-1)}
-              aria-label="Scroll left"
-              className="grid size-8 place-items-center rounded-full border border-neutral-300 text-dark-500 transition-colors hover:bg-neutral-200"
-            >
-              <ChevronLeft className="size-5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollByCard(1)}
-              aria-label="Scroll right"
-              className="grid size-8 place-items-center rounded-full border border-neutral-300 text-dark-500 transition-colors hover:bg-neutral-200"
-            >
-              <ChevronRight className="size-5" />
-            </button>
+    <section className="flex flex-col gap-4">
+      {(eyebrow || title || viewAllHref || canScroll) && (
+        <div className="flex items-end justify-between gap-4">
+          <SectionHeading eyebrow={eyebrow} title={title} />
+          <div className="ml-auto flex shrink-0 items-center gap-3">
+            {viewAllHref && (
+              <Link
+                href={viewAllHref}
+                className="flex items-center gap-1 text-body3 font-medium text-brand-red-500 hover:underline md:text-body1"
+              >
+                View all
+                <ArrowRight className="size-4 md:size-5" aria-hidden />
+              </Link>
+            )}
+            {canScroll && (
+              <div className="hidden items-center gap-2 md:flex">
+                <button type="button" onClick={() => scrollByCard(-1)} aria-label="Scroll left" className={arrow}>
+                  <ChevronLeft className="size-5" />
+                </button>
+                <button type="button" onClick={() => scrollByCard(1)} aria-label="Scroll right" className={arrow}>
+                  <ChevronRight className="size-5" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
+      )}
+
+      <div
+        ref={trackRef}
+        className="flex snap-x snap-mandatory gap-4 overflow-x-auto [scrollbar-width:none] md:gap-3 [&::-webkit-scrollbar]:hidden"
+      >
+        {products.map((product) => (
+          <ProductCard
+            key={product.href}
+            {...product}
+            // A quarter of the next card shows, which fills the row and hints there's more.
+            // When they all fit, they share the width instead.
+            className={cn(
+              'w-[16.125rem] shrink-0 snap-start md:w-[calc((100%-2.25rem)/3.25)]',
+              products.length > 5 ? 'lg:w-[calc((100%-3.75rem)/5.25)]' : 'lg:w-auto lg:min-w-0 lg:flex-1',
+            )}
+          />
+        ))}
       </div>
     </section>
   )

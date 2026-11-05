@@ -167,6 +167,10 @@ const HoverZoomImage = ({
   )
 }
 
+/** Share and wishlist, matching the round zoom button in the opposite corner. */
+const CORNER_BUTTON =
+  'grid size-9 place-items-center rounded-full bg-light-100/90 shadow-sm lg:size-11'
+
 /** Thumbnails down the left, the selected image or video large on the right. */
 export const ProductGallery = ({
   productId,
@@ -285,18 +289,18 @@ export const ProductGallery = ({
           </video>
         )}
         {(current?.kind === 'image' || current?.kind === 'spin' || current?.kind === 'model') && (
-          <div className="absolute top-3 right-3 flex items-center gap-3 lg:top-5 lg:right-5 lg:gap-4">
+          <div className="absolute top-3 right-3 flex items-center gap-2 lg:top-5 lg:right-5">
             <ShareButton
               name={name}
               description={description}
-              iconClassName="size-5 lg:size-[2.8125rem]"
-              strokeWidth={1.25}
+              className={CORNER_BUTTON}
+              iconClassName="size-4 lg:size-6"
             />
             <WishlistHeart
               productId={productId}
               label={name}
-              iconClassName="size-5 lg:size-[2.8125rem]"
-              strokeWidth={1.25}
+              className={CORNER_BUTTON}
+              iconClassName="size-4 lg:size-6"
             />
           </div>
         )}

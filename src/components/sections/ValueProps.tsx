@@ -14,8 +14,8 @@ export type ValuePropsProps = {
 }
 
 export const ValueProps = ({ eyebrow, title, description, items }: ValuePropsProps) => (
-  <section className="flex flex-col gap-6 py-10 md:gap-12">
-    <SectionHeading eyebrow={eyebrow} title={title} description={description} className="gap-6 max-md:[&>p]:font-sans max-md:[&>p]:text-[0.75rem] max-md:[&>p]:leading-4" />
+  <section className="flex flex-col gap-4 md:gap-6">
+    <SectionHeading eyebrow={eyebrow} title={title} description={description} className="max-md:[&>p]:font-sans max-md:[&>p]:text-[0.75rem] max-md:[&>p]:leading-4" />
 
     <ul className="flex w-full snap-x snap-mandatory items-start gap-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:grid-cols-2 md:items-stretch md:gap-6 lg:grid-cols-6">
       {items.map((item, index) => (

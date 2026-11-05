@@ -3,6 +3,7 @@ import type { GlobalConfig } from 'payload'
 import { can } from '@/access/permissions'
 import { allow, anyone } from '@/access/roles'
 import { paiseField } from '@/fields/paise'
+import { revalidateStorefrontGlobal } from '@/lib/revalidate'
 
 // Seller's state code first: checkout splits tax on the shop being in Kerala.
 const GSTIN = /^32[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/
@@ -10,7 +11,7 @@ const GSTIN = /^32[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/
 /**
  * Delivery charges by parcel weight. Read by checkout on every quote, so a
  * change here applies to the next order (orders already placed keep the fee
- * they were charged).
+ * they were charged). Product pages show these fees too, so a save purges them.
  */
 export const CheckoutSettings: GlobalConfig = {
   slug: 'checkout-settings',
@@ -25,6 +26,7 @@ export const CheckoutSettings: GlobalConfig = {
     read: anyone,
     update: allow('checkout-settings', 'update'),
   },
+  hooks: { afterChange: [revalidateStorefrontGlobal] },
   fields: [
     {
       name: 'shippingSlabs',
