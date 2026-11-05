@@ -1,8 +1,10 @@
 'use client'
 
-import { Minus, Plus } from 'lucide-react'
+import { ChevronDown, Minus, Plus } from 'lucide-react'
+import Image from 'next/image'
 import Link from 'next/link'
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
 import { AddToCartButton } from '@/components/cart/AddToCartButton'
 import { EnquireButton } from '@/components/enquiry/EnquireButton'
@@ -35,6 +37,7 @@ export const BuyBox = ({
   rates,
   price,
   tollFreeNumber,
+  imageUrl,
 }: {
   name: string
   variantId: number
@@ -48,9 +51,22 @@ export const BuyBox = ({
   /** The price block, shown here only where the rail is beside the page. */
   price: ReactNode
   tollFreeNumber?: string | null
+  /** For the bar that takes over once the buttons scroll out of view. */
+  imageUrl: string
 }) => {
   const [qty, setQty] = useState(1)
   const [state, setState] = useState('')
+  const buttons = useRef<HTMLDivElement>(null)
+  const [buttonsGone, setButtonsGone] = useState(false)
+  const canBuy = sellOnline && inStock
+
+  useEffect(() => {
+    const element = buttons.current
+    if (!element || !canBuy) return
+    const observer = new IntersectionObserver(([entry]) => setButtonsGone(!entry.isIntersecting))
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [canBuy])
 
   if (!sellOnline) {
     return (
@@ -126,7 +142,7 @@ export const BuyBox = ({
 
         <div className="fixed inset-x-0 bottom-0 z-50 bg-light-400 px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-2px_12px_#0000000a] lg:static lg:bg-transparent lg:p-0 lg:shadow-none">
           {inStock ? (
-            <div className="mx-auto flex w-full max-w-[43.75rem] gap-2 lg:max-w-none lg:flex-col">
+            <div ref={buttons} className="mx-auto flex w-full max-w-[43.75rem] gap-2 lg:max-w-none lg:flex-col">
               <AddToCartButton
                 variantId={variantId}
                 quantity={qty}
@@ -156,6 +172,50 @@ export const BuyBox = ({
         </div>
       </section>
 
+      {/*
+        Phones keep their own fixed buttons, so this is for laptop widths and up. On the
+        body, as the sticky rail is its own stacking context and the page would paint over it.
+      */}
+      {canBuy &&
+        buttonsGone &&
+        createPortal(
+          <div
+            role="region"
+            aria-label="Quick add to cart"
+            className={`${styles.stickyBar} fixed inset-x-0 bottom-0 z-40 hidden bg-light-100 shadow-[0_-3px_10px_#00000033] lg:block`}
+          >
+            <div className="container-page flex items-center justify-between gap-6 py-2.5">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-light-300">
+                  <Image src={imageUrl} alt="" fill sizes="112px" className="object-contain p-1" />
+                </span>
+                <div className="flex min-w-0 flex-col">
+                  <p className="truncate text-body1 font-medium text-dark-500">{name}</p>
+                  <p className="flex items-baseline gap-2 text-body1">
+                    {mrpPaise > pricePaise && (
+                      <span className="text-body2 text-dark-300 line-through">
+                        {formatCurrency(mrpPaise * qty)}
+                      </span>
+                    )}
+                    <span className="font-semibold text-dark-500">{formatCurrency(pricePaise * qty)}</span>
+                    {qty > 1 && <span className="text-body2 text-dark-400">for {qty}</span>}
+                  </p>
+                </div>
+              </div>
+              <AddToCartButton
+                variantId={variantId}
+                quantity={qty}
+                size="tall"
+                className={`${styles.shine} h-12 shrink-0 bg-brand-red-500 px-12 text-body1 hover:bg-brand-red-400`}
+                aria-label={`Add ${qty} × ${name} to cart`}
+              >
+                Add to Cart
+              </AddToCartButton>
+            </div>
+          </div>,
+          document.body,
+        )}
+
       <section aria-labelledby="delivery-heading" className="flex flex-col gap-3 rounded-2xl shadow-[0_4px_16px_#1c1c1c1a] border-[0.5px] border-dark-100 bg-light-100 p-5">
         <h3 id="delivery-heading" className="flex items-center gap-2 text-body2 font-semibold text-dark-500 lg:text-h6">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -164,18 +224,21 @@ export const BuyBox = ({
         </h3>
         <label className="flex flex-col gap-1 text-body3 text-dark-400 lg:text-body1">
           Deliver to
-          <select
-            value={state}
-            onChange={(event) => setState(event.target.value)}
-            className="h-10 w-full rounded-lg border-[0.5px] border-dark-200 bg-light-100 px-2 text-body3 text-dark-500 lg:text-body1"
-          >
-            <option value="">Choose your state</option>
-            {INDIAN_STATES.map((option) => (
-              <option key={option.code} value={option.code}>
-                {option.name}
-              </option>
-            ))}
-          </select>
+          <span className="relative block">
+            <select
+              value={state}
+              onChange={(event) => setState(event.target.value)}
+              className="h-10 w-full cursor-pointer appearance-none rounded-lg border-[0.5px] border-dark-200 bg-light-100 pr-9 pl-3 text-body3 text-dark-500 lg:text-body1"
+            >
+              <option value="">Choose your state</option>
+              {INDIAN_STATES.map((option) => (
+                <option key={option.code} value={option.code}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-dark-400" aria-hidden />
+          </span>
         </label>
         {state ? (
           <p className="flex justify-between gap-3 text-body3 text-dark-500 lg:text-body1">

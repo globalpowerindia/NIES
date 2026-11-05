@@ -45,6 +45,28 @@
   }
 }
 
+/* Slides up from the bottom of the screen. */
+.stickyBar {
+  animation: slide-up 0.25s ease;
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+/* The bar shouldn't cover the end of the page, or the floating chat button. */
+@media (width >= 64rem) {
+  :global(body):has(.stickyBar) {
+    padding-bottom: 4.5rem;
+  }
+
+  :global(body):has(.stickyBar) > a[aria-label='Chat with us on WhatsApp'] {
+    bottom: 5.5rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .reveal,
   .shine,
@@ -57,7 +79,8 @@
     transform: none;
   }
 
-  .fade {
+  .fade,
+  .stickyBar {
     animation: none;
   }
 }

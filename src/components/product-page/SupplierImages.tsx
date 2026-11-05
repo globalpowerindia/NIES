@@ -1,20 +1,18 @@
 import Image from 'next/image'
 
 import type { MediaInfo } from '@/lib/storefront/content'
-import { cn } from '@/lib/utils'
+
+/** Wide enough to fill a banner tile with only a little trimmed from the edges. */
+const isBannerShaped = ({ width, height }: MediaInfo) =>
+  Boolean(width && height && width / height >= 1.4)
 
 /**
- * Any number of supplier images, as an even grid. They often carry small print,
- * so each opens at full size. One image takes the full width, two sit side by side.
+ * Any number of supplier images, stacked as full-width banners under the
+ * brochure, in its shape. Artwork fills its tile; a square photo shows whole,
+ * as these often carry small print. Each opens at full size.
  */
 export const SupplierImages = ({ images, name }: { images: MediaInfo[]; name: string }) => (
-  <ul
-    className={cn(
-      'grid gap-3 lg:gap-4',
-      images.length === 1 ? 'grid-cols-1' : 'grid-cols-2',
-      images.length > 2 && 'lg:grid-cols-3',
-    )}
-  >
+  <ul className="flex flex-col gap-3 lg:gap-4">
     {images.map((image, index) => (
       <li key={image.url}>
         <a
@@ -22,17 +20,14 @@ export const SupplierImages = ({ images, name }: { images: MediaInfo[]; name: st
           target="_blank"
           rel="noopener noreferrer"
           aria-label={`Open image ${index + 1} of ${name} at full size`}
-          className={cn(
-            'relative block overflow-hidden rounded-xl border-[0.5px] border-dark-100 bg-light-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-red-500',
-            images.length === 1 ? 'aspect-[16/9]' : 'aspect-square',
-          )}
+          className="relative block aspect-[358/177] overflow-hidden rounded-xl bg-light-100 shadow-[0_4px_16px_#1c1c1c1a] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-red-500 lg:aspect-[1620/601] lg:rounded-3xl"
         >
           <Image
             src={image.url}
             alt={image.alt || ''}
             fill
-            sizes="(max-width: 1024px) 50vw, 400px"
-            className="object-contain"
+            sizes="(max-width: 1024px) 100vw, 1000px"
+            className={isBannerShaped(image) ? 'object-cover' : 'object-contain'}
           />
         </a>
       </li>

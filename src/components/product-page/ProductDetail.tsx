@@ -6,7 +6,7 @@ import type { ReactNode } from 'react'
 import { Breadcrumbs, type Crumb } from '@/components/catalog/Breadcrumbs'
 import { EnquireButton } from '@/components/enquiry/EnquireButton'
 import { cardPrice } from '@/components/product/ProductCard'
-import { CompareTable } from '@/components/product-page/CompareTable'
+import { CompareSection } from '@/components/product-page/CompareSection'
 import {
   Applications,
   FeatureBanners,
@@ -35,7 +35,7 @@ import { BuyBox } from './BuyBox'
 import { ContentSections, contentSectionId } from './ContentSections'
 import { Panel } from './Panel'
 import { Reveal } from './Reveal'
-import { SectionNav, type NavSection } from './SectionNav'
+import { JumpLink, SectionNav, type NavSection } from './SectionNav'
 import { StoreTrust, type StoreStats } from './StoreTrust'
 import { SupplierImages } from './SupplierImages'
 
@@ -249,7 +249,22 @@ export const ProductDetail = ({
     ...(care.length > 0 ? [{ id: 'using', label: 'Using it' }] : []),
     { id: 'customer-reviews', label: 'Reviews' },
     { id: 'faqs', label: 'FAQs' },
+    ...(data.compare ? [{ id: 'compare', label: 'Compare' }] : []),
   ]
+
+  // Up with the first facts, so shoppers learn the comparison exists without scrolling to it.
+  const compareButton = (className: string) =>
+    data.compare && (
+      <JumpLink
+        to="compare"
+        className={cn(
+          'rounded-lg border border-brand-red-500 px-3 py-1.5 text-body3 font-medium whitespace-nowrap text-brand-red-500 transition-colors hover:bg-brand-red-500 hover:text-light-100 lg:text-body1',
+          className,
+        )}
+      >
+        Compare products
+      </JumpLink>
+    )
 
   // With no accessories the facts column is shorter than the gallery, so the specs run below both.
   const wideGlance = accessories.length === 0
@@ -333,6 +348,7 @@ export const ProductDetail = ({
                     In stock
                   </span>
                 )}
+                {compareButton('ml-auto lg:hidden')}
               </div>
 
               <div className="flex flex-col gap-1">
@@ -357,6 +373,7 @@ export const ProductDetail = ({
                     {demand}
                   </p>
                 )}
+                {compareButton('ml-auto hidden lg:block')}
               </div>
               <ProductViewers productId={product.id} />
 
@@ -466,6 +483,7 @@ export const ProductDetail = ({
                 weightGrams={variant.weightGrams}
                 rates={rates}
                 tollFreeNumber={tollFreeNumber}
+                imageUrl={data.images[0].url}
                 price={
                   <div className="max-xl:hidden">
                     <PriceBlock data={data} />
@@ -654,7 +672,12 @@ export const ProductDetail = ({
 
         {data.compare && (
           <Reveal>
-            <CompareTable compare={data.compare} />
+            <CompareSection
+              initial={data.compare}
+              currentId={product.id}
+              categoryName={data.compare.categoryName}
+              heading="Compare with similar products"
+            />
           </Reveal>
         )}
         {data.promoImages.length > 0 && <FeatureBanners images={data.promoImages} />}

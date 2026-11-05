@@ -1,11 +1,34 @@
 'use client'
 
-import { useEffect, useState, type MouseEvent } from 'react'
+import { useEffect, useState, type MouseEvent, type ReactNode } from 'react'
 
 import { cn } from '@/lib/utils'
 
 /** `alsoIds` are further sections that count as this link while being read. */
 export type NavSection = { id: string; label: string; alsoIds?: string[] }
+
+const jump = (event: MouseEvent, id: string) => {
+  const section = document.getElementById(id)
+  if (!section) return
+  event.preventDefault()
+  const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  section.scrollIntoView({ behavior: still ? 'auto' : 'smooth' })
+}
+
+/** A link further up the page that glides down to a section. */
+export const JumpLink = ({
+  to,
+  className,
+  children,
+}: {
+  to: string
+  className?: string
+  children: ReactNode
+}) => (
+  <a href={`#${to}`} onClick={(event) => jump(event, to)} className={className}>
+    {children}
+  </a>
+)
 
 /** Jump links that stay at the top of the page and follow the section being read. */
 export const SectionNav = ({ sections }: { sections: NavSection[] }) => {
@@ -31,14 +54,6 @@ export const SectionNav = ({ sections }: { sections: NavSection[] }) => {
       })
     return () => observer.disconnect()
   }, [sections])
-
-  const jump = (event: MouseEvent, id: string) => {
-    const section = document.getElementById(id)
-    if (!section) return
-    event.preventDefault()
-    const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    section.scrollIntoView({ behavior: still ? 'auto' : 'smooth' })
-  }
 
   return (
     <nav
