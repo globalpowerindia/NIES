@@ -187,6 +187,95 @@ export const SiteSettings: GlobalConfig = {
             { name: 'paymentMethodsImage', type: 'upload', relationTo: 'media' },
           ],
         },
+        {
+          label: 'Product page',
+          description: 'The same on every product page. Leave a field empty to use the standard wording.',
+          fields: [
+            {
+              name: 'productPage',
+              type: 'group',
+              fields: [
+                {
+                  type: 'collapsible',
+                  label: 'Why buy from us',
+                  fields: [
+                    {
+                      name: 'trustBadge',
+                      type: 'text',
+                      admin: { placeholder: 'Kerala based tools supplier' },
+                    },
+                    {
+                      name: 'extraStats',
+                      type: 'array',
+                      label: 'Extra figures',
+                      maxRows: 3,
+                      labels: { singular: 'Figure', plural: 'Figures' },
+                      admin: {
+                        description:
+                          'Shown beside the automatic product, category and brand counts, exactly as typed. Only add what you can back up.',
+                      },
+                      fields: [
+                        {
+                          type: 'row',
+                          fields: [
+                            { name: 'value', type: 'text', required: true, admin: { width: '40%', placeholder: '2015' } },
+                            { name: 'label', type: 'text', required: true, admin: { width: '60%', placeholder: 'In business since' } },
+                          ],
+                        },
+                      ],
+                    },
+                    {
+                      name: 'promises',
+                      type: 'array',
+                      labels: { singular: 'Promise', plural: 'Promises' },
+                      admin: {
+                        description:
+                          'Replaces the standard Genuine Products, Secure Payments, Returns & Refunds and Talk to Us. The warranty and GST invoice are added automatically.',
+                      },
+                      fields: [
+                        {
+                          type: 'row',
+                          fields: [
+                            {
+                              name: 'icon',
+                              type: 'select',
+                              required: true,
+                              defaultValue: 'quality',
+                              options: ['quality', 'payment', 'verified', 'trust', 'help', 'shipping', 'tools'],
+                              admin: { width: '30%' },
+                            },
+                            { name: 'title', type: 'text', required: true, admin: { width: '70%' } },
+                          ],
+                        },
+                        { name: 'detail', type: 'textarea', required: true, admin: { rows: 2 } },
+                        {
+                          type: 'row',
+                          fields: [
+                            { name: 'linkLabel', type: 'text', admin: { width: '50%', placeholder: 'Read the policy' } },
+                            { name: 'linkHref', type: 'text', admin: { width: '50%', placeholder: '/returns' } },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  type: 'collapsible',
+                  label: 'Bulk order card',
+                  fields: [
+                    { name: 'bulkEnabled', type: 'checkbox', defaultValue: true, label: 'Show this card' },
+                    { name: 'bulkTitle', type: 'text', admin: { placeholder: 'Buying for a workshop or team?' } },
+                    {
+                      name: 'bulkText',
+                      type: 'textarea',
+                      admin: { rows: 2, placeholder: "Message us with the quantity you need and we'll get back to you." },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
       ],
     },
   ],

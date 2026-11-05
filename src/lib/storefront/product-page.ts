@@ -2,6 +2,8 @@ import { unstable_cache } from 'next/cache'
 import type { Payload } from 'payload'
 import { cache } from 'react'
 
+import { loadShippingRates } from '@/lib/checkout'
+import { invoiceSeller } from '@/lib/invoice/invoice-data'
 import { summarizeReviewRatings } from '@/lib/review-ratings'
 import { CACHE_VERSION, STOREFRONT_CACHE } from '@/lib/revalidate'
 import { SPIN_MIN_FRAMES } from '@/lib/spin-rules'
@@ -113,6 +115,41 @@ export type ReviewCard = {
   date: string
   photos: MediaInfo[]
 }
+
+/** A section staff added to a product. Each kind has its own layout on the page. */
+export type ContentSection = { id: string; heading: string } & (
+  | { kind: 'table'; rows: { label: string; value: string }[] }
+  | { kind: 'items'; items: { name: string; quantity?: string | null; image: MediaInfo | null }[] }
+  | { kind: 'features'; items: string[] }
+  | { kind: 'text'; body: unknown }
+  | { kind: 'cards'; intro?: string | null; cards: { title: string; text?: string | null; image: MediaInfo | null }[] }
+)
+
+const contentSectionsOf = (product: Product): ContentSection[] =>
+  (product.contentSections ?? []).map((block): ContentSection => {
+    const base = { id: block.id ?? block.heading, heading: block.heading }
+    switch (block.blockType) {
+      case 'sectionTable':
+        return { ...base, kind: 'table', rows: block.rows.map(({ label, value }) => ({ label, value })) }
+      case 'sectionItems':
+        return {
+          ...base,
+          kind: 'items',
+          items: block.items.map((item) => ({ name: item.name, quantity: item.quantity, image: mediaOf(item.image) })),
+        }
+      case 'sectionFeatures':
+        return { ...base, kind: 'features', items: block.items.map((item) => item.text) }
+      case 'sectionText':
+        return { ...base, kind: 'text', body: block.body }
+      case 'sectionCards':
+        return {
+          ...base,
+          kind: 'cards',
+          intro: block.intro,
+          cards: block.cards.map((card) => ({ title: card.title, text: card.text, image: mediaOf(card.image) })),
+        }
+    }
+  })
 
 const COMPARE_LIMIT = 6
 
@@ -258,16 +295,46 @@ const loadProductPage = async (slug: string, variantSku?: string) => {
       }),
     },
     promoImages: (product.promoImages ?? []).map(mediaOf).filter((media): media is MediaInfo => media !== null),
+    supplierImages: (product.supplierImages ?? []).map(mediaOf).filter((media): media is MediaInfo => media !== null),
+    contentSections: contentSectionsOf(product),
+    faqs: (product.faqs ?? []).map(({ question, answer }) => ({ question, answer })),
     compare,
   }
 }
 
 /** Cached per product and variant until the catalogue or its reviews change. */
 export const getProductPage = cache(
-  unstable_cache(loadProductPage, ['product-page', 'review-summary-v2', 'product-gallery-dense-spin-v1', CACHE_VERSION], STOREFRONT_CACHE),
+  unstable_cache(loadProductPage, ['product-page', 'review-summary-v2', 'product-gallery-dense-spin-v1', 'content-sections-v4', CACHE_VERSION], STOREFRONT_CACHE),
 )
 
 export type ProductPageData = NonNullable<Awaited<ReturnType<typeof getProductPage>>>
+
+/**
+ * What every product page shows besides the product: delivery rates, whether
+ * invoices can be issued, and the catalogue counts. Cached together, and purged
+ * by saves to products, Delivery & Checkout or Header & Footer.
+ */
+export const getProductPageContext = cache(
+  unstable_cache(
+    async () => {
+      const payload = await getPayloadClient()
+      const [rates, checkout, products, categories, brands] = await Promise.all([
+        loadShippingRates(payload),
+        payload.findGlobal({ slug: 'checkout-settings', depth: 0, overrideAccess: true }),
+        payload.count({ collection: 'products', where: { status: { equals: 'ACTIVE' } } }),
+        payload.count({ collection: 'categories' }),
+        payload.count({ collection: 'brands' }),
+      ])
+      return {
+        rates,
+        hasInvoice: invoiceSeller(checkout) !== null,
+        stats: { products: products.totalDocs, categories: categories.totalDocs, brands: brands.totalDocs },
+      }
+    },
+    ['product-page-context', CACHE_VERSION],
+    STOREFRONT_CACHE,
+  ),
+)
 
 /**
  * This product plus the ones staff picked as similar, or else others from the

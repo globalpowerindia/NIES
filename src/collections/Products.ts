@@ -10,6 +10,7 @@ import {
 } from 'payload'
 
 import { allow, pricesField, publishedProducts } from '@/access/roles'
+import { PRODUCT_SECTION_BLOCKS } from '@/collections/product-sections'
 import { exportProducts, importProducts } from '@/admin/endpoints/productImport'
 import { slugFrom } from '@/fields/slug'
 import { DEFAULT_GST_RATE_BPS, GST_RATES_BPS } from '@/lib/money'
@@ -384,6 +385,32 @@ export const Products: CollectionConfig = {
               relationTo: 'datasheets',
               admin: { description: 'PDF shown under "User Manual" on the product page.' },
             },
+            {
+              name: 'contentSections',
+              type: 'blocks',
+              label: 'Content sections',
+              blocks: PRODUCT_SECTION_BLOCKS,
+              labels: { singular: 'Section', plural: 'Sections' },
+              admin: {
+                initCollapsed: true,
+                description:
+                  'Extra details for the product page, such as Special Features, Accessories or Applications. Choose a type, fill it in and drag to set the order.',
+              },
+            },
+            {
+              name: 'faqs',
+              type: 'array',
+              label: 'FAQs',
+              labels: { singular: 'Question', plural: 'Questions' },
+              admin: {
+                initCollapsed: true,
+                description: 'Shown first under "Questions shoppers ask", above the answers filled in automatically.',
+              },
+              fields: [
+                { name: 'question', type: 'text', required: true },
+                { name: 'answer', type: 'textarea', required: true, admin: { rows: 2 } },
+              ],
+            },
           ],
         },
         {
@@ -463,6 +490,14 @@ export const Products: CollectionConfig = {
                       admin: { width: '50%', description: 'Behind the "Download Brochure" button.' },
                     },
                   ],
+                },
+                {
+                  name: 'supplierImages',
+                  type: 'upload',
+                  relationTo: 'media',
+                  hasMany: true,
+                  label: 'Supplier images',
+                  admin: { description: 'Any number of images, shown as a grid under the brochure.' },
                 },
               ],
             },

@@ -1,0 +1,63 @@
+.reveal {
+  transition:
+    opacity 0.5s ease,
+    transform 0.5s ease;
+}
+
+.hidden {
+  opacity: 0;
+  transform: translateY(1.5rem);
+}
+
+/* A band of light across the button on hover. */
+.shine {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease;
+}
+
+.shine:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.shine::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgb(255 255 255 / 0.35) 50%, transparent 70%);
+  transform: translateX(-100%);
+  pointer-events: none;
+}
+
+.shine:hover:not(:disabled)::after {
+  transform: translateX(100%);
+  transition: transform 0.7s ease;
+}
+
+.fade {
+  animation: fade 0.25s ease;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+    transform: translateY(0.25rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .shine,
+  .shine::after,
+  .shine:hover:not(:disabled)::after {
+    transition: none;
+  }
+
+  .shine:hover:not(:disabled) {
+    transform: none;
+  }
+
+  .fade {
+    animation: none;
+  }
+}

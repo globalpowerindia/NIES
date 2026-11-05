@@ -12,12 +12,12 @@ export const TrackRecentlyViewed = ({ productId }: { productId: number }) => {
   return null
 }
 
-/** The homepage's row of what this shopper last looked at. Nothing at all on a first visit. */
-export const RecentlyViewed = () => {
+/** A row of what this shopper last looked at, leaving out the product on show. Nothing at all on a first visit. */
+export const RecentlyViewed = ({ excludeId }: { excludeId?: number }) => {
   const [products, setProducts] = useState<ProductCardProps[]>([])
 
   useEffect(() => {
-    const ids = readRecentlyViewed()
+    const ids = readRecentlyViewed().filter((id) => id !== excludeId)
     if (ids.length === 0) return
     const controller = new AbortController()
     const load = async () => {
@@ -27,12 +27,12 @@ export const RecentlyViewed = () => {
         const data: { products?: ProductCardProps[] } = await response.json()
         setProducts(data.products ?? [])
       } catch {
-        // Aborted or offline: the homepage just goes without this row.
+        // Aborted or offline: the page just goes without this row.
       }
     }
     void load()
     return () => controller.abort()
-  }, [])
+  }, [excludeId])
 
   return products.length > 0 ? (
     <ProductCarousel title="Recently Viewed" description="Pick up where you left off" products={products} />

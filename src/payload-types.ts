@@ -508,6 +508,108 @@ export interface Product {
    * PDF shown under "User Manual" on the product page.
    */
   userManual?: (number | null) | Datasheet;
+  /**
+   * Extra details for the product page, such as Special Features, Accessories or Applications. Choose a type, fill it in and drag to set the order.
+   */
+  contentSections?:
+    | (
+        | {
+            /**
+             * The title shown above this section.
+             */
+            heading: string;
+            rows: {
+              label: string;
+              value: string;
+              id?: string | null;
+            }[];
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'sectionTable';
+          }
+        | {
+            /**
+             * The title shown above this section.
+             */
+            heading: string;
+            items: {
+              name: string;
+              quantity?: string | null;
+              image?: (number | null) | Media;
+              id?: string | null;
+            }[];
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'sectionItems';
+          }
+        | {
+            /**
+             * The title shown above this section.
+             */
+            heading: string;
+            items: {
+              text: string;
+              id?: string | null;
+            }[];
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'sectionFeatures';
+          }
+        | {
+            /**
+             * The title shown above this section.
+             */
+            heading: string;
+            body: {
+              root: {
+                type: string;
+                children: {
+                  type: any;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            };
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'sectionText';
+          }
+        | {
+            /**
+             * The title shown above this section.
+             */
+            heading: string;
+            /**
+             * Optional line above the cards.
+             */
+            intro?: string | null;
+            cards: {
+              title: string;
+              text?: string | null;
+              image?: (number | null) | Media;
+              id?: string | null;
+            }[];
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'sectionCards';
+          }
+      )[]
+    | null;
+  /**
+   * Shown first under "Questions shoppers ask", above the answers filled in automatically.
+   */
+  faqs?:
+    | {
+        question: string;
+        answer: string;
+        id?: string | null;
+      }[]
+    | null;
   category: number | Category;
   brand?: (number | null) | Brand;
   /**
@@ -537,6 +639,10 @@ export interface Product {
    * Behind the "Download Brochure" button.
    */
   datasheet?: (number | null) | Datasheet;
+  /**
+   * Any number of images, shown as a grid under the brochure.
+   */
+  supplierImages?: (number | Media)[] | null;
   applications?: {
     title?: string | null;
     items?:
@@ -1627,6 +1733,83 @@ export interface ProductsSelect<T extends boolean = true> {
   safetyInfo?: T;
   maintenanceTips?: T;
   userManual?: T;
+  contentSections?:
+    | T
+    | {
+        sectionTable?:
+          | T
+          | {
+              heading?: T;
+              rows?:
+                | T
+                | {
+                    label?: T;
+                    value?: T;
+                    id?: T;
+                  };
+              id?: T;
+              blockName?: T;
+            };
+        sectionItems?:
+          | T
+          | {
+              heading?: T;
+              items?:
+                | T
+                | {
+                    name?: T;
+                    quantity?: T;
+                    image?: T;
+                    id?: T;
+                  };
+              id?: T;
+              blockName?: T;
+            };
+        sectionFeatures?:
+          | T
+          | {
+              heading?: T;
+              items?:
+                | T
+                | {
+                    text?: T;
+                    id?: T;
+                  };
+              id?: T;
+              blockName?: T;
+            };
+        sectionText?:
+          | T
+          | {
+              heading?: T;
+              body?: T;
+              id?: T;
+              blockName?: T;
+            };
+        sectionCards?:
+          | T
+          | {
+              heading?: T;
+              intro?: T;
+              cards?:
+                | T
+                | {
+                    title?: T;
+                    text?: T;
+                    image?: T;
+                    id?: T;
+                  };
+              id?: T;
+              blockName?: T;
+            };
+      };
+  faqs?:
+    | T
+    | {
+        question?: T;
+        answer?: T;
+        id?: T;
+      };
   category?: T;
   brand?: T;
   countryOfOrigin?: T;
@@ -1641,6 +1824,7 @@ export interface ProductsSelect<T extends boolean = true> {
       };
   brochureBanner?: T;
   datasheet?: T;
+  supplierImages?: T;
   applications?:
     | T
     | {
@@ -2662,6 +2846,35 @@ export interface SiteSetting {
    */
   certifications?: (number | Media)[] | null;
   paymentMethodsImage?: (number | null) | Media;
+  productPage?: {
+    trustBadge?: string | null;
+    /**
+     * Shown beside the automatic product, category and brand counts, exactly as typed. Only add what you can back up.
+     */
+    extraStats?:
+      | {
+          value: string;
+          label: string;
+          id?: string | null;
+        }[]
+      | null;
+    /**
+     * Replaces the standard Genuine Products, Secure Payments, Returns & Refunds and Talk to Us. The warranty and GST invoice are added automatically.
+     */
+    promises?:
+      | {
+          icon: 'quality' | 'payment' | 'verified' | 'trust' | 'help' | 'shipping' | 'tools';
+          title: string;
+          detail: string;
+          linkLabel?: string | null;
+          linkHref?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+    bulkEnabled?: boolean | null;
+    bulkTitle?: string | null;
+    bulkText?: string | null;
+  };
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -3067,6 +3280,31 @@ export interface SiteSettingsSelect<T extends boolean = true> {
   whatsappNumber?: T;
   certifications?: T;
   paymentMethodsImage?: T;
+  productPage?:
+    | T
+    | {
+        trustBadge?: T;
+        extraStats?:
+          | T
+          | {
+              value?: T;
+              label?: T;
+              id?: T;
+            };
+        promises?:
+          | T
+          | {
+              icon?: T;
+              title?: T;
+              detail?: T;
+              linkLabel?: T;
+              linkHref?: T;
+              id?: T;
+            };
+        bulkEnabled?: T;
+        bulkTitle?: T;
+        bulkText?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
