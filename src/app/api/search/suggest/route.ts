@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 
+import { LIMITS } from '@/lib/rate-limit'
+import { guardRead } from '@/lib/request-security'
 import { getPayloadClient } from '@/lib/storefront/queries'
 import { suggestSearch } from '@/lib/storefront/search'
 
@@ -13,6 +15,10 @@ export const GET = async (request: Request): Promise<NextResponse> => {
   const query = new URL(request.url).searchParams.get('q') ?? ''
 
   if (query.trim().length < 2) return NextResponse.json({ suggestions: [] })
+
+  // Only what the edge cache didn't answer gets here, so this limit is on database work.
+  const denied = await guardRead(request, 'searchSuggest', LIMITS.publicRead)
+  if (denied) return denied
 
   const suggestions = await suggestSearch(await getPayloadClient(), query)
 

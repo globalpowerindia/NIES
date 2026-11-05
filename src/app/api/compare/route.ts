@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server'
 
 import { parseCompareIds } from '@/lib/compare-rules'
+import { LIMITS } from '@/lib/rate-limit'
+import { guardRead } from '@/lib/request-security'
 import { loadComparison } from '@/lib/storefront/product-page'
 
 /** The comparison for the products a shopper picked. Not cached: it shows prices and stock. */
 export const GET = async (request: Request): Promise<NextResponse> => {
+  const denied = await guardRead(request, 'compare', LIMITS.publicRead)
+  if (denied) return denied
+
   const ids = parseCompareIds(new URL(request.url).searchParams.get('ids'))
   if (ids.length === 0) return NextResponse.json({ error: 'Choose a product to compare.' }, { status: 400 })
 

@@ -44,6 +44,7 @@ import { withAudit, withGlobalAudit } from './lib/audit'
 import { siteUrl } from './lib/site-url'
 import { addDocumentCountersTable } from './lib/document-numbers'
 import { consoleEmailAdapter } from './lib/email-console'
+import { withPublicReadLimits } from './lib/public-api'
 import { enforceCommerceInvariants } from './lib/commerce-constraints'
 import { addProductEnquiriesTable } from './lib/product-demand'
 import { addRateLimitTable } from './lib/rate-limit'
@@ -128,7 +129,7 @@ export default buildConfig({
     Pages,
     Roles,
     Users,
-  ].map(withAudit).concat(AuditLogs),
+  ].map(withAudit).concat(AuditLogs).map(withPublicReadLimits),
   globals: [HomePage, SiteSettings, CheckoutSettings].map(withGlobalAudit),
   onInit: async (payload) => {
     // A server's own disk doesn't survive a redeploy, and files on it are served from this origin.

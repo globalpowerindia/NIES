@@ -70,4 +70,6 @@ export const LIMITS = {
   productEnquiry: { limit: 30, windowSeconds: 60 * 60 },
   /** Well above anyone browsing by hand; also a public figure, so also a ceiling on inflating it. */
   pageView: { limit: 60, windowSeconds: 60 },
+  /** Public reads with no CDN in front: well above a person browsing, a ceiling for scripts. */
+  publicRead: { limit: 120, windowSeconds: 60 },
 } satisfies Record<string, RateLimit>

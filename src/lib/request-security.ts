@@ -14,10 +14,8 @@ export const mutationGuard = (request: Request): NextResponse | null => {
   return null
 }
 
-/** The origin check, then a per-IP limit named by `bucket` and shared across every server instance. */
-export const guardMutation = async (request: Request, bucket: string, limit: RateLimit): Promise<NextResponse | null> => {
-  const denied = mutationGuard(request)
-  if (denied) return denied
+/** A per-IP limit named by `bucket` and shared across every server instance. For public reads, which send no Origin. */
+export const guardRead = async (request: Request, bucket: string, limit: RateLimit): Promise<NextResponse | null> => {
   const result = await rateLimit(await getPayloadClient(), `${bucket}:ip:${clientIp(request)}`, limit)
   if (result.ok) return null
   return NextResponse.json(
@@ -25,3 +23,7 @@ export const guardMutation = async (request: Request, bucket: string, limit: Rat
     { status: 429, headers: { 'Retry-After': String(result.retryAfterSeconds), 'Cache-Control': 'private, no-store' } },
   )
 }
+
+/** The origin check, then the same per-IP limit. */
+export const guardMutation = async (request: Request, bucket: string, limit: RateLimit): Promise<NextResponse | null> =>
+  mutationGuard(request) ?? guardRead(request, bucket, limit)
