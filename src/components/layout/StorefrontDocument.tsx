@@ -6,6 +6,7 @@ import { EnquiryProvider } from '@/components/enquiry/EnquireButton'
 import { Footer } from '@/components/layout/Footer'
 import { Header } from '@/components/layout/Header'
 import { PageViewTracker } from '@/components/layout/PageViewTracker'
+import { getCategoryTree } from '@/lib/storefront/catalog'
 import { fileUrlOf, hrefOf, mediaOf, type MediaInfo } from '@/lib/storefront/content'
 import { getSearchHints, getSiteSettings } from '@/lib/storefront/queries'
 
@@ -16,7 +17,11 @@ import { getSearchHints, getSiteSettings } from '@/lib/storefront/queries'
  * look like the shop. Both import `(frontend)/styles.css` themselves.
  */
 export const StorefrontDocument = async ({ children }: { children: ReactNode }) => {
-  const [settings, searchHints] = await Promise.all([getSiteSettings(), getSearchHints()])
+  const [settings, searchHints, tree] = await Promise.all([
+    getSiteSettings(),
+    getSearchHints(),
+    getCategoryTree(),
+  ])
   const logoUrl = mediaOf(settings.logo)?.url ?? '/brand/logo.png'
 
   const utilityLinks = (settings.utilityLinks ?? []).flatMap((item) => {
@@ -27,7 +32,16 @@ export const StorefrontDocument = async ({ children }: { children: ReactNode }) 
 
   const categories = (settings.navCategories ?? []).flatMap((category) =>
     typeof category === 'object' && category.isActive !== false
-      ? [{ label: category.name, href: `/category/${category.slug}` }]
+      ? [
+          {
+            label: category.name,
+            href: `/category/${category.slug}`,
+            children: (tree.children.get(category.id) ?? []).map((child) => ({
+              label: child.name,
+              href: `/category/${child.slug}`,
+            })),
+          },
+        ]
       : [],
   )
 
