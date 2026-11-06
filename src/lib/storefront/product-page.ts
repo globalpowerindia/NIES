@@ -106,6 +106,47 @@ export type CompareColumn = {
   specs: Record<string, string>
 }
 
+/** A product staff picked to go with this one, priced from the variant its card uses. */
+export type BoughtTogetherItem = {
+  productId: number
+  variantId: number
+  name: string
+  href: string
+  image: string
+  pricePaise: number
+  mrpPaise: number
+  /** Can go in the cart: sold online and in stock. */
+  buyable: boolean
+}
+
+/** Staff's picks, live and priced, in their order. */
+const loadBoughtTogether = async (payload: Payload, product: Product): Promise<BoughtTogetherItem[]> => {
+  const picks = (product.boughtTogether ?? []).filter(
+    (entry): entry is Product =>
+      typeof entry === 'object' && entry.status === 'ACTIVE' && entry._status !== 'draft' && entry.id !== product.id,
+  )
+  const pricing = await loadPricing(
+    payload,
+    picks.map((entry) => entry.id),
+  )
+  return picks.flatMap<BoughtTogetherItem>((entry) => {
+    const priced = pricing.get(entry.id)
+    if (!priced) return []
+    return [
+      {
+        productId: entry.id,
+        variantId: priced.variant.id,
+        name: entry.name,
+        href: `/products/${entry.slug}`,
+        image: mediaOf(entry.images?.[0])?.url ?? PLACEHOLDER_IMAGE,
+        pricePaise: priced.variant.sellingPricePaise,
+        mrpPaise: priced.variant.mrpPaise,
+        buyable: entry.sellOnline === true && priced.inStock && priced.variant.sellingPricePaise > 0,
+      },
+    ]
+  })
+}
+
 export type ReviewCard = {
   id: number
   authorName: string
@@ -240,7 +281,10 @@ const loadProductPage = async (slug: string, variantSku?: string) => {
 
   const rating = summarizeReviewRatings(ratings.docs)
 
-  const compare = await buildCompare(payload, product, defs)
+  const [compare, boughtTogether] = await Promise.all([
+    buildCompare(payload, product, defs),
+    loadBoughtTogether(payload, product),
+  ])
 
   return {
     product,
@@ -299,12 +343,13 @@ const loadProductPage = async (slug: string, variantSku?: string) => {
     contentSections: contentSectionsOf(product),
     faqs: (product.faqs ?? []).map(({ question, answer }) => ({ question, answer })),
     compare,
+    boughtTogether,
   }
 }
 
 /** Cached per product and variant until the catalogue or its reviews change. */
 export const getProductPage = cache(
-  unstable_cache(loadProductPage, ['product-page', 'review-summary-v2', 'product-gallery-dense-spin-v1', 'content-sections-v7', CACHE_VERSION], STOREFRONT_CACHE),
+  unstable_cache(loadProductPage, ['product-page', 'review-summary-v2', 'product-gallery-dense-spin-v1', 'content-sections-v7', 'bought-together-v2', CACHE_VERSION], STOREFRONT_CACHE),
 )
 
 export type ProductPageData = NonNullable<Awaited<ReturnType<typeof getProductPage>>>
