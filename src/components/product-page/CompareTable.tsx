@@ -1,7 +1,7 @@
 import { Plus, X } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 
 import { AddToCartButton } from '@/components/cart/AddToCartButton'
 import { EnquireButton } from '@/components/enquiry/EnquireButton'
@@ -28,27 +28,40 @@ const Cell = ({
   children,
   shaded,
   pinned,
+  highlighted,
+  onHover,
 }: {
   label?: string
   children?: ReactNode
   shaded: boolean
   pinned?: boolean
+  /** The pointer is on this product's column. */
+  highlighted?: boolean
+  onHover?: (on: boolean) => void
 }) => (
   <div
+    onMouseEnter={onHover && (() => onHover(true))}
+    onMouseLeave={onHover && (() => onHover(false))}
     className={cn(
-      'flex flex-col border-r-[0.5px] border-neutral-300 px-2 py-2 lg:px-4',
-      shaded ? 'bg-light-300' : 'bg-light-100',
+      'flex flex-col border-r-[0.5px] border-neutral-300 px-2 py-2 transition-colors duration-200 lg:px-4',
+      highlighted ? 'bg-brand-blue-100/60' : shaded ? 'bg-light-300' : 'bg-light-100',
       pinned && PINNED,
     )}
   >
-    {label && <span className="text-[0.625rem] leading-4 text-dark-300 lg:text-body3">{label}</span>}
+    {label && (
+      <span className="text-[0.625rem] leading-4 text-dark-300 lg:text-body3">{label}</span>
+    )}
     <span className="text-[0.75rem] leading-5 font-medium text-dark-500 lg:text-body2">
       {children}
     </span>
   </div>
 )
 
-type Row = { label: string; values: (string | undefined)[]; render?: (value: string | undefined) => ReactNode }
+type Row = {
+  label: string
+  values: (string | undefined)[]
+  render?: (value: string | undefined) => ReactNode
+}
 
 /** One column per product; rows line up across columns because they share one grid. */
 export const CompareTable = ({
@@ -73,6 +86,10 @@ export const CompareTable = ({
     gridTemplateColumns: `repeat(${columns.length + slots}, minmax(var(--comparison-column), 1fr))`,
   }
   const keep = (row: Row) => !differencesOnly || valuesDiffer(row.values)
+  // Like Flipkart: pointing at a product lights up its whole column, card to last row.
+  const [hovered, setHovered] = useState<number | null>(null)
+  const hoverOf = (productId: number) => (on: boolean) =>
+    setHovered((current) => (on ? productId : current === productId ? null : current))
 
   const basics: Row[] = (columns[0]?.basics ?? [])
     .map((basic, index) => ({
@@ -103,6 +120,8 @@ export const CompareTable = ({
           label={row.label}
           shaded={index % 2 === 1}
           pinned={position === 0}
+          highlighted={hovered === column.productId}
+          onHover={hoverOf(column.productId)}
         >
           {row.render ? row.render(row.values[position]) : (row.values[position] ?? '—')}
         </Cell>
@@ -122,76 +141,99 @@ export const CompareTable = ({
           {columns.map((column, position) => (
             <div
               key={column.productId}
+              onMouseEnter={() => hoverOf(column.productId)(true)}
+              onMouseLeave={() => hoverOf(column.productId)(false)}
               className={cn(
-                'relative flex flex-col gap-3 border-r-[0.5px] border-neutral-300 px-2 pt-2 pb-3 lg:px-4 lg:pt-4 lg:pb-6',
-                column.isCurrent ? 'bg-light-500' : 'bg-light-100',
+                'border-r-[0.5px] border-neutral-300 p-1.5 transition-colors duration-200 lg:p-2.5',
+                hovered === column.productId
+                  ? 'bg-brand-blue-100/60'
+                  : column.isCurrent
+                    ? 'bg-light-500'
+                    : 'bg-light-100',
                 position === 0 && PINNED,
               )}
             >
-              <Link
-                href={column.href}
-                className="relative h-[8.6875rem] overflow-hidden rounded-sm bg-light-100 lg:h-[12.875rem]"
-              >
-                <Image src={column.image} alt="" fill sizes="268px" className="object-contain p-3" />
-              </Link>
-              {!column.isCurrent && (
-                <button
-                  type="button"
-                  onClick={() => onRemove(column.productId)}
-                  aria-label={`Remove ${column.name} from the comparison`}
-                  className="absolute top-3 right-3 grid size-8 place-items-center rounded-full bg-light-100/90 text-dark-500 shadow-sm transition-colors hover:bg-brand-red-100 hover:text-brand-red-500 lg:top-5 lg:right-5 lg:size-10"
+              {/* The card lifts on hover: shadow, outline, photo zoom, name in brand blue. */}
+              <div className="group relative flex h-full flex-col gap-3 rounded-xl bg-transparent p-0.5 pb-1.5 ring-1 ring-transparent transition-[box-shadow,background-color,transform] duration-200 lg:p-1.5 lg:pb-3.5 lg:hover:-translate-y-0.5 lg:hover:bg-light-100 lg:hover:shadow-[0_10px_28px_#1c1c1c26] lg:hover:ring-brand-blue-200">
+                <Link
+                  href={column.href}
+                  className="relative h-[8.6875rem] overflow-hidden rounded-lg bg-light-100 lg:h-[12.875rem]"
                 >
-                  <X className="size-4 lg:size-5" aria-hidden />
-                </button>
-              )}
-              <div className="flex flex-col gap-2">
-                {column.isCurrent ? (
-                  <p className="text-[0.75rem] leading-5 text-dark-500 lg:text-body2">
-                    {column.name}{' '}
-                    <span className="font-medium text-brand-red-500">(this product)</span>
-                  </p>
-                ) : (
-                  <Link
-                    href={column.href}
-                    className="text-[0.75rem] leading-5 text-dark-500 hover:underline lg:text-body2"
-                  >
-                    {column.name}
-                  </Link>
-                )}
-                <p className="text-body2 font-semibold text-dark-500 lg:text-h6">
-                  {cardPrice(column.pricePaise)}
-                </p>
-              </div>
-              <div className="mt-auto">
-                {!column.sellOnline ? (
-                  <EnquireButton
-                    productName={column.name}
-                    href={column.href}
-                    className="h-10 w-full px-2 text-[0.75rem] lg:h-[2.8125rem] lg:text-body2"
+                  <Image
+                    src={column.image}
+                    alt=""
+                    fill
+                    sizes="268px"
+                    className="object-contain p-3 transition-transform duration-300 ease-out lg:group-hover:scale-110"
                   />
-                ) : (
-                  <AddToCartButton
-                    productId={column.productId}
-                    disabled={!column.inStock}
-                    variant="blue"
-                    className="h-10 w-full px-2 text-[0.75rem] lg:h-[2.8125rem] lg:text-body2"
-                    aria-label={`Add ${column.name} to cart`}
+                </Link>
+                {!column.isCurrent && (
+                  <button
+                    type="button"
+                    onClick={() => onRemove(column.productId)}
+                    aria-label={`Remove ${column.name} from the comparison`}
+                    className="absolute top-2 right-2 grid size-8 place-items-center rounded-full bg-light-100/90 text-dark-500 shadow-sm transition-[opacity,color,background-color] hover:bg-brand-red-100 hover:text-brand-red-500 focus-visible:opacity-100 lg:top-3 lg:right-3 lg:size-10 lg:opacity-0 lg:group-hover:opacity-100"
                   >
-                    {column.inStock ? 'Add to Cart' : 'Out Of Stock'}
-                  </AddToCartButton>
+                    <X className="size-4 lg:size-5" aria-hidden />
+                  </button>
                 )}
+                <div className="flex flex-col gap-2">
+                  {column.isCurrent ? (
+                    <p className="text-[0.75rem] leading-5 text-dark-500 lg:text-body2">
+                      {column.name}{' '}
+                      <span className="font-medium text-brand-red-500">(this product)</span>
+                    </p>
+                  ) : (
+                    <Link
+                      href={column.href}
+                      className="text-[0.75rem] leading-5 text-dark-500 transition-colors hover:underline lg:text-body2 lg:group-hover:text-brand-blue-400"
+                    >
+                      {column.name}
+                    </Link>
+                  )}
+                  <p className="text-body2 font-semibold text-dark-500 lg:text-h6">
+                    {cardPrice(column.pricePaise)}
+                  </p>
+                </div>
+                <div className="mt-auto">
+                  {!column.sellOnline ? (
+                    <EnquireButton
+                      productName={column.name}
+                      href={column.href}
+                      className="h-10 w-full px-2 text-[0.75rem] lg:h-[2.8125rem] lg:text-body2"
+                    />
+                  ) : (
+                    <AddToCartButton
+                      productId={column.productId}
+                      disabled={!column.inStock}
+                      variant="blue"
+                      className="h-10 w-full px-2 text-[0.75rem] lg:h-[2.8125rem] lg:text-body2"
+                      aria-label={`Add ${column.name} to cart`}
+                    >
+                      {column.inStock ? 'Add to Cart' : 'Out Of Stock'}
+                    </AddToCartButton>
+                  )}
+                </div>
               </div>
             </div>
           ))}
           {Array.from({ length: empty }, (_, slot) => (
-            <div key={`empty-${slot}`} aria-hidden className="border-r-[0.5px] border-neutral-300 bg-light-100" />
+            <div
+              key={`empty-${slot}`}
+              aria-hidden
+              className="border-r-[0.5px] border-neutral-300 bg-light-100"
+            />
           ))}
           <div className="bg-light-100 p-2 lg:p-4">
             <button
               type="button"
               onClick={onAdd}
               disabled={!onAdd}
-              title={onAdd ? undefined : `Remove a product to add another. Up to ${COMPARE_MAX} at a time.`}
+              title={
+                onAdd
+                  ? undefined
+                  : `Remove a product to add another. Up to ${COMPARE_MAX} at a time.`
+              }
               className="flex size-full min-h-40 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-dark-200 text-body3 font-medium text-dark-400 transition-colors enabled:hover:border-brand-red-500 enabled:hover:text-brand-red-500 disabled:cursor-not-allowed disabled:opacity-50 lg:text-body1"
             >
               <span className="grid size-12 place-items-center rounded-full border border-current">
