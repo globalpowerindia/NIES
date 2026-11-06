@@ -124,7 +124,7 @@ export const CollectionShowcase = ({
       <SectionHeading eyebrow={eyebrow} title={title} description={description}  />
 
       <div className="flex flex-col items-center gap-4 md:gap-6 lg:flex-row">
-        <div className="relative h-[21.6875rem] w-full shrink-0 overflow-hidden rounded-2xl md:hidden lg:block lg:h-[30rem] lg:w-[30rem]">
+        <div className="relative aspect-[16/9] w-full shrink-0 overflow-hidden rounded-2xl md:hidden lg:block lg:aspect-auto lg:h-[30rem] lg:w-[30rem]">
           {featureVideo ? (
             <video
               ref={videoRef}
@@ -153,25 +153,25 @@ export const CollectionShowcase = ({
             {items.map((item, index) => (
               <Fragment key={item.href}>
                 {index > 0 && <li aria-hidden className="w-px shrink-0 self-stretch bg-neutral-300" />}
-                <li className="flex w-[14.8125rem] max-w-[85vw] shrink-0 snap-start flex-col items-center gap-4 pb-6 md:w-[19rem]">
+                <li className="flex w-[calc((100%-2rem)/2.2)] shrink-0 snap-start flex-col items-center gap-2 pb-4 md:w-[19rem] md:gap-4 md:pb-6">
                   <HoverPrefetchLink
                     href={item.href}
-                    className="flex h-[15.875rem] w-full items-center justify-center rounded-xl p-4 md:h-[15rem]"
+                    className="flex aspect-square w-full items-center justify-center rounded-xl p-2 md:aspect-auto md:h-[15rem] md:p-4"
                   >
-                    <span className="relative block size-[11.875rem] md:size-[13rem]">
+                    <span className="relative block size-full md:size-[13rem]">
                       <Image src={item.imageUrl} alt={item.name} fill sizes="252px" className="object-contain" />
                     </span>
                   </HoverPrefetchLink>
-                  <p className="w-full text-center text-body1 font-medium text-balance text-dark-500">{item.name}</p>
-                  <p className="text-label1 font-semibold text-dark-500">
+                  <p className="w-full text-center text-body3 font-medium text-balance text-dark-500 md:text-body1">{item.name}</p>
+                  <p className="text-body3 font-semibold text-dark-500 md:text-label1">
                     {item.pricePaise > 0 ? formatCurrency(item.pricePaise, { showPaise: true }) : 'Price on request'}
                   </p>
                   <HoverPrefetchLink
                     href={item.href}
-                    className="flex items-center gap-1 py-1 text-body2 text-brand-blue-300 hover:underline"
+                    className="flex items-center gap-1 py-1 text-body3 text-brand-blue-300 hover:underline md:text-body2"
                   >
                     Discover
-                    <ArrowRight className="size-6" strokeWidth={1.5} />
+                    <ArrowRight className="size-4 md:size-6" strokeWidth={1.5} />
                   </HoverPrefetchLink>
                 </li>
               </Fragment>

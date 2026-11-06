@@ -621,6 +621,10 @@ export interface Product {
    */
   similarProducts?: (number | Product)[] | null;
   /**
+   * Up to 5 products shown with this one under "Frequently bought together", e.g. bits, batteries or safety gear. Leave empty to hide the section.
+   */
+  boughtTogether?: (number | Product)[] | null;
+  /**
    * The "Free with purchase" box next to the price.
    */
   freeAccessories?:
@@ -1814,6 +1818,7 @@ export interface ProductsSelect<T extends boolean = true> {
   brand?: T;
   countryOfOrigin?: T;
   similarProducts?: T;
+  boughtTogether?: T;
   freeAccessories?:
     | T
     | {

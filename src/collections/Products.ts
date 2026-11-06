@@ -442,6 +442,19 @@ export const Products: CollectionConfig = {
                   'For "Similar Products to Compare". Leave empty to use other products from the same category.',
               },
             },
+            {
+              name: 'boughtTogether',
+              label: 'Frequently bought together',
+              type: 'relationship',
+              relationTo: 'products',
+              hasMany: true,
+              maxRows: 5,
+              filterOptions: ({ id }) => (id ? { id: { not_equals: id } } : true),
+              admin: {
+                description:
+                  'Up to 5 products shown with this one under "Frequently bought together", e.g. bits, batteries or safety gear. Leave empty to hide the section.',
+              },
+            },
           ],
         },
         {

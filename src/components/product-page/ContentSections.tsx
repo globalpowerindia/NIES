@@ -15,11 +15,11 @@ const Body = ({ section }: { section: ContentSection }) => {
   switch (section.kind) {
     case 'table':
       return (
-        <dl className="grid overflow-hidden rounded-xl border-[0.5px] border-dark-100 lg:grid-cols-2">
+        <dl className="grid overflow-hidden rounded-xl border-[0.5px] border-dark-100">
           {section.rows.map((row) => (
             <div
               key={row.label}
-              className="grid grid-cols-[45%_1fr] border-b-[0.5px] border-dark-100 text-body3 lg:text-h6 lg:odd:border-r-[0.5px]"
+              className="grid grid-cols-[45%_1fr] border-b-[0.5px] border-dark-100 text-body3 last:border-b-0 lg:text-h6"
             >
               <dt className="bg-light-500 px-3 py-2.5 text-dark-400">{row.label}</dt>
               <dd className="px-3 py-2.5 font-medium break-words text-dark-500">{row.value}</dd>
@@ -29,7 +29,7 @@ const Body = ({ section }: { section: ContentSection }) => {
       )
     case 'items':
       return (
-        <ul className="grid gap-x-8 lg:grid-cols-2">
+        <ul className="grid">
           {section.items.map((item) => (
             <li
               key={item.name}
@@ -43,7 +43,13 @@ const Body = ({ section }: { section: ContentSection }) => {
                   aria-label={`View a photo of ${item.name}`}
                   className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-light-100 lg:size-20"
                 >
-                  <Image src={item.image.url} alt="" fill sizes="160px" className="object-contain" />
+                  <Image
+                    src={item.image.url}
+                    alt=""
+                    fill
+                    sizes="160px"
+                    className="object-contain"
+                  />
                 </a>
               )}
               <span className="min-w-0 flex-1 font-medium text-dark-500">{item.name}</span>
@@ -71,7 +77,7 @@ const Body = ({ section }: { section: ContentSection }) => {
       return (
         <>
           {section.intro && <p className="text-body3 text-dark-400 lg:text-h6">{section.intro}</p>}
-          <ul className="grid gap-3 lg:grid-cols-3">
+          <ul className="grid gap-3 sm:grid-cols-2">
             {section.cards.map((card) => (
               <li key={card.title} className="flex flex-col gap-2 rounded-xl bg-light-300 p-4">
                 {card.image && (
@@ -85,8 +91,12 @@ const Body = ({ section }: { section: ContentSection }) => {
                     />
                   </span>
                 )}
-                <span className="text-body2 font-semibold text-dark-500 lg:text-h5">{card.title}</span>
-                {card.text && <span className="text-body3 text-dark-400 lg:text-h6">{card.text}</span>}
+                <span className="text-body2 font-semibold text-dark-500 lg:text-h5">
+                  {card.title}
+                </span>
+                {card.text && (
+                  <span className="text-body3 text-dark-400 lg:text-h6">{card.text}</span>
+                )}
               </li>
             ))}
           </ul>

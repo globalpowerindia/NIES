@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronDown, Minus, Plus } from 'lucide-react'
+import { ChevronDown, Info, Minus, Plus } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
@@ -68,10 +68,52 @@ export const BuyBox = ({
     return () => observer.disconnect()
   }, [canBuy])
 
+  // Not sold online: the same box as every product, so shoppers see what they'd normally
+  // do, with the buttons switched off and WhatsApp as the way to buy.
   if (!sellOnline) {
     return (
-      <section aria-label="Enquire" className="flex flex-col gap-3 rounded-2xl shadow-[0_4px_16px_#1c1c1c1a] border-[0.5px] border-dark-100 bg-light-100 p-5">
+      <section aria-label="Buy" className="flex flex-col gap-4 rounded-2xl shadow-[0_4px_16px_#1c1c1c1a] border-[0.5px] border-dark-100 bg-light-100 p-5">
         {price}
+        <div className="flex items-center justify-between gap-4">
+          <span className="text-body2 font-medium text-dark-500 lg:text-h6">Quantity</span>
+          <div className="flex items-center gap-2">
+            <button type="button" className={stepper} disabled aria-label="Decrease quantity">
+              <Minus className="size-4" strokeWidth={1.5} />
+            </button>
+            <output aria-label="Quantity" className="w-8 text-center text-body1 font-medium text-dark-300 lg:text-h6">
+              1
+            </output>
+            <button type="button" className={stepper} disabled aria-label="Increase quantity">
+              <Plus className="size-4" strokeWidth={1.5} />
+            </button>
+          </div>
+        </div>
+        <div className="flex gap-2 lg:flex-col">
+          <button
+            type="button"
+            disabled
+            className="h-10 min-w-0 flex-1 cursor-not-allowed rounded-xl bg-dark-100 px-3 text-body3 font-medium text-dark-300 lg:h-12 lg:flex-none lg:text-body1"
+          >
+            Add to Cart
+          </button>
+          <button
+            type="button"
+            disabled
+            className="h-10 min-w-0 flex-1 cursor-not-allowed rounded-xl bg-dark-100 px-3 text-body3 font-medium text-dark-300 lg:h-12 lg:flex-none lg:text-body1"
+          >
+            Buy Now
+          </button>
+        </div>
+        <p
+          role="note"
+          className="flex items-start gap-2 rounded-lg border-[0.5px] border-yellow-600/40 bg-yellow-400/20 px-3 py-2 text-body3 text-dark-500 lg:text-body1"
+        >
+          <Info className="mt-0.5 size-4 shrink-0 text-yellow-600" aria-hidden />
+          <span>
+            <strong className="font-semibold">Offline sale only.</strong> This product isn&apos;t sold online. Please
+            enquire on WhatsApp to buy it.
+          </span>
+        </p>
         <div className="fixed inset-x-0 bottom-0 z-50 bg-light-400 px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-2px_12px_#0000000a] lg:static lg:bg-transparent lg:p-0 lg:shadow-none">
           <EnquireButton
             productName={name}
@@ -87,7 +129,6 @@ export const BuyBox = ({
             Call {tollFreeNumber}
           </a>
         )}
-        <p className="text-body3 text-dark-400 lg:text-body1">Message us for the price, availability and delivery.</p>
       </section>
     )
   }
