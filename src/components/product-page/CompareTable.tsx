@@ -6,7 +6,7 @@ import type { ReactNode } from 'react'
 import { AddToCartButton } from '@/components/cart/AddToCartButton'
 import { EnquireButton } from '@/components/enquiry/EnquireButton'
 import { cardPrice } from '@/components/product/ProductCard'
-import { valuesDiffer } from '@/lib/compare-rules'
+import { COMPARE_MAX, valuesDiffer } from '@/lib/compare-rules'
 import type { CompareColumn } from '@/lib/storefront/product-page'
 import { cn } from '@/lib/utils'
 
@@ -61,11 +61,14 @@ export const CompareTable = ({
   columns: CompareColumn[]
   specLabels: string[]
   differencesOnly: boolean
-  /** Shows an empty column to add another product to. */
+  /** The last column's "Add product". Left out when nothing more can be added. */
   onAdd?: () => void
   onRemove: (productId: number) => void
 }) => {
-  const slots = onAdd ? 1 : 0
+  // Always a column per possible product plus "Add product" last, so the table keeps
+  // its shape however many products are in it. Unused product columns stay empty.
+  const empty = Math.max(0, COMPARE_MAX - columns.length)
+  const slots = empty + 1
   const grid = {
     gridTemplateColumns: `repeat(${columns.length + slots}, minmax(var(--comparison-column), 1fr))`,
   }
@@ -104,7 +107,9 @@ export const CompareTable = ({
           {row.render ? row.render(row.values[position]) : (row.values[position] ?? '—')}
         </Cell>
       )),
-      slots > 0 && <Cell key={`${row.label}-slot`} shaded={index % 2 === 1} />,
+      ...Array.from({ length: slots }, (_, slot) => (
+        <Cell key={`${row.label}-slot-${slot}`} shaded={index % 2 === 1} />
+      )),
     ])
 
   return (
@@ -178,18 +183,23 @@ export const CompareTable = ({
               </div>
             </div>
           ))}
-          {slots > 0 && (
-            <div className="border-r-[0.5px] border-neutral-300 bg-light-100 p-2 lg:p-4">
-              <button
-                type="button"
-                onClick={onAdd}
-                className="flex size-full min-h-40 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-dark-200 text-body3 font-medium text-dark-400 transition-colors hover:border-brand-red-500 hover:text-brand-red-500 lg:text-body1"
-              >
+          {Array.from({ length: empty }, (_, slot) => (
+            <div key={`empty-${slot}`} aria-hidden className="border-r-[0.5px] border-neutral-300 bg-light-100" />
+          ))}
+          <div className="bg-light-100 p-2 lg:p-4">
+            <button
+              type="button"
+              onClick={onAdd}
+              disabled={!onAdd}
+              title={onAdd ? undefined : `Remove a product to add another. Up to ${COMPARE_MAX} at a time.`}
+              className="flex size-full min-h-40 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-dark-200 text-body3 font-medium text-dark-400 transition-colors enabled:hover:border-brand-red-500 enabled:hover:text-brand-red-500 disabled:cursor-not-allowed disabled:opacity-50 lg:text-body1"
+            >
+              <span className="grid size-12 place-items-center rounded-full border border-current">
                 <Plus className="size-6" aria-hidden />
-                Add product
-              </button>
-            </div>
-          )}
+              </span>
+              Add product
+            </button>
+          </div>
 
           {basics.length > 0 && <GroupHeading>Basic Details</GroupHeading>}
           {rows(basics)}

@@ -68,7 +68,7 @@ export const SectionNav = ({ sections }: { sections: NavSection[] }) => {
               onClick={(event) => jump(event, id)}
               aria-current={active === id ? 'true' : undefined}
               className={cn(
-                'block border-b-2 px-3 py-3 text-body3 font-medium whitespace-nowrap transition-colors lg:px-4 lg:text-h6',
+                'block border-b-2 px-3 py-3 text-body3 font-medium whitespace-nowrap transition-colors lg:px-2.5 lg:text-body1',
                 active === id
                   ? 'border-brand-red-500 text-dark-500'
                   : 'border-transparent text-dark-300 hover:text-dark-500',

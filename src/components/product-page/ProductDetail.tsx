@@ -31,6 +31,7 @@ import type { ProductPageData, SpecRow } from '@/lib/storefront/product-page'
 import { cn } from '@/lib/utils'
 import type { SiteSetting } from '@/payload-types'
 
+import { BoughtTogether } from './BoughtTogether'
 import { BuyBox } from './BuyBox'
 import { ContentSections, contentSectionId } from './ContentSections'
 import { Panel } from './Panel'
@@ -56,9 +57,6 @@ type Props = {
   stats: StoreStats
   pageSettings?: SiteSetting['productPage']
 }
-
-/** Specs that say who made it or how it's covered, rather than what it can do. */
-const NOT_A_FIGURE = new Set(['name', 'model', 'brand', 'type', 'origin', 'weight', 'warranty'])
 
 /** A rich text field with any real text in it; an untouched editor stores an empty paragraph. */
 const hasText = (value: unknown): value is RichTextData => {
@@ -198,12 +196,6 @@ export const ProductDetail = ({
     { label: product.name },
   ]
 
-  const figures = (
-    data.summarySpecs.length > 0
-      ? data.summarySpecs
-      : attributes.filter((row) => !NOT_A_FIGURE.has(row.key))
-  ).slice(0, 4)
-
   const hasFeatures = hasText(product.keyFeatures)
   const hasDescription = hasText(product.description)
   const descriptionText = product.shortDesc?.trim()
@@ -252,7 +244,7 @@ export const ProductDetail = ({
     ...(data.compare ? [{ id: 'compare', label: 'Compare' }] : []),
   ]
 
-  // Up with the first facts, so shoppers learn the comparison exists without scrolling to it.
+  // Under the photos, so shoppers learn the comparison exists without scrolling to it.
   const compareButton = (className: string) =>
     data.compare && (
       <JumpLink
@@ -266,38 +258,6 @@ export const ProductDetail = ({
       </JumpLink>
     )
 
-  // With no accessories the facts column is shorter than the gallery, so the specs run below both.
-  const wideGlance = accessories.length === 0
-  const glance = figures.length > 0 && (
-    <section
-      aria-label="At a glance"
-      className="overflow-hidden rounded-2xl shadow-[0_4px_16px_#1c1c1c1a] border-[0.5px] border-dark-100 bg-light-100"
-    >
-      <dl
-        className={cn(
-          'grid grid-cols-2',
-          wideGlance && 'lg:auto-cols-fr lg:grid-flow-col lg:grid-cols-none',
-        )}
-      >
-        {figures.map((row) => (
-          <div
-            key={row.key}
-            className={cn(
-              'flex min-w-0 flex-col gap-0.5 border-dark-100 p-3 odd:border-r-[0.5px] lg:p-4 [&:nth-child(-n+2)]:border-b-[0.5px]',
-              wideGlance &&
-                'lg:border-r-[0.5px] lg:last:border-r-0 lg:[&:nth-child(-n+2)]:border-b-0',
-            )}
-          >
-            <dd className="order-2 text-body2 font-semibold break-words text-dark-500 lg:text-h5">
-              {row.value}
-            </dd>
-            <dt className="order-1 text-label3 text-dark-400 lg:text-body1">{row.label}</dt>
-          </div>
-        ))}
-      </dl>
-    </section>
-  )
-
   return (
     <main className={`${styles.page} bg-light-400 pb-8 lg:[&_section>h2]:text-h4`}>
       <div className="container-page">
@@ -309,168 +269,340 @@ export const ProductDetail = ({
           <Breadcrumbs items={crumbs} />
         </div>
 
-        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_26rem] xl:gap-6">
-          {/* Gallery and the facts a shopper reads first */}
-          <div className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-2 lg:items-start lg:gap-8">
-            <div className="min-w-0 lg:sticky lg:top-16">
-              <ProductGallery
-                key={variant.id}
-                productId={product.id}
-                images={data.images}
-                videos={data.videos}
-                spin={data.spin}
-                modelUrl={data.modelUrl}
-                name={product.name}
-                description={galleryDescription}
-              />
-              {glance && !wideGlance && <div className="mt-5 hidden lg:block">{glance}</div>}
+        {/*
+          From laptop width: the buy box stays in view until Compare. Beside it, the photos stay
+          in view while the middle column scrolls, and from Drilling Applications the
+          sections run across both. On a phone everything stacks, the buy box after the facts.
+        */}
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-start lg:gap-6">
+          <div className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-5">
+            <div className="contents lg:grid lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start lg:gap-6">
+              <div className="order-1 min-w-0 lg:sticky lg:top-6 lg:order-none">
+                <ProductGallery
+                  key={variant.id}
+                  productId={product.id}
+                  images={data.images}
+                  videos={data.videos}
+                  spin={data.spin}
+                  modelUrl={data.modelUrl}
+                  name={product.name}
+                  description={galleryDescription}
+                />
+                {compareButton('mt-3 block w-full text-center lg:mt-4')}
+              </div>
+
+              {/*
+                The middle column scrolls between the gallery and the buy box, which stay in view.
+                On a phone its two parts are separate rows, so the buy box can sit between them.
+              */}
+              <div className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-5">
+                <div className="order-2 flex min-w-0 flex-col gap-4">
+                  <div className="flex flex-wrap items-center gap-2 text-label3 font-semibold lg:text-body1">
+                    {data.brandName && (
+                      <span className="rounded-full bg-brand-blue-500 px-2.5 py-1 text-light-100">
+                        {data.brandName}
+                      </span>
+                    )}
+                    {product.modelNumber && (
+                      <span className="rounded-full bg-light-500 px-2.5 py-1 text-dark-400">
+                        Model {product.modelNumber}
+                      </span>
+                    )}
+                    {options.length > 1 && (
+                      <span className="rounded-full bg-light-500 px-2.5 py-1 text-dark-400">
+                        SKU {variant.sku}
+                      </span>
+                    )}
+                    {sellOnline && data.inStock && (
+                      <span className="rounded-full bg-green-100 px-2.5 py-1 text-green-400">
+                        In stock
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <h1 className="text-h5 font-medium text-dark-500 lg:text-h4">{product.name}</h1>
+                    {product.subtitle && (
+                      <p className="text-body2 text-dark-400 lg:text-h6">{product.subtitle}</p>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    {rating.count > 0 && <RatingBadge value={rating.average} />}
+                    <a
+                      href="#customer-reviews"
+                      className="flex items-center gap-1 text-body3 font-medium text-brand-blue-400 hover:underline lg:text-body1"
+                    >
+                      {rating.count > 0
+                        ? `${rating.count} Review${rating.count === 1 ? '' : 's'}`
+                        : 'Be the first to review'}
+                    </a>
+                    {demand && (
+                      <p className="flex items-center gap-1 text-body3 font-medium text-dark-400 lg:text-body1">
+                        {demand}
+                      </p>
+                    )}
+                  </div>
+                  {/* Under the title at every width; from laptop width the buy box repeats it. */}
+                  <PriceBlock data={data} />
+                  <ProductViewers productId={product.id} />
+
+                  {options.length > 1 && (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-body3 font-medium text-dark-500 lg:text-h6">
+                        Choose an option
+                      </p>
+                      <ul className="flex flex-wrap gap-2">
+                        {options.map((option) => (
+                          <li key={option.sku}>
+                            <Link
+                              href={`${canonical}?variant=${encodeURIComponent(option.sku)}`}
+                              scroll={false}
+                              replace
+                              aria-current={option.sku === variant.sku ? 'true' : undefined}
+                              className={cn(
+                                'flex flex-col rounded-xl border px-3 py-2 text-body3 transition-colors lg:text-body1',
+                                option.sku === variant.sku
+                                  ? 'border-brand-red-500 bg-brand-red-100 text-dark-500'
+                                  : 'border-dark-100 bg-light-100 text-dark-400 hover:border-dark-300',
+                                sellOnline && !option.inStock && 'opacity-60',
+                              )}
+                            >
+                              <span className="font-medium">{option.name}</span>
+                              <span>
+                                {option.inStock || !sellOnline
+                                  ? cardPrice(option.pricePaise)
+                                  : 'Out of stock'}
+                              </span>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {accessories.length > 0 && (
+                    <div className="flex flex-col gap-3 rounded-2xl shadow-[0_4px_16px_#1c1c1c1a] border-[0.5px] border-dark-100 bg-light-100 p-4">
+                      <p className="relative h-[1.875rem] w-[10.5625rem]">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src="/icons/free-ribbon.svg"
+                          alt=""
+                          width={210.501}
+                          height={34.5}
+                          className="absolute top-0 left-0 h-[2.15625rem] w-[13.15625rem] max-w-none"
+                        />
+                        <span className="absolute top-1 left-[0.989375rem] bg-linear-to-r from-white to-[#ffea31] bg-clip-text text-h6 font-medium whitespace-nowrap text-transparent">
+                          Free with purchase
+                        </span>
+                      </p>
+                      <ul className="flex flex-wrap gap-3">
+                        {accessories.map((item) => (
+                          <li key={item.name} className="flex items-center gap-2">
+                            <span className="relative grid size-12 shrink-0 place-items-center rounded-lg bg-light-300 p-1 lg:size-16">
+                              {item.image && (
+                                <Image
+                                  src={item.image.url}
+                                  alt=""
+                                  width={40}
+                                  height={40}
+                                  className="size-10 object-contain lg:size-14"
+                                />
+                              )}
+                            </span>
+                            <span className="flex flex-col text-body3 lg:text-body1">
+                              <span className="font-medium text-dark-500">{item.name}</span>
+                              {item.quantity && (
+                                <span className="text-dark-400">{item.quantity}</span>
+                              )}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  <StoreTrust
+                    siteName={siteName}
+                    logoUrl={logoUrl}
+                    stats={stats}
+                    warrantyMonths={product.warrantyMonths}
+                    sellOnline={sellOnline}
+                    hasInvoice={hasInvoice}
+                    tollFreeNumber={tollFreeNumber}
+                    settings={pageSettings}
+                  />
+                </div>
+
+                <div className="order-4 flex min-w-0 flex-col gap-5">
+                  <SectionNav sections={sections} />
+
+                  {hasOverview && (
+                    <Reveal>
+                      <Panel id="overview" title="Overview">
+                        <div className="grid gap-6">
+                          {hasFeatures && (
+                            <div className="flex flex-col gap-3">
+                              <h3 className="text-body2 font-semibold text-dark-500 lg:text-h5">
+                                Key features
+                              </h3>
+                              <Prose data={product.keyFeatures as RichTextData} />
+                            </div>
+                          )}
+                          {about && (
+                            <div className="flex flex-col gap-3">
+                              <h3 className="text-body2 font-semibold text-dark-500 lg:text-h5">
+                                About this product
+                              </h3>
+                              {about}
+                            </div>
+                          )}
+                        </div>
+                      </Panel>
+                    </Reveal>
+                  )}
+
+                  <Reveal>
+                    <Panel id="specifications" title="Specifications">
+                      <dl className="grid overflow-hidden rounded-xl border-[0.5px] border-dark-100">
+                        {attributes.map((row) => (
+                          <div
+                            key={row.key}
+                            className="grid grid-cols-[45%_1fr] border-b-[0.5px] border-dark-100 text-body3 last:border-b-0 lg:text-h6"
+                          >
+                            <dt className="bg-light-500 px-3 py-2.5 text-dark-400">{row.label}</dt>
+                            <dd className="px-3 py-2.5 font-medium break-words text-dark-500">
+                              {row.value}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                      {data.userManualUrl && (
+                        <a
+                          href={data.userManualUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-body3 font-medium text-brand-blue-400 underline lg:text-h6"
+                        >
+                          Download the user manual (PDF)
+                        </a>
+                      )}
+                    </Panel>
+                  </Reveal>
+
+                  <ContentSections sections={contentSections} />
+
+                  {hasText(product.warrantyInfo) && (
+                    <Reveal>
+                      <Panel title="Warranty Information">
+                        <Prose data={product.warrantyInfo} />
+                      </Panel>
+                    </Reveal>
+                  )}
+
+                  {care.length > 0 && (
+                    <Reveal>
+                      <Panel id="using" title="Using it">
+                        <div className="grid gap-4">
+                          {care.map(({ key, title, field }) => (
+                            <div
+                              key={key}
+                              className="flex flex-col gap-3 rounded-xl bg-light-300 p-4"
+                            >
+                              <h3 className="text-body2 font-semibold text-dark-500 lg:text-h5">
+                                {title}
+                              </h3>
+                              {hasText(field) && <Prose data={field} />}
+                            </div>
+                          ))}
+                        </div>
+                      </Panel>
+                    </Reveal>
+                  )}
+                </div>
+              </div>
             </div>
 
-            <div className="flex min-w-0 flex-col gap-4">
-              <div className="flex flex-wrap items-center gap-2 text-label3 font-semibold lg:text-body1">
-                {data.brandName && (
-                  <span className="rounded-full bg-brand-blue-500 px-2.5 py-1 text-light-100">
-                    {data.brandName}
-                  </span>
-                )}
-                {product.modelNumber && (
-                  <span className="rounded-full bg-light-500 px-2.5 py-1 text-dark-400">
-                    Model {product.modelNumber}
-                  </span>
-                )}
-                {options.length > 1 && (
-                  <span className="rounded-full bg-light-500 px-2.5 py-1 text-dark-400">
-                    SKU {variant.sku}
-                  </span>
-                )}
-                {sellOnline && data.inStock && (
-                  <span className="rounded-full bg-green-100 px-2.5 py-1 text-green-400">
-                    In stock
-                  </span>
-                )}
-                {compareButton('ml-auto lg:hidden')}
-              </div>
+            <div className="order-5 flex min-w-0 flex-col gap-5">
+              {data.boughtTogether.length > 0 && (
+                <Reveal>
+                  <BoughtTogether
+                    current={{
+                      productId: product.id,
+                      variantId: variant.id,
+                      name: product.name,
+                      href: canonical,
+                      image: data.images[0].url,
+                      pricePaise: variant.sellingPricePaise,
+                      mrpPaise: variant.mrpPaise,
+                      buyable: sellOnline && data.inStock,
+                    }}
+                    items={data.boughtTogether}
+                  />
+                </Reveal>
+              )}
 
-              <div className="flex flex-col gap-1">
-                <h1 className="text-h5 font-medium text-dark-500 lg:text-h3">{product.name}</h1>
-                {product.subtitle && (
-                  <p className="text-body2 text-dark-400 lg:text-h6">{product.subtitle}</p>
-                )}
-              </div>
+              {data.applications.items.length > 0 && (
+                <Reveal>
+                  <div className="[&_img]:transition-transform [&_img]:duration-500 [&_li:hover_img]:scale-105 [&_li_p]:bg-dark-500">
+                    <Applications {...data.applications} />
+                  </div>
+                </Reveal>
+              )}
 
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                {rating.count > 0 && <RatingBadge value={rating.average} />}
-                <a
-                  href="#customer-reviews"
-                  className="flex items-center gap-1 text-body3 font-medium text-brand-blue-400 hover:underline lg:text-body1"
+              <Reveal>
+                <div
+                  id="customer-reviews"
+                  className="scroll-mt-16 rounded-2xl shadow-[0_4px_16px_#1c1c1c1a] border-[0.5px] border-dark-100 bg-light-100 p-4 lg:p-6"
                 >
-                  {rating.count > 0
-                    ? `${rating.count} Review${rating.count === 1 ? '' : 's'}`
-                    : 'Be the first to review'}
-                </a>
-                {demand && (
-                  <p className="flex items-center gap-1 text-body3 font-medium text-dark-400 lg:text-body1">
-                    {demand}
-                  </p>
-                )}
-                {compareButton('ml-auto hidden lg:block')}
-              </div>
-              <ProductViewers productId={product.id} />
-
-              {/* From xl the price moves into the rail beside the page. */}
-              <div className="xl:hidden">
-                <PriceBlock data={data} />
-              </div>
-
-              {options.length > 1 && (
-                <div className="flex flex-col gap-2">
-                  <p className="text-body3 font-medium text-dark-500 lg:text-h6">
-                    Choose an option
-                  </p>
-                  <ul className="flex flex-wrap gap-2">
-                    {options.map((option) => (
-                      <li key={option.sku}>
-                        <Link
-                          href={`${canonical}?variant=${encodeURIComponent(option.sku)}`}
-                          scroll={false}
-                          replace
-                          aria-current={option.sku === variant.sku ? 'true' : undefined}
-                          className={cn(
-                            'flex flex-col rounded-xl border px-3 py-2 text-body3 transition-colors lg:text-body1',
-                            option.sku === variant.sku
-                              ? 'border-brand-red-500 bg-brand-red-100 text-dark-500'
-                              : 'border-dark-100 bg-light-100 text-dark-400 hover:border-dark-300',
-                            sellOnline && !option.inStock && 'opacity-60',
-                          )}
-                        >
-                          <span className="font-medium">{option.name}</span>
-                          <span>
-                            {option.inStock || !sellOnline
-                              ? cardPrice(option.pricePaise)
-                              : 'Out of stock'}
-                          </span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
+                  <ReviewsSection data={data} />
                 </div>
-              )}
+              </Reveal>
 
-              {accessories.length > 0 && (
-                <div className="flex flex-col gap-3 rounded-2xl shadow-[0_4px_16px_#1c1c1c1a] border-[0.5px] border-dark-100 bg-light-100 p-4">
-                  <p className="relative h-[1.875rem] w-[10.5625rem]">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src="/icons/free-ribbon.svg"
-                      alt=""
-                      width={210.501}
-                      height={34.5}
-                      className="absolute top-0 left-0 h-[2.15625rem] w-[13.15625rem] max-w-none"
-                    />
-                    <span className="absolute top-1 left-[0.989375rem] bg-linear-to-r from-white to-[#ffea31] bg-clip-text text-h6 font-medium whitespace-nowrap text-transparent">
-                      Free with purchase
-                    </span>
-                  </p>
-                  <ul className="flex flex-wrap gap-3">
-                    {accessories.map((item) => (
-                      <li key={item.name} className="flex items-center gap-2">
-                        <span className="relative grid size-12 shrink-0 place-items-center rounded-lg bg-light-300 p-1 lg:size-16">
-                          {item.image && (
-                            <Image
-                              src={item.image.url}
-                              alt=""
-                              width={40}
-                              height={40}
-                              className="size-10 object-contain lg:size-14"
-                            />
-                          )}
-                        </span>
-                        <span className="flex flex-col text-body3 lg:text-body1">
-                          <span className="font-medium text-dark-500">{item.name}</span>
-                          {item.quantity && <span className="text-dark-400">{item.quantity}</span>}
-                        </span>
-                      </li>
+              <Reveal>
+                <Panel id="faqs" title="Questions shoppers ask">
+                  <Accordion type="single" collapsible defaultValue={faqs[0]?.q}>
+                    {faqs.map((faq) => (
+                      <AccordionItem
+                        key={faq.q}
+                        value={faq.q}
+                        className="border-b-[0.5px] border-dark-100 py-1"
+                      >
+                        <AccordionTrigger className="text-left text-body3 font-medium text-dark-500 lg:text-h6">
+                          {faq.q}
+                        </AccordionTrigger>
+                        <AccordionContent className="pt-1 pb-3 text-body3 text-dark-400 lg:text-h6">
+                          {faq.a}
+                        </AccordionContent>
+                      </AccordionItem>
                     ))}
-                  </ul>
-                </div>
-              )}
+                  </Accordion>
+                </Panel>
+              </Reveal>
 
-              <StoreTrust
-                siteName={siteName}
-                logoUrl={logoUrl}
-                stats={stats}
-                warrantyMonths={product.warrantyMonths}
-                sellOnline={sellOnline}
-                hasInvoice={hasInvoice}
-                tollFreeNumber={tollFreeNumber}
-                settings={pageSettings}
-              />
+              {(data.brochure || data.supplierImages.length > 0) && (
+                <Reveal>
+                  <div className="flex flex-col gap-4">
+                    {data.brochure ? (
+                      <SupplierBrochure brochure={data.brochure} />
+                    ) : (
+                      <section aria-label="Product Description From the Supplier">
+                        <h2 className="text-body2 font-medium text-dark-500">
+                          Product Description From the Supplier
+                        </h2>
+                      </section>
+                    )}
+                    {data.supplierImages.length > 0 && (
+                      <SupplierImages images={data.supplierImages} name={product.name} />
+                    )}
+                  </div>
+                </Reveal>
+              )}
             </div>
           </div>
 
-          {/* The rail: stays in view beside the page from xl, below the facts on smaller screens. */}
-          <aside className="min-w-0 xl:row-span-2">
-            <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 xl:sticky xl:top-16 xl:flex xl:flex-col">
+          <aside className="order-3 min-w-0 lg:sticky lg:top-6 lg:order-none">
+            <div className="flex flex-col gap-4">
               <BuyBox
                 key={variant.id}
                 name={product.name}
@@ -485,7 +617,7 @@ export const ProductDetail = ({
                 tollFreeNumber={tollFreeNumber}
                 imageUrl={data.images[0].url}
                 price={
-                  <div className="max-xl:hidden">
+                  <div className="max-lg:hidden">
                     <PriceBlock data={data} />
                   </div>
                 }
@@ -507,7 +639,7 @@ export const ProductDetail = ({
               {sellOnline && pageSettings?.bulkEnabled !== false && (
                 <section
                   aria-label="Bulk orders"
-                  className="flex flex-col gap-3 rounded-2xl shadow-[0_4px_16px_#1c1c1c1a] bg-brand-blue-500 p-5 text-light-100 lg:col-span-2 xl:col-span-1"
+                  className="flex flex-col gap-3 rounded-2xl shadow-[0_4px_16px_#1c1c1c1a] bg-brand-blue-500 p-5 text-light-100"
                 >
                   <p className="text-body2 font-semibold lg:text-h6">
                     {pageSettings?.bulkTitle || 'Buying for a workshop or team?'}
@@ -525,149 +657,6 @@ export const ProductDetail = ({
               )}
             </div>
           </aside>
-
-          <div className="flex min-w-0 flex-col gap-5">
-            {glance && <div className={wideGlance ? undefined : 'lg:hidden'}>{glance}</div>}
-
-            <SectionNav sections={sections} />
-
-            {hasOverview && (
-              <Reveal>
-                <Panel id="overview" title="Overview">
-                  <div className={cn('grid gap-6', hasFeatures && about && 'lg:grid-cols-2')}>
-                    {hasFeatures && (
-                      <div className="flex flex-col gap-3">
-                        <h3 className="text-body2 font-semibold text-dark-500 lg:text-h5">
-                          Key features
-                        </h3>
-                        <Prose data={product.keyFeatures as RichTextData} />
-                      </div>
-                    )}
-                    {about && (
-                      <div className="flex flex-col gap-3">
-                        <h3 className="text-body2 font-semibold text-dark-500 lg:text-h5">
-                          About this product
-                        </h3>
-                        {about}
-                      </div>
-                    )}
-                  </div>
-                </Panel>
-              </Reveal>
-            )}
-
-            <Reveal>
-              <Panel id="specifications" title="Specifications">
-                <dl className="grid overflow-hidden rounded-xl border-[0.5px] border-dark-100 lg:grid-cols-2">
-                  {attributes.map((row) => (
-                    <div
-                      key={row.key}
-                      className="grid grid-cols-[45%_1fr] border-b-[0.5px] border-dark-100 text-body3 lg:text-h6 lg:odd:border-r-[0.5px]"
-                    >
-                      <dt className="bg-light-500 px-3 py-2.5 text-dark-400">{row.label}</dt>
-                      <dd className="px-3 py-2.5 font-medium break-words text-dark-500">
-                        {row.value}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-                {data.userManualUrl && (
-                  <a
-                    href={data.userManualUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-body3 font-medium text-brand-blue-400 underline lg:text-h6"
-                  >
-                    Download the user manual (PDF)
-                  </a>
-                )}
-              </Panel>
-            </Reveal>
-
-            <ContentSections sections={contentSections} />
-
-            {hasText(product.warrantyInfo) && (
-              <Reveal>
-                <Panel title="Warranty Information">
-                  <Prose data={product.warrantyInfo} />
-                </Panel>
-              </Reveal>
-            )}
-
-            {care.length > 0 && (
-              <Reveal>
-                <Panel id="using" title="Using it">
-                  <div className="grid gap-5 lg:grid-cols-3">
-                    {care.map(({ key, title, field }) => (
-                      <div key={key} className="flex flex-col gap-3 rounded-xl bg-light-300 p-4">
-                        <h3 className="text-body2 font-semibold text-dark-500 lg:text-h5">
-                          {title}
-                        </h3>
-                        {hasText(field) && <Prose data={field} />}
-                      </div>
-                    ))}
-                  </div>
-                </Panel>
-              </Reveal>
-            )}
-
-            {data.applications.items.length > 0 && (
-              <Reveal>
-                <div className="[&_img]:transition-transform [&_img]:duration-500 [&_li:hover_img]:scale-105 [&_li_p]:bg-dark-500">
-                  <Applications {...data.applications} />
-                </div>
-              </Reveal>
-            )}
-
-            <Reveal>
-              <div
-                id="customer-reviews"
-                className="scroll-mt-16 rounded-2xl shadow-[0_4px_16px_#1c1c1c1a] border-[0.5px] border-dark-100 bg-light-100 p-4 lg:p-6"
-              >
-                <ReviewsSection data={data} />
-              </div>
-            </Reveal>
-
-            <Reveal>
-              <Panel id="faqs" title="Questions shoppers ask">
-                <Accordion type="single" collapsible defaultValue={faqs[0]?.q}>
-                  {faqs.map((faq) => (
-                    <AccordionItem
-                      key={faq.q}
-                      value={faq.q}
-                      className="border-b-[0.5px] border-dark-100 py-1"
-                    >
-                      <AccordionTrigger className="text-left text-body3 font-medium text-dark-500 lg:text-h6">
-                        {faq.q}
-                      </AccordionTrigger>
-                      <AccordionContent className="pt-1 pb-3 text-body3 text-dark-400 lg:text-h6">
-                        {faq.a}
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
-              </Panel>
-            </Reveal>
-
-            {(data.brochure || data.supplierImages.length > 0) && (
-              <Reveal>
-                <div className="flex flex-col gap-4">
-                  {data.brochure ? (
-                    <SupplierBrochure brochure={data.brochure} />
-                  ) : (
-                    <section aria-label="Product Description From the Supplier">
-                      <h2 className="text-body2 font-medium text-dark-500">
-                        Product Description From the Supplier
-                      </h2>
-                    </section>
-                  )}
-                  {data.supplierImages.length > 0 && (
-                    <SupplierImages images={data.supplierImages} name={product.name} />
-                  )}
-                </div>
-              </Reveal>
-            )}
-          </div>
         </div>
 
         {data.compare && (

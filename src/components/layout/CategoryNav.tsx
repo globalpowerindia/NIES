@@ -81,7 +81,7 @@ export const CategoryNav = ({ categories }: { categories: NavCategory[] }) => {
                 aria-current={active ? 'page' : undefined}
                 aria-expanded={children.length > 0 ? isOpen : undefined}
                 className={cn(
-                  'flex items-center gap-1 px-5 py-4 text-body2 whitespace-nowrap transition-colors',
+                  'flex items-center gap-1 px-5 py-4 text-body2 font-semibold whitespace-nowrap transition-colors',
                   active ? 'bg-brand-red-400 text-light-100' : 'text-dark-500 hover:text-brand-red-500',
                   isOpen && !active && 'bg-light-100 text-brand-red-500',
                 )}
