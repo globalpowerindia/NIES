@@ -77,16 +77,16 @@ export const ProductCarousel = ({
 
       <div
         ref={trackRef}
-        className="flex snap-x snap-mandatory gap-4 overflow-x-auto [scrollbar-width:none] md:gap-3 [&::-webkit-scrollbar]:hidden"
+        className="flex snap-x snap-mandatory gap-3 overflow-x-auto [scrollbar-width:none] md:gap-3 [&::-webkit-scrollbar]:hidden"
       >
         {products.map((product) => (
           <ProductCard
             key={product.href}
             {...product}
-            // A quarter of the next card shows, which fills the row and hints there's more.
+            // Phones: two cards and a bit of the third. Wider: a quarter of the next card shows, which fills the row and hints there's more.
             // When they all fit, they share the width instead.
             className={cn(
-              'w-[16.125rem] shrink-0 snap-start md:w-[calc((100%-2.25rem)/3.25)]',
+              'w-[calc((100%-1.5rem)/2.2)] shrink-0 snap-start md:w-[calc((100%-2.25rem)/3.25)]',
               products.length > 5 ? 'lg:w-[calc((100%-3.75rem)/5.25)]' : 'lg:w-auto lg:min-w-0 lg:flex-1',
             )}
           />

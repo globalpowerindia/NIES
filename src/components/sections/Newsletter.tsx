@@ -13,7 +13,7 @@ export const Newsletter = ({ title, description }: { title?: string; description
         className="size-[3.625rem] shrink-0 md:size-[6.25rem]"
       />
       <div className="flex flex-col gap-6">
-        {title && <h2 className="text-h5 font-semibold text-light-100 md:text-h3 md:font-medium">{title}</h2>}
+        {title && <h2 className="text-h6 font-semibold text-light-100 md:text-h3 md:font-medium">{title}</h2>}
         {description && <p className="text-[0.75rem] leading-4 text-brand-red-200 md:text-body2">{description}</p>}
       </div>
     </div>

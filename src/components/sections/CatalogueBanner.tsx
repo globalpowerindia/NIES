@@ -17,7 +17,7 @@ export const CatalogueBanner = ({ title, description, buttonLabel, href, isDownl
   <section className="-mx-4 flex flex-col-reverse overflow-hidden md:mx-0 md:rounded-2xl lg:grid lg:grid-cols-2">
     <div className="flex min-w-0 flex-1 items-center bg-brand-blue-100 px-4 py-8 md:px-8 md:py-10 lg:px-[18.5185%]">
       <div className="flex w-full max-w-[28.125rem] flex-col gap-6">
-        <h2 className="max-w-[16.25rem] text-h5 font-semibold text-balance text-dark-500 md:max-w-none md:text-h3 md:font-medium">{title}</h2>
+        <h2 className="max-w-[16.25rem] text-h6 font-semibold text-balance text-dark-500 md:max-w-none md:text-h3 md:font-medium">{title}</h2>
         {description && <p className="text-[0.75rem] leading-4 text-dark-400 md:text-body3">{description}</p>}
         {href && (
           <ButtonLink

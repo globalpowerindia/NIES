@@ -22,17 +22,17 @@ export const ValueProps = ({ eyebrow, title, description, items }: ValuePropsPro
         <li
           key={`${item.title}-${index}`}
           className={cn(
-            'flex min-h-[13.75rem] w-[13.6875rem] shrink-0 snap-start flex-col items-center gap-5 rounded-3xl p-5 text-center md:min-h-0 md:w-auto',
+            'flex w-[calc((100%-1rem)/2.2)] shrink-0 snap-start flex-col items-center gap-2 self-stretch rounded-2xl p-3 text-center md:w-auto md:gap-5 md:rounded-3xl md:p-5',
             index % 2 === 0 ? 'bg-brand-red-200' : 'bg-brand-blue-100',
           )}
         >
           {item.iconUrl ? (
-            <Image src={item.iconUrl} alt="" width={52} height={52} className="size-[3.25rem] object-contain" />
+            <Image src={item.iconUrl} alt="" width={52} height={52} className="size-10 object-contain md:size-[3.25rem]" />
           ) : (
-            <Sparkles className="size-[3.25rem] text-brand-blue-500" strokeWidth={1.25} />
+            <Sparkles className="size-10 text-brand-blue-500 md:size-[3.25rem]" strokeWidth={1.25} />
           )}
-          <h3 className="text-body1 font-medium whitespace-nowrap text-dark-500 md:text-h6 md:font-semibold md:whitespace-normal">{item.title}</h3>
-          {item.text && <p className="text-body3 text-dark-400 md:text-body2">{item.text}</p>}
+          <h3 className="text-body3 font-semibold text-dark-500 md:text-h6 md:font-semibold md:whitespace-normal">{item.title}</h3>
+          {item.text && <p className="text-[0.75rem] leading-4 text-dark-400 md:text-body2 md:leading-6">{item.text}</p>}
         </li>
       ))}
     </ul>
