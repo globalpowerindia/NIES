@@ -77,7 +77,7 @@ export const ProductCarousel = ({
 
       <div
         ref={trackRef}
-        className="flex snap-x snap-mandatory gap-3 overflow-x-auto [scrollbar-width:none] md:gap-3 [&::-webkit-scrollbar]:hidden"
+        className="-mx-2 -my-3 flex snap-x snap-mandatory scroll-px-2 gap-3 overflow-x-auto px-2 py-3 [scrollbar-width:none] md:gap-3 [&::-webkit-scrollbar]:hidden"
       >
         {products.map((product) => (
           <ProductCard

@@ -17,12 +17,12 @@ export const ValueProps = ({ eyebrow, title, description, items }: ValuePropsPro
   <section className="flex flex-col gap-4 md:gap-6">
     <SectionHeading eyebrow={eyebrow} title={title} description={description} className="max-md:[&>p]:font-sans max-md:[&>p]:text-[0.75rem] max-md:[&>p]:leading-4" />
 
-    <ul className="flex w-full snap-x snap-mandatory items-start gap-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:grid-cols-2 md:items-stretch md:gap-6 lg:grid-cols-6">
+    <ul className="-mx-2 -my-3 flex w-[calc(100%+1rem)] snap-x snap-mandatory scroll-px-2 items-start gap-4 overflow-x-auto px-2 py-3 md:mx-0 md:my-0 md:w-full md:px-0 md:py-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:grid-cols-2 md:items-stretch md:gap-6 lg:grid-cols-6">
       {items.map((item, index) => (
         <li
           key={`${item.title}-${index}`}
           className={cn(
-            'flex w-[calc((100%-1rem)/2.2)] shrink-0 snap-start flex-col items-center gap-2 self-stretch rounded-2xl p-3 text-center md:w-auto md:gap-5 md:rounded-3xl md:p-5',
+            'card-lift flex w-[calc((100%-1rem)/2.2)] shrink-0 snap-start flex-col items-center gap-2 self-stretch rounded-2xl p-3 text-center md:w-auto md:gap-5 md:rounded-3xl md:p-5',
             index % 2 === 0 ? 'bg-brand-red-200' : 'bg-brand-blue-100',
           )}
         >

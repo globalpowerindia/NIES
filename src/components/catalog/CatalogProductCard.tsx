@@ -31,7 +31,7 @@ export const CatalogProductCard = (props: ProductCardProps) => {
   return (
     <>
       <ProductCard {...props} className="hidden w-full lg:flex" />
-      <article className="flex w-full min-w-0 flex-col gap-2 rounded-xl bg-light-100 p-2 ring-[0.5px] ring-inset ring-brand-blue-200 lg:hidden">
+      <article className="card-lift flex w-full min-w-0 flex-col gap-2 rounded-xl bg-light-100 p-2 ring-[0.5px] ring-inset ring-brand-blue-200 lg:hidden">
         <div className="flex h-[11.4375rem] flex-col gap-2.5 rounded-lg bg-neutral-200 p-2">
           <div className="flex h-[1.125rem] items-center justify-between gap-1">
             {badge ? (

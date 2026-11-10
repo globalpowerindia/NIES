@@ -154,7 +154,7 @@ export const CompareTable = ({
               )}
             >
               {/* The card lifts on hover: shadow, outline, photo zoom, name in brand blue. */}
-              <div className="group relative flex h-full flex-col gap-3 rounded-xl bg-transparent p-0.5 pb-1.5 ring-1 ring-transparent transition-[box-shadow,background-color,transform] duration-200 lg:p-1.5 lg:pb-3.5 lg:hover:-translate-y-0.5 lg:hover:bg-light-100 lg:hover:shadow-[0_10px_28px_#1c1c1c26] lg:hover:ring-brand-blue-200">
+              <div className="group card-lift relative flex h-full flex-col gap-3 rounded-xl bg-light-100 p-1 pb-1.5 ring-1 ring-transparent lg:p-1.5 lg:pb-3.5 lg:hover:ring-brand-blue-200">
                 <Link
                   href={column.href}
                   className="relative h-[8.6875rem] overflow-hidden rounded-lg bg-light-100 lg:h-[12.875rem]"

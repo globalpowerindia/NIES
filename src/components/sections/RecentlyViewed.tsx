@@ -53,7 +53,7 @@ export const RecentlyViewed = ({ excludeId }: { excludeId?: number }) => {
             <li key={product.href}>
               <HoverPrefetchLink
                 href={product.href}
-                className="flex items-center gap-3 rounded-xl bg-light-100 p-2 ring-[0.5px] ring-brand-blue-200 ring-inset transition-shadow hover:shadow-md"
+                className="card-lift flex items-center gap-3 rounded-xl bg-light-100 p-2 ring-[0.5px] ring-brand-blue-200 ring-inset"
               >
                 <span className="relative size-20 shrink-0 overflow-hidden rounded-lg bg-neutral-200 md:size-24">
                   <Image src={product.imageUrl} alt="" fill sizes="192px" className="object-contain p-1" />
