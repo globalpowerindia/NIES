@@ -58,7 +58,7 @@ export const SectionNav = ({ sections }: { sections: NavSection[] }) => {
   return (
     <nav
       aria-label="On this page"
-      className="sticky top-0 z-30 -mx-4 overflow-x-auto bg-light-400/95 px-4 backdrop-blur [scrollbar-width:none] lg:mx-0 lg:rounded-xl lg:border-[0.5px] lg:border-dark-100 lg:bg-light-100/95 lg:px-2 [&::-webkit-scrollbar]:hidden"
+      className="sticky top-[var(--header-h,0px)] z-30 -mx-4 overflow-x-auto bg-light-400/95 px-4 backdrop-blur [scrollbar-width:none] lg:mx-0 lg:rounded-xl lg:border-[0.5px] lg:border-dark-100 lg:bg-light-100/95 lg:px-2 [&::-webkit-scrollbar]:hidden"
     >
       <ul className="flex min-w-max gap-1">
         {sections.map(({ id, label }) => (
