@@ -145,6 +145,8 @@
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;
+    /* Jump links stop below the sticky header (StickyHeader sets --header-h). */
+    scroll-padding-top: var(--header-h, 0px);
   }
 
   /* Fluid scale: on laptops and up the root size follows the viewport so the

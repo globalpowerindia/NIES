@@ -8,6 +8,7 @@ import { CategoryNav, type NavCategory } from '@/components/layout/CategoryNav'
 import { HeaderSearch } from '@/components/layout/HeaderSearch'
 import { MobileNavigation } from '@/components/layout/MobileNavigation'
 import { OffersTicker, type OfferLine } from '@/components/layout/OffersTicker'
+import { StickyHeader } from '@/components/layout/StickyHeader'
 import type { TopMovingTile } from '@/components/layout/SearchPanel'
 
 export type HeaderProps = {
@@ -27,7 +28,7 @@ export const Header = ({
   searchTiles,
   searchHints,
 }: HeaderProps) => (
-  <header>
+  <>
     {/* Brand blue, brightening to the right like a spotlight, so the white offer button stands out. */}
     <div className="bg-linear-to-r from-brand-blue-600 from-40% via-brand-blue-500 via-75% to-brand-blue-300 text-light-100">
       <div className="container-page flex items-center justify-center py-2">
@@ -35,8 +36,9 @@ export const Header = ({
       </div>
     </div>
 
-    <div className="bg-light-100">
-      <div className="container-page relative flex flex-wrap items-center justify-between gap-x-4 gap-y-0 pt-4 md:gap-y-4 md:pb-4">
+    {/* Logo, search, cart and account stay in view while scrolling; the offer strip and categories scroll away. */}
+    <StickyHeader>
+      <div className="container-page relative flex flex-wrap items-center justify-between gap-x-4 gap-y-0 pt-4 pb-3 md:gap-y-4 md:pb-4">
         <Link href="/" className="shrink-0">
           <Image
             src={logoUrl}
@@ -60,8 +62,8 @@ export const Header = ({
           <MobileNavigation categories={categories} />
         </div>
       </div>
-    </div>
+    </StickyHeader>
 
     <CategoryNav categories={categories} />
-  </header>
+  </>
 )

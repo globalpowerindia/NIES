@@ -287,7 +287,7 @@ export const CheckoutForm = ({
         </section>
       </div>
 
-      <aside className="flex w-full shrink-0 flex-col gap-4 rounded-lg bg-light-100 p-5 lg:sticky lg:top-6 lg:w-127.5">
+      <aside className="flex w-full shrink-0 flex-col gap-4 rounded-lg bg-light-100 p-5 lg:sticky lg:top-[calc(var(--header-h,0px)+1.5rem)] lg:w-127.5">
         <h2 className="text-body1 font-semibold text-dark-500 sm:text-h6">
           Order Summary <span className="text-body3 font-normal text-dark-300 sm:text-label1">({count} item{count === 1 ? '' : 's'})</span>
         </h2>

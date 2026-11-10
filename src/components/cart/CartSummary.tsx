@@ -172,7 +172,7 @@ export const CartSummary = ({ cart }: { cart: CartView }) => {
   const half = breakdown.rateBps !== null ? ` ${percent(breakdown.rateBps / 2)}` : ''
 
   return (
-    <aside className="flex w-full shrink-0 flex-col gap-2 rounded-lg bg-light-400 p-5 sm:gap-4 sm:bg-light-100 lg:sticky lg:top-6 lg:w-127.5">
+    <aside className="flex w-full shrink-0 flex-col gap-2 rounded-lg bg-light-400 p-5 sm:gap-4 sm:bg-light-100 lg:sticky lg:top-[calc(var(--header-h,0px)+1.5rem)] lg:w-127.5">
       <h2 className="text-label1 font-semibold text-dark-500 sm:text-h6">Order Summary</h2>
       <Divider />
       <dl>
