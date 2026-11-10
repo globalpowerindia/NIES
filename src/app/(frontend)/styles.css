@@ -191,6 +191,16 @@
 }
 
 /*
+ * Every card a shopper can click: a soft shadow at rest, and on hover (devices
+ * with a pointer) it rises a little with a deeper shadow. Built from Tailwind's
+ * shadow classes so cards that also draw a ring keep it. Scrolling rows that
+ * hold these cards need a little vertical padding, or the lift is clipped.
+ */
+@utility card-lift {
+  @apply shadow-[0_2px_10px_#1c1c1c14] transition-[box-shadow,translate] duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_14px_30px_#1c1c1c29] motion-reduce:hover:translate-y-0;
+}
+
+/*
  * shadcn/ui's colour slots, pointed at the Figma tokens above, so the
  * components wear the design system without per-use overrides. Radii are left
  * to Tailwind's scale, which the Figma frames already use. There is no dark

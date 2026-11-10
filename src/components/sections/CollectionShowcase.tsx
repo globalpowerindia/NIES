@@ -148,7 +148,7 @@ export const CollectionShowcase = ({
           <ul
             ref={trackRef}
             onScroll={update}
-            className="flex w-full snap-x snap-mandatory items-stretch gap-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="-my-3 flex w-full snap-x snap-mandatory items-stretch gap-4 overflow-x-auto px-2 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             {items.map((item, index) => (
               <Fragment key={item.href}>
@@ -156,7 +156,7 @@ export const CollectionShowcase = ({
                 <li className="flex w-[calc((100%-2rem)/2.2)] shrink-0 snap-start flex-col items-center gap-2 pb-4 md:w-[19rem] md:gap-4 md:pb-6">
                   <HoverPrefetchLink
                     href={item.href}
-                    className="flex aspect-square w-full items-center justify-center rounded-xl p-2 md:aspect-auto md:h-[15rem] md:p-4"
+                    className="card-lift flex aspect-square w-full items-center justify-center rounded-xl bg-light-100 p-2 md:aspect-auto md:h-[15rem] md:p-4"
                   >
                     <span className="relative block size-full md:size-[13rem]">
                       <Image src={item.imageUrl} alt={item.name} fill sizes="252px" className="object-contain" />

@@ -13,9 +13,10 @@ import { cn } from '@/lib/utils'
 
 /**
  * This product and the ones staff picked to go with it (Products → Classification →
- * Frequently bought together). Shoppers untick what they don't need and add the rest
- * in one go. Items that can't go in the cart (sold offline, out of stock) are shown
- * but can't be ticked.
+ * Frequently bought together), each in its own box. The tick box on a box adds
+ * it to or takes it out of the bundle, and the strip below adds the bundle in one go.
+ * Items that can't go in the cart (sold offline, out of stock, no price) are shown
+ * without the tick box.
  */
 export const BoughtTogether = ({ current, items }: { current: BoughtTogetherItem; items: BoughtTogetherItem[] }) => {
   const all = [current, ...items]
@@ -62,108 +63,124 @@ export const BoughtTogether = ({ current, items }: { current: BoughtTogetherItem
         Frequently bought together
       </h2>
 
-      <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-        <div className="flex min-w-0 flex-col gap-4">
-          {/* The photos, joined by plus signs. Scrolls sideways on a phone. */}
-          <ol className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] lg:mx-0 lg:px-0 [&::-webkit-scrollbar]:hidden">
-            {all.map((item, index) => {
-              const on = item.buyable && picked.has(item.productId)
-              return (
-                <Fragment key={item.productId}>
-                  {index > 0 && (
-                    <li aria-hidden className="shrink-0 text-dark-300">
-                      <Plus className="size-5" />
-                    </li>
-                  )}
-                  <li className="shrink-0">
-                    <Link
-                      href={item.href}
-                      aria-label={item.name}
-                      className={cn(
-                        'relative block size-24 overflow-hidden rounded-xl border-[0.5px] border-dark-100 bg-light-100 transition-opacity lg:size-28',
-                        !on && 'opacity-40',
-                      )}
-                    >
-                      <Image src={item.image} alt="" fill sizes="112px" className="object-contain p-2" />
-                    </Link>
-                  </li>
-                </Fragment>
-              )
-            })}
-          </ol>
-
-          <ul className="flex flex-col gap-2">
-            {all.map((item, index) => (
-              <li key={item.productId}>
-                <label
+      {/* One box per product, joined by plus signs. Scrolls sideways when they don't fit. */}
+      <ol className="-mx-4 -my-3 flex items-stretch overflow-x-auto px-4 py-3 [scrollbar-width:none] lg:-mx-2 lg:px-2 [&::-webkit-scrollbar]:hidden">
+        {all.map((item, index) => {
+          const on = item.buyable && picked.has(item.productId)
+          return (
+            <Fragment key={item.productId}>
+              {index > 0 && (
+                <li aria-hidden className="grid shrink-0 place-items-center px-1.5 lg:px-2">
+                  <span className="grid size-6 place-items-center rounded-full bg-light-500 text-dark-400">
+                    <Plus className="size-3.5" strokeWidth={2.5} />
+                  </span>
+                </li>
+              )}
+              <li className="flex w-[8.5rem] shrink-0 lg:w-auto lg:min-w-[6.75rem] lg:flex-1 lg:basis-0">
+                <div
                   className={cn(
-                    'flex items-start gap-2 text-body3 text-dark-500 lg:text-body1',
-                    item.buyable ? 'cursor-pointer' : 'cursor-not-allowed text-dark-300',
+                    'card-lift relative flex w-full flex-col gap-2 rounded-xl border bg-light-100 p-2 transition-[box-shadow,translate,border-color]',
+                    on ? 'border-brand-red-400' : 'border-dark-100',
                   )}
                 >
-                  <input
-                    type="checkbox"
-                    checked={item.buyable && picked.has(item.productId)}
-                    disabled={!item.buyable || busy}
-                    onChange={() => toggle(item.productId)}
-                    className="mt-1 size-4 shrink-0 accent-brand-red-500"
-                  />
-                  <span className="min-w-0">
-                    {index === 0 ? (
-                      <span className="font-semibold">This item: </span>
-                    ) : null}
-                    {index === 0 ? (
-                      item.name
-                    ) : (
-                      <Link href={item.href} className="text-brand-blue-400 hover:underline">
-                        {item.name}
-                      </Link>
-                    )}{' '}
-                    <span className="font-semibold whitespace-nowrap">
-                      {item.pricePaise > 0 ? formatCurrency(item.pricePaise) : 'Price on request'}
+                  {index === 0 && (
+                    <span className="absolute top-2 left-2 z-[1] rounded-full bg-brand-blue-500 px-2 py-0.5 text-[0.625rem] leading-4 font-medium text-light-100">
+                      This item
                     </span>
-                    {item.pricePaise > 0 && item.mrpPaise > item.pricePaise && (
-                      <span className="ml-1.5 whitespace-nowrap text-dark-300 line-through">
-                        {formatCurrency(item.mrpPaise)}
+                  )}
+
+                  {item.buyable ? (
+                    // The label pads the box out to a comfortable tap target.
+                    <label className="absolute top-1 right-1 z-[1] grid size-8 cursor-pointer place-items-center">
+                      <input
+                        type="checkbox"
+                        checked={on}
+                        disabled={busy}
+                        onChange={() => toggle(item.productId)}
+                        aria-label={`Include ${item.name}`}
+                        className="size-5 cursor-pointer accent-brand-red-500"
+                      />
+                    </label>
+                  ) : null}
+
+                  <Link
+                    href={item.href}
+                    aria-label={item.name}
+                    className="relative block aspect-square w-full overflow-hidden rounded-lg bg-light-300"
+                  >
+                    <Image
+                      src={item.image}
+                      alt=""
+                      fill
+                      sizes="160px"
+                      className={cn('object-contain p-2 transition-opacity', !on && item.buyable && 'opacity-50')}
+                    />
+                  </Link>
+
+                  <div className="flex min-w-0 flex-1 flex-col gap-1">
+                    <Link
+                      href={item.href}
+                      title={item.name}
+                      className="line-clamp-2 text-[0.75rem] leading-4 text-dark-500 hover:text-brand-blue-400 hover:underline lg:text-body3"
+                    >
+                      {item.name}
+                    </Link>
+                    <p className="mt-auto flex flex-wrap items-baseline gap-x-1.5 text-body3 lg:text-body2">
+                      {item.pricePaise > 0 ? (
+                        <>
+                          <span className="font-semibold text-dark-500">{formatCurrency(item.pricePaise)}</span>
+                          {item.mrpPaise > item.pricePaise && (
+                            <span className="text-[0.75rem] text-dark-300 line-through">
+                              {formatCurrency(item.mrpPaise)}
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-[0.75rem] font-medium text-dark-400">Price on request</span>
+                      )}
+                    </p>
+                    {!item.buyable && (
+                      <span className="self-start rounded-full bg-light-500 px-2 py-0.5 text-[0.625rem] leading-4 font-medium text-dark-400">
+                        Enquire to buy
                       </span>
                     )}
-                    {!item.buyable && <span className="ml-1.5 whitespace-nowrap">· Enquire to buy</span>}
-                  </span>
-                </label>
+                  </div>
+                </div>
               </li>
-            ))}
-          </ul>
-        </div>
+            </Fragment>
+          )
+        })}
+      </ol>
 
-        <div className="flex shrink-0 flex-col gap-3 rounded-xl bg-light-400 p-4 xl:w-64">
-          {chosen.length > 0 ? (
-            <>
-              <p className="flex flex-col text-body3 text-dark-400 lg:text-body1">
-                Total price
-                <span className="flex flex-wrap items-baseline gap-x-2">
-                  <span className="text-h5 font-bold text-dark-500">{formatCurrency(total)}</span>
-                  {mrpTotal > total && (
-                    <span className="text-body3 text-dark-300 line-through lg:text-body1">{formatCurrency(mrpTotal)}</span>
-                  )}
-                </span>
-                {mrpTotal > total && (
+      {/* The bundle's total and one button for all of it. */}
+      <div className="flex flex-col gap-3 rounded-xl bg-light-400 p-4 sm:flex-row sm:items-center sm:justify-between">
+        {chosen.length > 0 ? (
+          <>
+            <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-body3 text-dark-400 lg:text-body1">
+              <span>
+                Total for {chosen.length} item{chosen.length === 1 ? '' : 's'}:
+              </span>
+              <span className="text-h6 font-bold text-dark-500 lg:text-h5">{formatCurrency(total)}</span>
+              {mrpTotal > total && (
+                <>
+                  <span className="text-dark-300 line-through">{formatCurrency(mrpTotal)}</span>
                   <span className="font-medium text-green-400">You save {formatCurrency(mrpTotal - total)}</span>
-                )}
-              </p>
-              <Button
-                type="button"
-                onClick={addAll}
-                disabled={busy}
-                aria-busy={busy}
-                className="h-11 w-full bg-brand-red-500 text-body3 hover:bg-brand-red-400 lg:text-body1"
-              >
-                {busy ? 'Adding…' : label}
-              </Button>
-            </>
-          ) : (
-            <p className="text-body3 text-dark-400 lg:text-body1">Tick the items you want to add them together.</p>
-          )}
-        </div>
+                </>
+              )}
+            </p>
+            <Button
+              type="button"
+              onClick={addAll}
+              disabled={busy}
+              aria-busy={busy}
+              className="h-11 w-full shrink-0 bg-brand-red-500 px-6 text-body3 hover:bg-brand-red-400 sm:w-auto lg:text-body1"
+            >
+              {busy ? 'Adding…' : label}
+            </Button>
+          </>
+        ) : (
+          <p className="text-body3 text-dark-400 lg:text-body1">Tick the items you want to buy them together.</p>
+        )}
       </div>
     </section>
   )

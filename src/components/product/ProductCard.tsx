@@ -54,7 +54,7 @@ export const ProductCard = ({
   return (
     <div
       className={cn(
-        'group flex flex-col gap-3 rounded-xl bg-light-100 p-2 ring-[0.5px] md:gap-4 ring-inset ring-brand-blue-200',
+        'group card-lift flex flex-col gap-3 rounded-xl bg-light-100 p-2 ring-[0.5px] md:gap-4 ring-inset ring-brand-blue-200',
         className,
       )}
     >
