@@ -1,4 +1,4 @@
-import { BookOpen, Heart, IndianRupee, Smartphone } from 'lucide-react'
+import { Heart } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -7,16 +7,13 @@ import { AccountLink } from '@/components/layout/AccountLink'
 import { CategoryNav, type NavCategory } from '@/components/layout/CategoryNav'
 import { HeaderSearch } from '@/components/layout/HeaderSearch'
 import { MobileNavigation } from '@/components/layout/MobileNavigation'
-import { OffersTicker } from '@/components/layout/OffersTicker'
+import { OffersTicker, type OfferLine } from '@/components/layout/OffersTicker'
 import type { TopMovingTile } from '@/components/layout/SearchPanel'
-
-const ICONS = { rupee: IndianRupee, book: BookOpen, phone: Smartphone } as const
 
 export type HeaderProps = {
   siteName: string
   logoUrl: string
-  offers: string[]
-  utilityLinks: { label: string; href: string; icon: keyof typeof ICONS; download: boolean }[]
+  offers: OfferLine[]
   categories: NavCategory[]
   searchTiles: TopMovingTile[]
   searchHints: string[]
@@ -26,32 +23,15 @@ export const Header = ({
   siteName,
   logoUrl,
   offers,
-  utilityLinks,
   categories,
   searchTiles,
   searchHints,
 }: HeaderProps) => (
   <header>
-    <div className="bg-brand-blue-600 text-light-100">
-      <div className="container-page flex items-center justify-between py-3">
+    {/* Brand blue, brightening to the right like a spotlight, so the white offer button stands out. */}
+    <div className="bg-linear-to-r from-brand-blue-600 from-40% via-brand-blue-500 via-75% to-brand-blue-300 text-light-100">
+      <div className="container-page flex items-center justify-center py-2">
         <OffersTicker offers={offers} />
-        <nav className="hidden items-center gap-4 md:flex">
-          {utilityLinks.map(({ label, href, icon, download }) => {
-            const Icon = ICONS[icon]
-            return (
-              <Link
-                key={`${label}-${href}`}
-                href={href}
-                target={download ? '_blank' : undefined}
-                rel={download ? 'noopener' : undefined}
-                className="flex items-center gap-[0.4375rem] text-body3 transition-opacity hover:opacity-80"
-              >
-                <Icon className="size-5" strokeWidth={1.5} />
-                {label}
-              </Link>
-            )
-          })}
-        </nav>
       </div>
     </div>
 

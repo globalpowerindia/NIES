@@ -5,7 +5,7 @@ import type { ReactNode } from 'react'
 
 import { Breadcrumbs, type Crumb } from '@/components/catalog/Breadcrumbs'
 import { EnquireButton } from '@/components/enquiry/EnquireButton'
-import { cardPrice } from '@/components/product/ProductCard'
+import { cardPrice, type ProductCardProps } from '@/components/product/ProductCard'
 import { CompareSection } from '@/components/product-page/CompareSection'
 import {
   Applications,
@@ -18,6 +18,7 @@ import { ProductViewers } from '@/components/product-page/ProductViewers'
 import { RatingBadge } from '@/components/product-page/RatingBadge'
 import { ReviewsSection } from '@/components/product-page/ReviewsSection'
 import styles from '@/components/product-page/product-mobile.module.css'
+import { ProductCarousel } from '@/components/sections/ProductCarousel'
 import { RecentlyViewed } from '@/components/sections/RecentlyViewed'
 import {
   Accordion,
@@ -27,7 +28,7 @@ import {
 } from '@/components/ui/accordion'
 import { formatCurrency, SELLER_STATE_CODE, splitInclusive } from '@/lib/money'
 import { shippingFeePaise, parcelWeightGrams, type ShippingRates } from '@/lib/shipping'
-import type { ProductPageData, SpecRow } from '@/lib/storefront/product-page'
+import { BEST_SELLER_LIMIT, type ProductPageData, type SpecRow } from '@/lib/storefront/product-page'
 import { cn } from '@/lib/utils'
 import type { SiteSetting } from '@/payload-types'
 
@@ -55,6 +56,8 @@ type Props = {
   siteName: string
   logoUrl: string | null
   stats: StoreStats
+  /** Products tagged "Best seller", the same rule as the homepage row. */
+  bestSellers: ProductCardProps[]
   pageSettings?: SiteSetting['productPage']
 }
 
@@ -181,11 +184,15 @@ export const ProductDetail = ({
   siteName,
   logoUrl,
   stats,
+  bestSellers,
   pageSettings,
 }: Props) => {
   const { product, variant, options, rating, category, parentCategory, accessories, attributes } =
     data
   const canonical = `/products/${product.slug}`
+  const otherBestSellers = bestSellers
+    .filter((card) => card.productId !== product.id)
+    .slice(0, BEST_SELLER_LIMIT)
   const sellOnline = product.sellOnline === true
 
   const crumbs: Crumb[] = [
@@ -666,6 +673,15 @@ export const ProductDetail = ({
               currentId={product.id}
               categoryName={data.compare.categoryName}
               heading="Compare with similar products"
+            />
+          </Reveal>
+        )}
+        {otherBestSellers.length > 0 && (
+          <Reveal>
+            <ProductCarousel
+              title={`Best of ${siteName}`}
+              products={otherBestSellers}
+              viewAllHref="/products"
             />
           </Reveal>
         )}

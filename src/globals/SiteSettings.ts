@@ -42,14 +42,58 @@ export const SiteSettings: GlobalConfig = {
               name: 'offers',
               type: 'array',
               labels: { singular: 'Offer line', plural: 'Offer lines' },
-              admin: { description: 'Rotates in the blue bar at the very top.' },
-              fields: [{ name: 'text', type: 'text', required: true }],
+              admin: {
+                description:
+                  'Rotates in the blue bar at the very top. Give an offer a link so shoppers can act on it, and an end time to show a countdown; it hides itself once that time passes.',
+              },
+              fields: [
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'tag',
+                      type: 'text',
+                      maxLength: 16,
+                      admin: { width: '25%', placeholder: 'SALE', description: 'Optional highlighted label in front.' },
+                    },
+                    {
+                      name: 'text',
+                      type: 'text',
+                      required: true,
+                      admin: { width: '75%', placeholder: 'Up to 40% off selected power tools' },
+                    },
+                  ],
+                },
+                linkField({ name: 'link', label: 'Link', defaultType: 'none' }),
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'linkLabel',
+                      type: 'text',
+                      defaultValue: 'Shop now',
+                      admin: { width: '40%', description: 'Shown when the offer has a link.' },
+                    },
+                    {
+                      name: 'endsAt',
+                      type: 'date',
+                      label: 'Ends at',
+                      admin: {
+                        width: '60%',
+                        date: { pickerAppearance: 'dayAndTime' },
+                        description: 'Optional. Shows "Ends in…" and hides the offer after this time.',
+                      },
+                    },
+                  ],
+                },
+              ],
             },
             {
               name: 'utilityLinks',
               type: 'array',
               maxRows: 4,
-              labels: { singular: 'Top-bar link', plural: 'Top-bar links' },
+              labels: { singular: 'Download link', plural: 'Download links' },
+              admin: { description: 'Shown under "Downloads" in the footer, e.g. Price List, Download Catalogue, Download App.' },
               fields: [
                 {
                   type: 'row',

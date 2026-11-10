@@ -74,6 +74,7 @@ export default async function ProductPage(props: PageProps<'/products/[slug]'>) 
         rates={context.rates}
         hasInvoice={context.hasInvoice}
         stats={context.stats}
+        bestSellers={context.bestSellers}
         tollFreeNumber={settings.tollFreeNumber}
         siteName={settings.siteName}
         logoUrl={mediaOf(settings.logo)?.url ?? null}

@@ -21,7 +21,7 @@ export const getSiteSettings = cache(
       const payload = await getPayloadClient()
       return payload.findGlobal({ slug: 'site-settings', depth: 2 })
     },
-    ['site-settings', CACHE_VERSION],
+    ['site-settings', 'offer-lines-v1', CACHE_VERSION],
     STOREFRONT_CACHE,
   ),
 )

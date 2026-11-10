@@ -9,7 +9,7 @@ import { summarizeReviewRatings } from '@/lib/review-ratings'
 import { CACHE_VERSION, STOREFRONT_CACHE } from '@/lib/revalidate'
 import { SPIN_MIN_FRAMES } from '@/lib/spin-rules'
 import { fileUrlOf, mediaOf, type MediaInfo } from '@/lib/storefront/content'
-import { loadPricing, PLACEHOLDER_IMAGE, relId } from '@/lib/storefront/products'
+import { getCarouselCards, loadPricing, PLACEHOLDER_IMAGE, relId } from '@/lib/storefront/products'
 import { getPayloadClient } from '@/lib/storefront/queries'
 import { youTubeId } from '@/lib/video'
 import type { Brand, Category, Media, Product, ProductVariant, SpecDefinition } from '@/payload-types'
@@ -356,27 +356,33 @@ export type ProductPageData = NonNullable<Awaited<ReturnType<typeof getProductPa
 
 /**
  * What every product page shows besides the product: delivery rates, whether
- * invoices can be issued, and the catalogue counts. Cached together, and purged
+ * invoices can be issued, the catalogue counts and the best sellers. Cached together, and purged
  * by saves to products, Delivery & Checkout or Header & Footer.
  */
+/** How many best sellers the product page shows. */
+export const BEST_SELLER_LIMIT = 12
+
 export const getProductPageContext = cache(
   unstable_cache(
     async () => {
       const payload = await getPayloadClient()
-      const [rates, checkout, products, categories, brands] = await Promise.all([
+      const [rates, checkout, products, categories, brands, bestSellers] = await Promise.all([
         loadShippingRates(payload),
         payload.findGlobal({ slug: 'checkout-settings', depth: 0, overrideAccess: true }),
         payload.count({ collection: 'products', where: { status: { equals: 'ACTIVE' } } }),
         payload.count({ collection: 'categories' }),
         payload.count({ collection: 'brands' }),
+        // One spare, as the page leaves out the product it's showing.
+        getCarouselCards(payload, { source: 'bestSeller', limit: BEST_SELLER_LIMIT + 1 }),
       ])
       return {
         rates,
         hasInvoice: invoiceSeller(checkout) !== null,
         stats: { products: products.totalDocs, categories: categories.totalDocs, brands: brands.totalDocs },
+        bestSellers,
       }
     },
-    ['product-page-context', CACHE_VERSION],
+    ['product-page-context', 'best-sellers-v1', CACHE_VERSION],
     STOREFRONT_CACHE,
   ),
 )

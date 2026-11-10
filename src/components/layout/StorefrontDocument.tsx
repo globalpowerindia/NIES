@@ -5,10 +5,12 @@ import { CartToast } from '@/components/cart/CartToast'
 import { EnquiryProvider } from '@/components/enquiry/EnquireButton'
 import { Footer } from '@/components/layout/Footer'
 import { Header } from '@/components/layout/Header'
+import type { OfferLine } from '@/components/layout/OffersTicker'
 import { PageViewTracker } from '@/components/layout/PageViewTracker'
 import { getCategoryTree } from '@/lib/storefront/catalog'
 import { fileUrlOf, hrefOf, mediaOf, type MediaInfo } from '@/lib/storefront/content'
 import { getSearchHints, getSiteSettings } from '@/lib/storefront/queries'
+import type { SiteSetting } from '@/payload-types'
 
 /**
  * The storefront's whole document: fonts, header, footer and the WhatsApp
@@ -16,6 +18,21 @@ import { getSearchHints, getSiteSettings } from '@/lib/storefront/queries'
  * `app/global-not-found.tsx`, which bypasses every layout but should still
  * look like the shop. Both import `(frontend)/styles.css` themselves.
  */
+
+/** Offer lines for the top bar, links resolved. Ended ones drop out here too, in case the bar is shown from before they ended. */
+const liveOffers = (offers: SiteSetting['offers']): OfferLine[] => {
+  const now = Date.now()
+  return (offers ?? [])
+    .filter((offer) => !offer.endsAt || Date.parse(offer.endsAt) > now)
+    .map((offer) => ({
+      text: offer.text,
+      tag: offer.tag,
+      href: hrefOf(offer.link),
+      linkLabel: offer.linkLabel,
+      endsAt: offer.endsAt,
+    }))
+}
+
 export const StorefrontDocument = async ({ children }: { children: ReactNode }) => {
   const [settings, searchHints, tree] = await Promise.all([
     getSiteSettings(),
@@ -83,8 +100,7 @@ export const StorefrontDocument = async ({ children }: { children: ReactNode }) 
         <Header
           siteName={settings.siteName}
           logoUrl={logoUrl}
-          offers={(settings.offers ?? []).map((offer) => offer.text)}
-          utilityLinks={utilityLinks}
+          offers={liveOffers(settings.offers)}
           categories={categories}
           searchTiles={searchTiles}
           searchHints={searchHints}
@@ -102,6 +118,7 @@ export const StorefrontDocument = async ({ children }: { children: ReactNode }) 
           tollFreeNumber={settings.tollFreeNumber ?? ''}
           certifications={certifications}
           paymentImage={mediaOf(settings.paymentMethodsImage)}
+          downloads={utilityLinks}
         />
         {whatsapp && (
           <a
