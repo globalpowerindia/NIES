@@ -2769,14 +2769,35 @@ export interface SiteSetting {
   siteName: string;
   logo?: (number | null) | Media;
   /**
-   * Rotates in the blue bar at the very top.
+   * Rotates in the blue bar at the very top. Give an offer a link so shoppers can act on it, and an end time to show a countdown; it hides itself once that time passes.
    */
   offers?:
     | {
+        /**
+         * Optional highlighted label in front.
+         */
+        tag?: string | null;
         text: string;
+        link?: {
+          type?: ('category' | 'product' | 'custom' | 'none') | null;
+          category?: (number | null) | Category;
+          product?: (number | null) | Product;
+          url?: string | null;
+        };
+        /**
+         * Shown when the offer has a link.
+         */
+        linkLabel?: string | null;
+        /**
+         * Optional. Shows "Ends in…" and hides the offer after this time.
+         */
+        endsAt?: string | null;
         id?: string | null;
       }[]
     | null;
+  /**
+   * Shown under "Downloads" in the footer, e.g. Price List, Download Catalogue, Download App.
+   */
   utilityLinks?:
     | {
         label: string;
@@ -3217,7 +3238,18 @@ export interface SiteSettingsSelect<T extends boolean = true> {
   offers?:
     | T
     | {
+        tag?: T;
         text?: T;
+        link?:
+          | T
+          | {
+              type?: T;
+              category?: T;
+              product?: T;
+              url?: T;
+            };
+        linkLabel?: T;
+        endsAt?: T;
         id?: T;
       };
   utilityLinks?:

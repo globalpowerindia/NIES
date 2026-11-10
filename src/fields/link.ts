@@ -16,6 +16,8 @@ type LinkFieldOptions = {
   name?: string
   label?: string
   required?: boolean
+  /** What a new link points at until staff change it. */
+  defaultType?: 'category' | 'product' | 'custom' | 'none'
 }
 
 /**
@@ -23,7 +25,7 @@ type LinkFieldOptions = {
  * slug change can't silently break a homepage link. "Custom" covers pages that
  * aren't catalogue records, like /catalogue or an external site.
  */
-export const linkField = ({ name = 'link', label = 'Link', required }: LinkFieldOptions = {}): GroupField => ({
+export const linkField = ({ name = 'link', label = 'Link', required, defaultType = 'category' }: LinkFieldOptions = {}): GroupField => ({
   name,
   label,
   type: 'group',
@@ -38,7 +40,7 @@ export const linkField = ({ name = 'link', label = 'Link', required }: LinkField
           // Link groups nest inside arrays and blocks; keep the enum name short.
           enumName: ({ tableName }) => `enum_${tableName}_lnk`,
           required,
-          defaultValue: 'category',
+          defaultValue: defaultType,
           options: [
             { label: 'Category', value: 'category' },
             { label: 'Product', value: 'product' },

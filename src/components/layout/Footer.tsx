@@ -1,4 +1,4 @@
-import { ChevronDown, Copyright, Phone } from 'lucide-react'
+import { BookOpen, ChevronDown, Copyright, IndianRupee, Phone, Smartphone } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -47,6 +47,10 @@ const SOCIAL_ICONS = {
 
 const CERT_HEIGHT = 48
 
+const DOWNLOAD_ICONS = { rupee: IndianRupee, book: BookOpen, phone: Smartphone } as const
+
+export type FooterDownload = { label: string; href: string; icon: keyof typeof DOWNLOAD_ICONS; download: boolean }
+
 export type FooterProps = {
   siteName: string
   logoUrl: string
@@ -55,6 +59,8 @@ export type FooterProps = {
   tollFreeNumber: string
   certifications: MediaInfo[]
   paymentImage: MediaInfo | null
+  /** Price list, catalogue and app links (Header & Footer → Download links). */
+  downloads: FooterDownload[]
 }
 
 export const Footer = ({
@@ -65,6 +71,7 @@ export const Footer = ({
   tollFreeNumber,
   certifications,
   paymentImage,
+  downloads,
 }: FooterProps) => (
   <footer className="mx-4 bg-light-100 py-10 md:mx-0 md:pt-20">
     <div className="container-page flex flex-col gap-5">
@@ -116,6 +123,30 @@ export const Footer = ({
         </div>
 
         <hr className="w-full border-t border-neutral-300 md:hidden" />
+
+        {downloads.length > 0 && (
+          <div className="flex flex-col gap-[0.6875rem]">
+            <p className="px-3 text-body1 font-medium text-dark-500">Downloads</p>
+            <ul className="flex flex-col items-start gap-2 px-2.5">
+              {downloads.map(({ label, href, icon, download }) => {
+                const Icon = DOWNLOAD_ICONS[icon]
+                return (
+                  <li key={`${label}-${href}`}>
+                    <Link
+                      href={href}
+                      target={download ? '_blank' : undefined}
+                      rel={download ? 'noopener' : undefined}
+                      className="flex items-center gap-2 rounded-full border-[0.5px] border-brand-blue-200 bg-brand-blue-100 px-4 py-2 text-body3 font-medium whitespace-nowrap text-brand-blue-600 transition-colors hover:border-brand-blue-500 hover:bg-brand-blue-500 hover:text-light-100 md:text-body2"
+                    >
+                      <Icon className="size-4 md:size-5" strokeWidth={1.75} aria-hidden />
+                      {label}
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        )}
 
         <div className="flex flex-col gap-[0.6875rem]">
           <p className="px-3 text-body1 font-medium text-dark-500">Follow Us On</p>
