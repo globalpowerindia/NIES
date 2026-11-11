@@ -1,7 +1,7 @@
 import { getPayload, type Payload } from 'payload'
 import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 
-import { attachPhone, normalisePhone, resolveIdentity } from '@/lib/identity'
+import { attachPhone, changeContact, normalisePhone, resolveIdentity } from '@/lib/identity'
 import config from '@/payload.config'
 
 /**
@@ -245,5 +245,76 @@ describe('attachPhone (the Google follow-up step)', () => {
     expect(result.outcome).toBe('BLOCKED')
     expect((await byGoogle(sub, null)).customer.id).toBe(shell.id)
     expect(await identitiesOf(phoneOwner.id)).toHaveLength(1)
+  })
+})
+
+describe('changeContact (the profile page)', () => {
+  beforeAll(async () => {
+    payload ??= await getPayload({ config: await config })
+  })
+
+  afterEach(async () => {
+    for (const id of [...created]) {
+      await payload.delete({ collection: 'auth-identities', where: { customer: { equals: id } }, overrideAccess: true })
+      await payload.delete({ collection: 'customers', id, overrideAccess: true }).catch(() => {})
+    }
+    created.clear()
+  })
+
+  it('adds an email to a phone customer and makes it a login', async () => {
+    const customer = track((await byPhone(uniquePhone())).customer)
+    const email = uniqueEmail()
+
+    const result = await changeContact(payload, customer.id, 'email', email)
+
+    expect(result.outcome).toBe('CHANGED')
+    if (result.outcome === 'CHANGED') expect(result.customer.emailVerifiedAt).toBeTruthy()
+    expect((await byEmail(email)).customer.id).toBe(customer.id)
+  })
+
+  it('adds a phone to an email customer and makes it a login', async () => {
+    const customer = track((await byEmail(uniqueEmail())).customer)
+    const phone = uniquePhone()
+
+    expect((await changeContact(payload, customer.id, 'phone', phone)).outcome).toBe('CHANGED')
+    expect((await byPhone(phone)).customer.id).toBe(customer.id)
+  })
+
+  it('stops the old number signing in once it is replaced', async () => {
+    const oldPhone = uniquePhone()
+    const customer = track((await byPhone(oldPhone)).customer)
+    const newPhone = uniquePhone()
+
+    await changeContact(payload, customer.id, 'phone', newPhone)
+
+    expect((await byPhone(newPhone)).customer.id).toBe(customer.id)
+    const stranger = track((await byPhone(oldPhone)).customer)
+    expect(stranger.id).not.toBe(customer.id)
+  })
+
+  it('refuses a number another account signs in with', async () => {
+    const phone = uniquePhone()
+    const owner = track((await byPhone(phone)).customer)
+    const customer = track((await byEmail(uniqueEmail())).customer)
+
+    expect((await changeContact(payload, customer.id, 'phone', phone)).outcome).toBe('CONFLICT')
+    expect((await byPhone(phone)).customer.id).toBe(owner.id)
+  })
+
+  it('refuses an email another account has verified through Google', async () => {
+    const email = uniqueEmail()
+    track((await byGoogle(uniqueSub(), email)).customer)
+    const customer = track((await byPhone(uniquePhone())).customer)
+
+    expect((await changeContact(payload, customer.id, 'email', email)).outcome).toBe('CONFLICT')
+  })
+
+  it('keeps Google signing in after the email changes', async () => {
+    const sub = uniqueSub()
+    const customer = track((await byGoogle(sub, uniqueEmail())).customer)
+
+    await changeContact(payload, customer.id, 'email', uniqueEmail())
+
+    expect((await byGoogle(sub, null)).customer.id).toBe(customer.id)
   })
 })

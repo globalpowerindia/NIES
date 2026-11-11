@@ -23,8 +23,10 @@ const codeSchema = z
 /**
  * `link` is the Google follow-up step: the phone is being added to an account
  * that is waiting to finish signing in, rather than used to sign in itself.
+ * `change` adds or replaces the number or email on the signed-in customer's profile.
  */
-const purposeSchema = z.enum(['signin', 'link']).default('signin')
+const purposeSchema = z.enum(['signin', 'link', 'change']).default('signin')
+const emailPurposeSchema = z.enum(['signin', 'change']).default('signin')
 
 /** Cloudflare Turnstile's token, required only while Turnstile is configured. */
 const captchaSchema = z.string().max(2048).optional()
@@ -34,7 +36,7 @@ export const otpRequestSchema = z.discriminatedUnion('channel', [
   z.object({
     channel: z.literal('email'),
     destination: emailSchema,
-    purpose: z.literal('signin').default('signin'),
+    purpose: emailPurposeSchema,
     captchaToken: captchaSchema,
   }),
 ])
@@ -45,7 +47,7 @@ export const otpVerifySchema = z.discriminatedUnion('channel', [
     channel: z.literal('email'),
     destination: emailSchema,
     code: codeSchema,
-    purpose: z.literal('signin').default('signin'),
+    purpose: emailPurposeSchema,
   }),
 ])
 

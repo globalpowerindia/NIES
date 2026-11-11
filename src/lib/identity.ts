@@ -356,3 +356,85 @@ export const attachPhone = async (
     return { outcome: 'ATTACHED', customer }
   })
 }
+
+export type ContactChannel = 'phone' | 'email'
+
+export type ChangeContactResult =
+  | { outcome: 'CHANGED' | 'UNCHANGED'; customer: Customer }
+  | { outcome: 'CONFLICT' }
+  | { outcome: 'BLOCKED' }
+
+/**
+ * Adds or replaces the mobile number or email on a signed-in customer's own
+ * profile, once a code has proved they hold the new one.
+ *
+ * The new value becomes a way to sign in, and the old one stops being one: a
+ * number the customer gave up can be handed to a stranger by the carrier, who
+ * must not inherit the account. A value another customer has proved, or signs
+ * in with, is a conflict and never a merge — unlike `attachPhone`, nobody here
+ * is mid-way through a sign-in that the merge would finish.
+ */
+export const changeContact = async (
+  payload: Payload,
+  customerId: number,
+  channel: ContactChannel,
+  rawValue: string,
+): Promise<ChangeContactResult> => {
+  const value = channel === 'phone' ? normalisePhone(rawValue) : normaliseEmail(rawValue)
+  const provider: AuthProvider = channel === 'phone' ? 'PHONE_OTP' : 'EMAIL_OTP'
+  const verifiedAt = channel === 'phone' ? 'phoneVerifiedAt' : 'emailVerifiedAt'
+
+  return inTransaction(payload, [`identity:${channel}:${value}`, `customer:${customerId}`], async (req) => {
+    const customer = await payload.findByID({ collection: 'customers', id: customerId, overrideAccess: true, req })
+    if (customer.status !== 'ACTIVE') return { outcome: 'BLOCKED' }
+    if (customer[channel] === value && customer[verifiedAt]) return { outcome: 'UNCHANGED', customer }
+
+    const owner = await findIdentity(payload, provider, value, req)
+    const ownerId = owner ? (typeof owner.customer === 'object' ? owner.customer.id : owner.customer) : null
+    if (ownerId !== null && ownerId !== customerId) return { outcome: 'CONFLICT' }
+
+    const { totalDocs: provenElsewhere } = await payload.count({
+      collection: 'customers',
+      where: {
+        and: [{ id: { not_equals: customerId } }, { [channel]: { equals: value } }, { [verifiedAt]: { exists: true } }],
+      },
+      overrideAccess: true,
+      req,
+    })
+    if (provenElsewhere > 0) return { outcome: 'CONFLICT' }
+
+    if (channel === 'phone') await releaseUnverifiedPhone(payload, value, req)
+    else await releaseUnverifiedEmail(payload, value, req)
+
+    // The old value's login goes with it.
+    await payload.delete({
+      collection: 'auth-identities',
+      where: {
+        and: [
+          { customer: { equals: customerId } },
+          { provider: { equals: provider } },
+          { providerAccountId: { not_equals: value } },
+        ],
+      },
+      overrideAccess: true,
+      req,
+    })
+
+    const updated = await payload.update({
+      collection: 'customers',
+      id: customerId,
+      data: { [channel]: value, [verifiedAt]: new Date().toISOString() },
+      overrideAccess: true,
+      req,
+    })
+    if (!owner) {
+      await payload.create({
+        collection: 'auth-identities',
+        data: { provider, providerAccountId: value, customer: customerId, lastUsedAt: new Date().toISOString() },
+        overrideAccess: true,
+        req,
+      })
+    }
+    return { outcome: 'CHANGED', customer: updated }
+  })
+}
