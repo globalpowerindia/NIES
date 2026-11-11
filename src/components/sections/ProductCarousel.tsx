@@ -14,6 +14,8 @@ export type ProductCarouselProps = {
   products: ProductCardProps[]
   /** Where "View all" leads. Without one, the row just scrolls. */
   viewAllHref?: string
+  /** Left/right scroll buttons beside "View all". On by default. */
+  arrows?: boolean
 }
 
 export const ProductCarousel = ({
@@ -21,6 +23,7 @@ export const ProductCarousel = ({
   title,
   products,
   viewAllHref,
+  arrows = true,
 }: ProductCarouselProps) => {
   const trackRef = useRef<HTMLDivElement>(null)
   const [canScroll, setCanScroll] = useState(false)
@@ -48,7 +51,7 @@ export const ProductCarousel = ({
 
   return (
     <section className="flex flex-col gap-4">
-      {(eyebrow || title || viewAllHref || canScroll) && (
+      {(eyebrow || title || viewAllHref || (arrows && canScroll)) && (
         <div className="flex items-end justify-between gap-4">
           <SectionHeading eyebrow={eyebrow} title={title} />
           <div className="ml-auto flex shrink-0 items-center gap-3">
@@ -61,7 +64,7 @@ export const ProductCarousel = ({
                 <ArrowRight className="size-4 md:size-5" aria-hidden />
               </Link>
             )}
-            {canScroll && (
+            {arrows && canScroll && (
               <div className="hidden items-center gap-2 md:flex">
                 <button type="button" onClick={() => scrollByCard(-1)} aria-label="Scroll left" className={arrow}>
                   <ChevronLeft className="size-5" />
