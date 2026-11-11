@@ -46,16 +46,3 @@ export const AccountField = ({
     )}
   </div>
 )
-
-/** A read-only value in the same box, e.g. the verified email and mobile number. */
-export const AccountValue = ({ label, value }: { label: string; value: string | null }) => (
-  <AccountField label={label}>
-    <p className={fieldBoxClass}>
-      {value ? (
-        <span className="block truncate">{value}</span>
-      ) : (
-        <span className="font-normal text-dark-200">Not added</span>
-      )}
-    </p>
-  </AccountField>
-)

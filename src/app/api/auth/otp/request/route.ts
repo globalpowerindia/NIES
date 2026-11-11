@@ -8,6 +8,7 @@ import { issueChallenge } from '@/lib/otp/challenges'
 import { smsSender } from '@/lib/otp/sms'
 import { readPendingSignIn } from '@/lib/pending-signin'
 import { clientIp } from '@/lib/request-ip'
+import { getCurrentCustomer } from '@/lib/storefront/customer'
 import { getPayloadClient } from '@/lib/storefront/queries'
 import { turnstileEnabled, verifyTurnstile } from '@/lib/turnstile'
 import { otpRequestSchema } from '@/lib/validations/auth'
@@ -34,6 +35,9 @@ export const POST = async (request: Request): Promise<NextResponse> => {
   if (purpose === 'link' && !(await readPendingSignIn())) {
     return fail(401, 'Your sign-in has timed out. Please start again.')
   }
+  // Changing a profile's number or email is for the signed-in customer only.
+  const customer = purpose === 'change' ? await getCurrentCustomer() : null
+  if (purpose === 'change' && !customer) return fail(401, 'Please sign in again.')
 
   const sms = channel === 'sms' ? smsSender() : null
   if (channel === 'sms' && !sms) {
@@ -45,6 +49,12 @@ export const POST = async (request: Request): Promise<NextResponse> => {
 
   const destination =
     channel === 'sms' ? normalisePhone(parsed.data.destination) : normaliseEmail(parsed.data.destination)
+
+  // No code (or SMS bill) for what the profile already says.
+  if (customer && (channel === 'sms' ? customer.phone : customer.email) === destination) {
+    const message = `This is already your ${channel === 'sms' ? 'mobile number' : 'email address'}.`
+    return fail(400, message, { destination: message })
+  }
 
   // Before issuing, so a refused request doesn't use up the number's allowance either.
   if (turnstileEnabled()) {

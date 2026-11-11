@@ -2,11 +2,12 @@ import { mutationGuard } from '@/lib/request-security'
 import type { NextResponse } from 'next/server'
 
 import { fail, invalid, ok, readJson } from '@/lib/api-response'
-import { attachPhone, normaliseEmail, normalisePhone, resolveIdentity } from '@/lib/identity'
+import { attachPhone, changeContact, normaliseEmail, normalisePhone, resolveIdentity } from '@/lib/identity'
 import { checkChallenge } from '@/lib/otp/challenges'
 import { endPendingSignIn, readPendingSignIn } from '@/lib/pending-signin'
 import { startSession } from '@/lib/session'
 import { afterSignIn } from '@/lib/storefront/after-sign-in'
+import { getCurrentCustomer } from '@/lib/storefront/customer'
 import { getPayloadClient } from '@/lib/storefront/queries'
 import { otpVerifySchema } from '@/lib/validations/auth'
 import type { Customer } from '@/payload-types'
@@ -32,6 +33,8 @@ export const POST = async (request: Request): Promise<NextResponse> => {
 
   const pending = purpose === 'link' ? await readPendingSignIn() : null
   if (purpose === 'link' && !pending) return fail(401, 'Your sign-in has timed out. Please start again.')
+  const current = purpose === 'change' ? await getCurrentCustomer() : null
+  if (purpose === 'change' && !current) return fail(401, 'Please sign in again.')
 
   const payload = await getPayloadClient()
   const check = await checkChallenge(payload, {
@@ -51,6 +54,20 @@ export const POST = async (request: Request): Promise<NextResponse> => {
       default:
         return fail(400, 'This code has expired or was already used. Please ask for a new one.')
     }
+  }
+
+  if (current) {
+    const changed = await changeContact(payload, current.id, channel === 'sms' ? 'phone' : 'email', destination)
+    if (changed.outcome === 'BLOCKED') return fail(403, SUSPENDED)
+    if (changed.outcome === 'CONFLICT') {
+      return fail(
+        409,
+        channel === 'sms'
+          ? 'This mobile number already belongs to another account.'
+          : 'This email address already belongs to another account.',
+      )
+    }
+    return ok()
   }
 
   let customer: Customer
