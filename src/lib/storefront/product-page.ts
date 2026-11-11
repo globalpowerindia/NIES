@@ -387,6 +387,29 @@ export const getProductPageContext = cache(
   ),
 )
 
+/** How many products from the same category the product page shows. */
+export const SIMILAR_PRODUCTS_LIMIT = 12
+
+/**
+ * Live products in a category, in the order staff arranged, for the product
+ * page's "Similar products" row. Cached per category until the catalogue changes.
+ */
+export const getSimilarProducts = cache(
+  unstable_cache(
+    async (categoryId: number) => {
+      const payload = await getPayloadClient()
+      // One spare, as the page leaves out the product it's showing.
+      return getCarouselCards(payload, {
+        source: 'category',
+        categoryId,
+        limit: SIMILAR_PRODUCTS_LIMIT + 1,
+      })
+    },
+    ['product-page-similar', CACHE_VERSION],
+    STOREFRONT_CACHE,
+  ),
+)
+
 export type Comparison = {
   columns: CompareColumn[]
   specLabels: string[]

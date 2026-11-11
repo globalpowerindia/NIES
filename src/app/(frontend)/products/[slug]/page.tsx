@@ -9,6 +9,7 @@ import { getDemandLine } from '@/lib/storefront/demand'
 import {
   getProductPage,
   getProductPageContext,
+  getSimilarProducts,
   type ProductPageData,
 } from '@/lib/storefront/product-page'
 import { getSiteSettings } from '@/lib/storefront/queries'
@@ -54,8 +55,8 @@ export default async function ProductPage(props: PageProps<'/products/[slug]'>) 
   const data = await getProductPage(slug, variantParam(search.variant))
   if (!data) notFound()
 
-  const { product } = data
-  const [demand, context, settings] = await Promise.all([
+  const { product, category } = data
+  const [demand, context, settings, similarProducts] = await Promise.all([
     getDemandLine(
       product.id,
       product.sellOnline === true,
@@ -63,6 +64,7 @@ export default async function ProductPage(props: PageProps<'/products/[slug]'>) 
     ),
     getProductPageContext(),
     getSiteSettings(),
+    category ? getSimilarProducts(category.id) : Promise.resolve([]),
   ])
 
   return (
@@ -75,6 +77,7 @@ export default async function ProductPage(props: PageProps<'/products/[slug]'>) 
         hasInvoice={context.hasInvoice}
         stats={context.stats}
         bestSellers={context.bestSellers}
+        similarProducts={similarProducts}
         tollFreeNumber={settings.tollFreeNumber}
         siteName={settings.siteName}
         logoUrl={mediaOf(settings.logo)?.url ?? null}

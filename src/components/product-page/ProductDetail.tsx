@@ -28,7 +28,12 @@ import {
 } from '@/components/ui/accordion'
 import { formatCurrency, SELLER_STATE_CODE, splitInclusive } from '@/lib/money'
 import { shippingFeePaise, parcelWeightGrams, type ShippingRates } from '@/lib/shipping'
-import { BEST_SELLER_LIMIT, type ProductPageData, type SpecRow } from '@/lib/storefront/product-page'
+import {
+  BEST_SELLER_LIMIT,
+  SIMILAR_PRODUCTS_LIMIT,
+  type ProductPageData,
+  type SpecRow,
+} from '@/lib/storefront/product-page'
 import { cn } from '@/lib/utils'
 import type { SiteSetting } from '@/payload-types'
 
@@ -58,6 +63,8 @@ type Props = {
   stats: StoreStats
   /** Products tagged "Best seller", the same rule as the homepage row. */
   bestSellers: ProductCardProps[]
+  /** Live products from this product's category. */
+  similarProducts: ProductCardProps[]
   pageSettings?: SiteSetting['productPage']
 }
 
@@ -185,6 +192,7 @@ export const ProductDetail = ({
   logoUrl,
   stats,
   bestSellers,
+  similarProducts,
   pageSettings,
 }: Props) => {
   const { product, variant, options, rating, category, parentCategory, accessories, attributes } =
@@ -193,6 +201,9 @@ export const ProductDetail = ({
   const otherBestSellers = bestSellers
     .filter((card) => card.productId !== product.id)
     .slice(0, BEST_SELLER_LIMIT)
+  const otherSimilar = similarProducts
+    .filter((card) => card.productId !== product.id)
+    .slice(0, SIMILAR_PRODUCTS_LIMIT)
   const sellOnline = product.sellOnline === true
 
   const crumbs: Crumb[] = [
@@ -673,6 +684,16 @@ export const ProductDetail = ({
               currentId={product.id}
               categoryName={data.compare.categoryName}
               heading="Compare with similar products"
+            />
+          </Reveal>
+        )}
+        {category && otherSimilar.length > 0 && (
+          <Reveal>
+            <ProductCarousel
+              title={`Similar products in ${category.name}`}
+              products={otherSimilar}
+              viewAllHref={`/category/${category.slug}`}
+              arrows={false}
             />
           </Reveal>
         )}

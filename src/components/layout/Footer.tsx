@@ -49,7 +49,7 @@ const CERT_HEIGHT = 48
 
 const DOWNLOAD_ICONS = { rupee: IndianRupee, book: BookOpen, phone: Smartphone } as const
 
-export type FooterDownload = { label: string; href: string; icon: keyof typeof DOWNLOAD_ICONS; download: boolean }
+type FooterDownload = { label: string; href: string; icon: keyof typeof DOWNLOAD_ICONS; download: boolean }
 
 export type FooterProps = {
   siteName: string
