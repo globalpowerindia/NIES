@@ -1,6 +1,7 @@
 # Dotfiles are local tooling, editor settings and secrets (.env*); the build
 # needs none of them except npm's config and the env template.
 .*
+**/.env*
 !.npmrc
 !.env.example
 node_modules

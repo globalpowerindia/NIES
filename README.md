@@ -1,5 +1,7 @@
 # Payload Blank Template
 
+For VPS deployment, see the [Hostinger Docker setup](deploy/hostinger/README.md).
+
 This template comes configured with the bare minimum to get started on anything you need.
 
 ## Quick start
