@@ -1,48 +1,97 @@
 # Hostinger Docker setup
 
-The VPS runs Caddy and the Next.js/Payload app on the same Docker network. Caddy publishes ports 80 and 443. The app uses port 3000 inside Docker and connects to Neon and R2. A third container runs the database migrations once per release.
+The VPS runs Caddy and the Next.js/Payload app on the same Docker network. Caddy publishes ports 80 and 443 and gets the HTTPS certificate. The app uses port 3000 inside Docker and connects to Neon and R2. A third container runs the database migrations once per release.
 
-## Install Docker on the VPS
+Releases are built and started by the **Deploy to Hostinger** workflow ([.github/workflows/deploy.yml](../../.github/workflows/deploy.yml)). It builds both images in GitHub Actions, pushes them to GitHub's container registry, copies this directory's `compose.yaml`, `Caddyfile` and `release.sh` to `~/nies` on the VPS, and runs `release.sh` there.
 
-On plain Ubuntu 24.04, SSH into the VPS and follow Docker's [APT repository installation steps](https://docs.docker.com/engine/install/ubuntu/#install-using-the-apt-repository) for Docker Engine, Buildx, and the Compose plugin. This setup uses Compose 2.30 or later. Verify the installation:
+## 1. Prepare the VPS (once)
 
-```sh
-sudo docker compose version
-sudo docker run --rm hello-world
-```
-
-Allow inbound TCP 80 and 443 in the VPS firewall. Point the staging hostname's DNS record to the VPS. This Caddyfile assumes visitors connect directly to Caddy. Use DNS-only mode if the hostname is managed by Cloudflare. A proxy in front of Caddy requires separate trusted-proxy configuration for rate limits to see the visitor's IP.
-
-## Build the release off the VPS
-
-Use a Linux build machine or CI runner with Docker Buildx and registry access. Set `APP_IMAGE` and `MIGRATION_IMAGE` to full image references in a private registry and tag both with the release commit. Build for the VPS architecture (`linux/amd64` below).
-
-Create an ignored `.env.build.local` in the repository root. Use a disposable database connection for `DATABASE_URL` and a temporary `PAYLOAD_SECRET`. Include the target site's `NEXT_PUBLIC_SITE_URL`, `R2_PUBLIC_URL`, and any other public build settings it uses. The Next.js build can read database content and include it in prerendered output, so use only catalogue data suitable for publication. Build separate images when staging and production use different public settings.
+On Ubuntu 24.04, as root:
 
 ```sh
-docker buildx build --platform linux/amd64 --target migrator --tag "$MIGRATION_IMAGE" --push .
-docker run --rm --env-file .env.build.local "$MIGRATION_IMAGE"
-docker buildx build --platform linux/amd64 --no-cache-filter builder --secret id=build_env,src=.env.build.local --tag "$APP_IMAGE" --push .
+apt update && apt upgrade -y
+adduser deploy && usermod -aG sudo deploy
+rsync --archive --chown=deploy:deploy ~/.ssh /home/deploy
+curl -fsSL https://get.docker.com | sh
+usermod -aG docker deploy
+ufw allow OpenSSH && ufw allow 80/tcp && ufw allow 443/tcp && ufw enable
 ```
 
-The cache filter reruns the Next.js build when preparing a release. Docker can still reuse the dependency layer, and the build uses the current database and public settings even when only the mounted env file changed.
-
-## Start on Hostinger
-
-Copy this directory's `compose.yaml` and `Caddyfile` to the VPS. In that directory, create two files:
-
-- `.env.release.local` with `SITE_DOMAIN` (the bare hostname), `APP_IMAGE`, and `MIGRATION_IMAGE` for this release.
-- `.env.app.local` with this environment's app settings. Use one unquoted `KEY=value` per line and omit unused optional keys. Use the pooled Neon `DATABASE_URL`, a stable `PAYLOAD_SECRET`, the matching `NEXT_PUBLIC_SITE_URL` (with `https://`), and the R2 settings for this environment. Use separate databases, secrets, and payment credentials for staging and production. Restrict this file to the user who manages deployment (`chmod 600 .env.app.local`).
-
-Use `sudo docker login` for the private registry on the VPS, then run these commands in order, proceeding after each succeeds:
+After confirming `ssh deploy@<vps>` works, turn off password and root login:
 
 ```sh
-sudo docker compose --env-file .env.release.local --profile migration pull
-sudo docker compose --env-file .env.release.local run --rm migrate
-sudo docker compose --env-file .env.release.local up -d
-sudo docker compose --env-file .env.release.local ps
+printf 'PasswordAuthentication no\nPermitRootLogin no\n' | sudo tee /etc/ssh/sshd_config.d/00-hardening.conf
+sudo systemctl restart ssh
 ```
 
-Check `https://<staging-hostname>/api/health` for HTTP 200, then verify the storefront, admin, uploads, and test checkout. For later releases, keep the previous image references for rollback and verify schema compatibility before rolling back the application.
+## 2. DNS
 
-This stack binds the VPS's public web ports. When switching this single VPS from staging to production, update the hostname, image references, and environment settings before starting the production deployment.
+Point the site's hostname at the VPS with an `A` record. Caddy assumes visitors connect to it directly: on Cloudflare, use DNS-only mode. A proxy in front of Caddy needs separate trusted-proxy configuration for rate limits to see the visitor's IP.
+
+## 3. App settings on the VPS (once, and when they change)
+
+As `deploy`, create `~/nies/.env.app.local` and restrict it (`chmod 600`). Use [.env.example](../../.env.example) as the list: one unquoted `KEY=value` per line, unused optional keys left out. It holds the pooled Neon `DATABASE_URL`, a stable `PAYLOAD_SECRET`, `NEXT_PUBLIC_SITE_URL` (with `https://`), R2, Razorpay, Resend, SMS, Google, Turnstile, Sentry and `CRON_SECRET`. These secrets stay on the VPS; GitHub never sees them.
+
+After changing it, apply it with `cd ~/nies && docker compose --env-file .env.release.local up -d`.
+
+## 4. GitHub settings (once)
+
+Create a deploy key used only by GitHub Actions, and allow it on the VPS:
+
+```sh
+ssh-keygen -t ed25519 -f ~/.ssh/nies_actions -N "" -C "github-actions-deploy"
+ssh-copy-id -i ~/.ssh/nies_actions.pub deploy@<vps>
+ssh-keyscan -t ed25519 <vps>          # the VPS_KNOWN_HOSTS value
+```
+
+In the repository, open **Settings → Environments → New environment**, name it `production`, and add:
+
+| Kind | Name | Value |
+|---|---|---|
+| Secret | `VPS_HOST` | the VPS IP |
+| Secret | `VPS_USER` | `deploy` |
+| Secret | `VPS_SSH_KEY` | contents of `~/.ssh/nies_actions` (the private key) |
+| Secret | `VPS_KNOWN_HOSTS` | the `ssh-keyscan` output line |
+| Secret | `NEON_API_KEY` | Neon → Account settings → API keys |
+| Variable | `NEON_PROJECT_ID` | Neon → Project settings → General |
+| Variable | `SITE_URL` | `https://<hostname>`, no trailing slash |
+| Variable | `R2_PUBLIC_URL` | same as on the VPS |
+| Variable | `NEXT_PUBLIC_SENTRY_DSN`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | optional, same as on the VPS |
+| Variable | `NEON_DATABASE`, `NEON_ROLE` | only if not `neondb` / `neondb_owner` |
+
+Delete the local copy of the private key once it is saved in GitHub, or keep it in a password manager. Add required reviewers to the environment to control who can deploy.
+
+`NEXT_PUBLIC_*` values are fixed into the image at build time, so a change to them (including moving from a staging hostname to the real domain) needs a new deploy, not just an edit to `.env.app.local`.
+
+## 5. Deploy
+
+**Actions → Deploy to Hostinger → Run workflow**, pick the branch. The workflow:
+
+1. Builds and pushes the migration image.
+2. Copies the live database to a temporary Neon branch and migrates it, so the build prerenders real catalogue pages with this release's schema.
+3. Builds and pushes the app image, then deletes the temporary branch.
+4. On the VPS, `release.sh` pulls both images, migrates the live database, swaps the app and reloads Caddy.
+5. Checks `<SITE_URL>/api/health`.
+
+The running app keeps serving while the live database migrates, so each migration has to suit both the old and new release for that moment.
+
+After the first release, verify the storefront, admin, uploads and a test checkout.
+
+## Rollback
+
+`release.sh` keeps the previous release's image references in `~/nies/.env.release.previous`. Check that the database schema still suits the older app, then on the VPS:
+
+```sh
+cd ~/nies
+./release.sh $(sed -n 's/^[A-Z_]*=//p' .env.release.previous | tr '\n' ' ')
+```
+
+The images must still be on the VPS, or log in to `ghcr.io` first with a token that can read packages.
+
+## Scheduled jobs
+
+Vercel Cron does not run here. `/api/cron/abandoned-carts` also releases stock from unpaid orders, so call it every 15 minutes, either from cron-job.org or from the VPS's crontab (`crontab -e` as `deploy`):
+
+```
+*/15 * * * * curl -fsS --max-time 120 -H "Authorization: Bearer <CRON_SECRET>" https://<hostname>/api/cron/abandoned-carts >/dev/null
+```

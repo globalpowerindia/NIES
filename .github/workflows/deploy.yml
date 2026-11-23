@@ -1,0 +1,168 @@
+name: Deploy to Hostinger
+
+# Builds both images, pushes them to GitHub's registry and starts the release
+# on the VPS. Run it from the Actions tab (Run workflow, pick the branch).
+#
+# The build prerenders storefront pages from the catalogue, so it reads a
+# short-lived Neon branch copied from the live database, migrated to this
+# release's schema and deleted afterwards. The live database is migrated on
+# the VPS just before the app swaps over.
+#
+# Settings live on the "production" environment (Settings → Environments):
+#   secrets  NEON_API_KEY, VPS_HOST, VPS_USER, VPS_SSH_KEY, VPS_KNOWN_HOSTS
+#   vars     NEON_PROJECT_ID, SITE_URL (https://…, no trailing slash),
+#            R2_PUBLIC_URL, and optionally NEXT_PUBLIC_SENTRY_DSN,
+#            NEXT_PUBLIC_TURNSTILE_SITE_KEY, NEON_DATABASE, NEON_ROLE
+# The app's runtime secrets stay on the VPS in .env.app.local, not here.
+# See deploy/hostinger/README.md.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: production
+      url: ${{ vars.SITE_URL }}
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Name the release
+        id: release
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          if [ -z "$SITE_URL" ]; then
+            echo "::error::Set the SITE_URL variable on the production environment."
+            exit 1
+          fi
+          repo="ghcr.io/${GITHUB_REPOSITORY,,}"
+          {
+            echo "app_image=$repo:$GITHUB_SHA"
+            echo "migration_image=$repo-migrate:$GITHUB_SHA"
+            echo "site_domain=$(echo "$SITE_URL" | sed -E 's#^https?://##; s#/.*$##')"
+            echo "branch_expires=$(date -u -d '+3 hours' +%Y-%m-%dT%H:%M:%SZ)"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build the migration image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          target: migrator
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.release.outputs.migration_image }}
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+
+      - name: Copy the live database for the build
+        id: neon
+        uses: neondatabase/create-branch-action@72ed4f69a12b6be9c16aebfad893f6a21e9aba8b # v6.4.0
+        with:
+          api_key: ${{ secrets.NEON_API_KEY }}
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch_name: build-${{ github.run_id }}-${{ github.run_attempt }}
+          database: ${{ vars.NEON_DATABASE || 'neondb' }}
+          role: ${{ vars.NEON_ROLE || 'neondb_owner' }}
+          # A backstop in case the delete step below never runs.
+          expires_at: ${{ steps.release.outputs.branch_expires }}
+
+      - name: Write the build settings
+        env:
+          DATABASE_URL: ${{ steps.neon.outputs.db_url_pooled }}
+          NEXT_PUBLIC_SITE_URL: ${{ vars.SITE_URL }}
+          R2_PUBLIC_URL: ${{ vars.R2_PUBLIC_URL }}
+          NEXT_PUBLIC_SENTRY_DSN: ${{ vars.NEXT_PUBLIC_SENTRY_DSN }}
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
+        run: |
+          echo "::add-mask::$DATABASE_URL"
+          # Only for signing during the build; the live secret stays on the VPS.
+          secret=$(openssl rand -hex 32)
+          echo "::add-mask::$secret"
+          umask 077
+          {
+            echo "DATABASE_URL=$DATABASE_URL"
+            echo "PAYLOAD_SECRET=$secret"
+            for key in NEXT_PUBLIC_SITE_URL R2_PUBLIC_URL NEXT_PUBLIC_SENTRY_DSN NEXT_PUBLIC_TURNSTILE_SITE_KEY; do
+              if [ -n "${!key}" ]; then echo "$key=${!key}"; fi
+            done
+          } > "$RUNNER_TEMP/build.env"
+
+      - name: Migrate the copy to this release's schema
+        run: docker run --rm --env-file "$RUNNER_TEMP/build.env" "${{ steps.release.outputs.migration_image }}"
+
+      - name: Build the app image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          target: runner
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.release.outputs.app_image }}
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          secret-files: build_env=${{ runner.temp }}/build.env
+          # Prerendered pages hold catalogue data, so never reuse an old build.
+          no-cache-filters: builder
+
+      - name: Delete the database copy
+        if: always() && steps.neon.outputs.branch_id != ''
+        uses: neondatabase/delete-branch-action@4468d825d5a88ef4012f1705a82f02ec3072f776 # v3.2.1
+        with:
+          api_key: ${{ secrets.NEON_API_KEY }}
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch: ${{ steps.neon.outputs.branch_id }}
+
+      - name: Set up SSH
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/deploy_key ~/.ssh/known_hosts
+
+      - name: Release on the VPS
+        env:
+          TARGET: ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ssh_opts=(-i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes -o BatchMode=yes)
+          ssh "${ssh_opts[@]}" "$TARGET" 'mkdir -p ~/nies'
+          scp "${ssh_opts[@]}" deploy/hostinger/compose.yaml deploy/hostinger/Caddyfile deploy/hostinger/release.sh "$TARGET":nies/
+          # The job's token expires with the job, so the VPS keeps no lasting registry login.
+          printf '%s' "$GHCR_TOKEN" | ssh "${ssh_opts[@]}" "$TARGET" "docker login ghcr.io -u '$GHCR_USER' --password-stdin"
+          status=0
+          ssh "${ssh_opts[@]}" "$TARGET" "chmod +x ~/nies/release.sh && ~/nies/release.sh \
+            '${{ steps.release.outputs.site_domain }}' \
+            '${{ steps.release.outputs.app_image }}' \
+            '${{ steps.release.outputs.migration_image }}'" || status=$?
+          ssh "${ssh_opts[@]}" "$TARGET" 'docker logout ghcr.io' || true
+          exit $status
+
+      - name: Check the site is up
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          # Caddy may still be fetching the HTTPS certificate on the first release.
+          curl --fail --silent --show-error --retry 12 --retry-delay 10 --retry-all-errors \
+            --max-time 15 "$SITE_URL/api/health"
