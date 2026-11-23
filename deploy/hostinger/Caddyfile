@@ -1,0 +1,6 @@
+{$SITE_DOMAIN} {
+	reverse_proxy app:3000 {
+		# Caddy is the public entry point. Replace any copy sent by the visitor.
+		header_up X-Real-IP {remote_host}
+	}
+}
