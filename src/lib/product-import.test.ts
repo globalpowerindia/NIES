@@ -49,6 +49,7 @@ const everything: ImportPermissions = {
   updateVariants: true,
   editPrices: true,
   recordStock: true,
+  createSpecs: true,
 }
 
 const csv = (...lines: string[]) => lines.join('\n')
@@ -199,8 +200,18 @@ describe('specs', () => {
     expect(planImport(csv('sku,spec:voltage', 'DRL-13,220'), catalogue(), everything).products[0].fields.specValues).toBeUndefined()
   })
 
-  it('refuses unknown spec columns and values of the wrong type', () => {
-    expect(planImport(csv('sku,spec:torque', 'DRL-13,40'), catalogue(), everything).fileErrors[0]).toMatch(/No spec has the key "torque"/)
+  it('adds a Text spec for an unknown spec column, keeping the key as written', () => {
+    const plan = planImport(csv('sku,spec:maxDrillDiameter', 'DRL-13,13 mm'), catalogue(), everything)
+    expect(plan.fileErrors).toEqual([])
+    expect(plan.newSpecs).toEqual([{ id: -1, key: 'maxDrillDiameter', label: 'Max drill diameter' }])
+    expect(plan.products[0].fields.specValues).toContainEqual({ definition: -1, valueText: '13 mm', valueNum: null, valueBool: null })
+    expect(plan.rows[0].changes).toContain('Max drill diameter: blank → 13 mm')
+  })
+
+  it('refuses unknown spec columns for a role that cannot add specs, and values of the wrong type', () => {
+    expect(planImport(csv('sku,spec:torque', 'DRL-13,40'), catalogue(), { ...everything, createSpecs: false }).fileErrors[0]).toMatch(
+      /No spec has the key "torque".*can't add specs/,
+    )
     expect(planImport(csv('sku,spec:voltage,spec:cordless', 'DRL-13,high,maybe'), catalogue(), everything).rows[0].errors).toEqual([
       'spec:voltage must be a number in V, like 12.5.',
       'spec:cordless must be Yes or No.',

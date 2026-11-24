@@ -88,9 +88,18 @@ const columnKey = (header: string) => header.trim().toLowerCase().replace(/[\s-]
 
 /** `spec:voltage` (or `Spec: voltage`) → `voltage`, matched case-insensitively. */
 export const SPEC_PREFIX = 'spec:'
-const specKeyOf = (header: string) => {
-  const match = /^\s*spec\s*:\s*(.+?)\s*$/i.exec(header)
-  return match ? match[1].toLowerCase() : undefined
+/** The key as the header writes it, e.g. `maxDrillDiameter`. */
+const specKeyAsWritten = (header: string) => /^\s*spec\s*:\s*(.+?)\s*$/i.exec(header)?.[1]
+const specKeyOf = (header: string) => specKeyAsWritten(header)?.toLowerCase()
+
+/** `maxDrillDiameter`, `max_drill_diameter` → "Max drill diameter", for a spec the import adds. */
+export const specLabelOf = (key: string) => {
+  const words = key
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[_\-.]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ')
+  return words ? words.charAt(0).toUpperCase() + words.slice(1).toLowerCase() : key
 }
 
 const readMoney = (value: string, label: string, errors: string[]) => {
@@ -138,12 +147,20 @@ const readYesNo = (value: string, errors: string[]) => {
   return undefined
 }
 
-type ReadResult = { rows: ImportRow[]; fileErrors: string[]; ignoredColumns: string[]; specKeys: string[] }
+type ReadResult = {
+  rows: ImportRow[]
+  fileErrors: string[]
+  ignoredColumns: string[]
+  /** Lower case, as rows' `specs` are keyed. */
+  specKeys: string[]
+  /** Lower-case key → the key as the header wrote it. */
+  specKeysAsWritten: Map<string, string>
+}
 
 /** The file's rows, each with its own problems; problems with the file as a whole separately. */
 export const readImportFile = (text: string): ReadResult => {
   const [header, ...body] = parseCsv(text)
-  if (!header) return { rows: [], fileErrors: ['The file is empty.'], ignoredColumns: [], specKeys: [] }
+  if (!header) return { rows: [], fileErrors: ['The file is empty.'], ignoredColumns: [], specKeys: [], specKeysAsWritten: new Map() }
 
   // Spec columns get their own keys, so a spec called "sku" can't pass for the sku column.
   const specOf = header.map(specKeyOf)
@@ -157,7 +174,10 @@ export const readImportFile = (text: string): ReadResult => {
   if (!body.length) fileErrors.push('The file has no rows under the column names.')
   const ignoredColumns = header.filter((_, index) => keys[index] && !known(keys[index]))
   const specKeys = specOf.filter((key): key is string => Boolean(key))
-  if (fileErrors.length) return { rows: [], fileErrors, ignoredColumns, specKeys }
+  const specKeysAsWritten = new Map(
+    header.flatMap((cell, index) => (specOf[index] ? [[specOf[index]!, specKeyAsWritten(cell)!] as const] : [])),
+  )
+  if (fileErrors.length) return { rows: [], fileErrors, ignoredColumns, specKeys, specKeysAsWritten }
 
   const seen = new Map<string, number>()
   const rows = body.map((cells, index): ImportRow => {
@@ -212,7 +232,7 @@ export const readImportFile = (text: string): ReadResult => {
       errors,
     }
   })
-  return { rows, fileErrors, ignoredColumns, specKeys }
+  return { rows, fileErrors, ignoredColumns, specKeys, specKeysAsWritten }
 }
 
 // ─── The catalogue as it stands ─────────────────────────────────────────────
@@ -383,7 +403,15 @@ export type ImportPermissions = {
   updateVariants: boolean
   editPrices: boolean
   recordStock: boolean
+  /** Lets a `spec:` column with no definition add one, as a Text spec. */
+  createSpecs: boolean
 }
+
+/**
+ * A spec the file names that doesn't exist yet. Applying adds it as a Text
+ * spec under General; until then the plan refers to it by a negative `id`.
+ */
+export type NewSpec = { id: number; key: string; label: string }
 
 export type PlannedVariant = {
   line: number
@@ -416,6 +444,7 @@ export type ImportPlan = {
   summary: ImportSummary
   fileErrors: string[]
   ignoredColumns: string[]
+  newSpecs: NewSpec[]
 }
 
 const lower = (value: string) => value.trim().toLowerCase()
@@ -483,16 +512,26 @@ type Group = { key: string; existing?: CatalogueProduct; name: string; rows: Imp
  * (which re-plans inside its transaction) reach the same answer.
  */
 export const planImport = (text: string, catalogue: Catalogue, may: ImportPermissions): ImportPlan => {
-  const { rows, fileErrors, ignoredColumns, specKeys } = readImportFile(text)
+  const { rows, fileErrors, ignoredColumns, specKeys, specKeysAsWritten } = readImportFile(text)
   const specByKey = new Map(catalogue.specs.map((spec) => [lower(spec.key), spec]))
   const specById = new Map(catalogue.specs.map((spec) => [spec.id, spec]))
+  const newSpecs: NewSpec[] = []
   for (const key of specKeys) {
-    if (!specByKey.has(key)) {
-      fileErrors.push(`No spec has the key "${key}" (column ${SPEC_PREFIX}${key}). The import page lists every spec key; new specs are added under Catalogue → Spec definitions.`)
+    if (specByKey.has(key)) continue
+    if (!may.createSpecs) {
+      fileErrors.push(
+        `No spec has the key "${key}" (column ${SPEC_PREFIX}${key}), and your role can't add specs. The import page lists every spec key; new specs are added under Catalogue → Spec definitions.`,
+      )
+      continue
     }
+    const written = specKeysAsWritten.get(key) ?? key
+    const spec: SpecDefinition = { id: -(newSpecs.length + 1), key: written, label: specLabelOf(written), unit: null, type: 'TEXT', group: 'General', sortOrder: 0 }
+    newSpecs.push({ id: spec.id, key: spec.key, label: spec.label })
+    specByKey.set(key, spec)
+    specById.set(spec.id, spec)
   }
   const empty = { newProducts: 0, newVariants: 0, updated: 0, unchanged: 0, errors: 0 }
-  if (fileErrors.length) return { ok: false, products: [], rows: [], summary: empty, fileErrors, ignoredColumns }
+  if (fileErrors.length) return { ok: false, products: [], rows: [], summary: empty, fileErrors, ignoredColumns, newSpecs: [] }
 
   const variantBySku = new Map(catalogue.variants.map((variant) => [variant.sku, variant]))
   const productById = new Map(catalogue.products.map((product) => [product.id, product]))
@@ -773,7 +812,7 @@ export const planImport = (text: string, catalogue: Catalogue, may: ImportPermis
     unchanged: count('unchanged'),
     errors: count('error'),
   }
-  return { ok: summary.errors === 0, products, rows: preview, summary, fileErrors, ignoredColumns }
+  return { ok: summary.errors === 0, products, rows: preview, summary, fileErrors, ignoredColumns, newSpecs }
 }
 
 // ─── Applying ───────────────────────────────────────────────────────────────
@@ -799,9 +838,29 @@ export const applyImport = async (req: PayloadRequest, plan: ImportPlan) => {
   const as = { req, overrideAccess: false, depth: 0 } as const
   const touched: number[] = []
 
+  // Specs the file names that don't exist yet, before the products that use them.
+  const specIds = new Map<number, number>()
+  for (const spec of plan.newSpecs) {
+    try {
+      const created = await payload.create({
+        collection: 'spec-definitions',
+        data: { key: spec.key, label: spec.label, type: 'TEXT', group: 'General' },
+        ...as,
+      })
+      specIds.set(spec.id, created.id)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      throw new Error(`Adding the spec "${spec.key}": ${message}`, { cause: error })
+    }
+  }
+  const withSpecIds = (fields: ProductFields): ProductFields =>
+    fields.specValues && specIds.size
+      ? { ...fields, specValues: fields.specValues.map((value) => ({ ...value, definition: specIds.get(value.definition) ?? value.definition })) }
+      : fields
+
   for (const product of plan.products) {
     const [first] = product.variants
-    const { status, ...rest } = product.fields
+    const { status, ...rest } = withSpecIds(product.fields)
     const activate = status === 'ACTIVE'
     let productId = product.id
 

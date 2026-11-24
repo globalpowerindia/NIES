@@ -22,11 +22,15 @@ const permissionsOf = (user: unknown): ImportPermissions => ({
   updateVariants: can(user, 'product-variants', 'update'),
   editPrices: canEditPrices(user),
   recordStock: can(user, 'stock-movements', 'create'),
+  createSpecs: can(user, 'spec-definitions', 'create'),
 })
 
 /** The plan without what only the server needs. */
-const reply = ({ ok, rows, summary, fileErrors, ignoredColumns }: ImportPlan, applied: boolean, status = 200) =>
-  Response.json({ ok, applied, rows, summary, fileErrors, ignoredColumns }, { status })
+const reply = ({ ok, rows, summary, fileErrors, ignoredColumns, newSpecs }: ImportPlan, applied: boolean, status = 200) =>
+  Response.json(
+    { ok, applied, rows, summary, fileErrors, ignoredColumns, newSpecs: newSpecs.map(({ key, label }) => ({ key, label })) },
+    { status },
+  )
 
 /**
  * Previews a product CSV, or applies it with `apply: true`. Applying plans
