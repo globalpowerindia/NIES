@@ -14,6 +14,8 @@ type Result = {
   summary: ImportSummary
   fileErrors: string[]
   ignoredColumns: string[]
+  /** Specs the file names that don't exist yet; applying adds them. */
+  newSpecs: { key: string; label: string }[]
 }
 
 type Stage =
@@ -241,7 +243,8 @@ export const ProductImportClient = ({
               <dd>
                 One column per spec, e.g. <code>spec:voltage</code>. Specs belong to the product, so its variant rows must agree. Write numbers
                 plainly in the spec’s unit (<code>13</code> or <code>13 mm</code>), Yes or No where it asks, and <code>-</code> to clear a value.
-                An export has a column for every spec its products use.
+                An export has a column for every spec its products use. A key with no spec yet is added as a Text spec, if your role can add
+                specs; set its unit, type and group under Catalogue → Spec definitions afterwards.
               </dd>
             </div>
           </dl>
@@ -354,6 +357,25 @@ export const ProductImportClient = ({
                   </li>
                 )}
               </ul>
+              {result.newSpecs?.length > 0 && (
+                <details className="gpi__cols" style={{ margin: '0 0 10px' }}>
+                  <summary>
+                    {stage.kind === 'done' ? 'Added' : 'Will add'} {result.newSpecs.length} new spec{result.newSpecs.length === 1 ? '' : 's'}, as
+                    Text under General
+                  </summary>
+                  <dl>
+                    {result.newSpecs.map((spec) => (
+                      <div key={spec.key} style={{ display: 'contents' }}>
+                        <dt>spec:{spec.key}</dt>
+                        <dd>{spec.label}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                  <p style={{ fontSize: 12.5, color: 'var(--theme-elevation-500)', margin: '8px 0 0' }}>
+                    Give them a unit, type or group under Catalogue → Spec definitions afterwards.
+                  </p>
+                </details>
+              )}
               {result.ignoredColumns.length > 0 && (
                 <p style={{ fontSize: 12.5, color: 'var(--theme-elevation-500)' }}>
                   Ignored columns the import doesn’t use: {result.ignoredColumns.join(', ')}.
