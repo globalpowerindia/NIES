@@ -1,14 +1,9 @@
-import type { ListViewServerProps, Where } from 'payload'
+import type { ListViewServerProps } from 'payload'
 
 import { DataList } from '@/admin/components/list/DataList'
-import { combineWhere, readListParams, searchWhere } from '@/admin/components/list/params'
+import { categoriesWhere } from '@/admin/components/list/filters'
+import { readListParams } from '@/admin/components/list/params'
 import type { ListRow } from '@/admin/components/list/types'
-
-const VIEWS: Record<string, Where> = {
-  top: { parent: { exists: false } },
-  sub: { parent: { exists: true } },
-  inactive: { isActive: { equals: false } },
-}
 
 const imageUrl = (value: unknown): string | null =>
   value && typeof value === 'object' && 'url' in value
@@ -22,7 +17,7 @@ const nameOf = (value: unknown): string | undefined =>
 
 export const CategoriesList = async ({ payload, searchParams }: ListViewServerProps) => {
   const { view, q, page, limit } = readListParams(searchParams)
-  const where = combineWhere(VIEWS[view], searchWhere(q, ['name', 'slug']))
+  const where = categoriesWhere(view, q)
 
   const [result, top, sub] = await Promise.all([
     payload.find({ collection: 'categories', where, limit, page, sort: 'sortOrder', depth: 1 }),
@@ -60,6 +55,7 @@ export const CategoriesList = async ({ payload, searchParams }: ListViewServerPr
       searchPlaceholder="Name or slug"
       createHref="/admin/collections/categories/create"
       createLabel="New category"
+      exportHref="/api/categories/list-export"
       kpis={[
         { label: 'All categories', value: result.totalDocs },
         { label: 'Top level', value: top.totalDocs },

@@ -1,15 +1,9 @@
-import type { ListViewServerProps, Where } from 'payload'
+import type { ListViewServerProps } from 'payload'
 
 import { DataList } from '@/admin/components/list/DataList'
-import { combineWhere, readListParams, searchWhere } from '@/admin/components/list/params'
+import { variantsWhere } from '@/admin/components/list/filters'
+import { readListParams } from '@/admin/components/list/params'
 import type { Cell, ListRow } from '@/admin/components/list/types'
-
-const VIEWS: Record<string, Where> = {
-  active: { isActive: { equals: true } },
-  inactive: { isActive: { equals: false } },
-  cordless: { powerSource: { equals: 'CORDLESS' } },
-  kits: { packType: { equals: 'KIT' } },
-}
 
 const nameOf = (value: unknown): string =>
   value && typeof value === 'object' && 'name' in value
@@ -19,7 +13,7 @@ const nameOf = (value: unknown): string =>
 export const VariantsList = async ({ payload, searchParams }: ListViewServerProps) => {
   const { view, q, page, limit } = readListParams(searchParams)
 
-  const where = combineWhere(VIEWS[view], searchWhere(q, ['sku', 'name', 'barcode']))
+  const where = variantsWhere(view, q)
 
   const [result, active, cordless, kits] = await Promise.all([
     payload.find({ collection: 'product-variants', where, limit, page, sort: 'sku', depth: 1 }),
@@ -82,6 +76,7 @@ export const VariantsList = async ({ payload, searchParams }: ListViewServerProp
       searchPlaceholder="SKU, name, barcode"
       createHref="/admin/collections/product-variants/create"
       createLabel="New variant"
+      exportHref="/api/product-variants/list-export"
       kpis={[
         { label: 'Total variants', value: result.totalDocs },
         { label: 'Active', value: active.totalDocs },

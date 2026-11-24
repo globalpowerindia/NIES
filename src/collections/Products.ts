@@ -11,6 +11,7 @@ import {
 
 import { allow, pricesField, publishedProducts } from '@/access/roles'
 import { PRODUCT_SECTION_BLOCKS } from '@/collections/product-sections'
+import { exportProductsCsv } from '@/admin/endpoints/listExport'
 import { exportProducts, importProducts } from '@/admin/endpoints/productImport'
 import { slugFrom } from '@/fields/slug'
 import { DEFAULT_GST_RATE_BPS, GST_RATES_BPS } from '@/lib/money'
@@ -118,6 +119,7 @@ export const Products: CollectionConfig = {
   endpoints: [
     { path: '/import', method: 'post', handler: importProducts },
     { path: '/export', method: 'get', handler: exportProducts },
+    { path: '/list-export', method: 'get', handler: exportProductsCsv },
   ],
   hooks: {
     beforeOperation: [publishUnlessDraft],

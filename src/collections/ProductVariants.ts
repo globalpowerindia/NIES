@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { allow, pricesField, publishedVariants } from '@/access/roles'
+import { exportVariantsCsv } from '@/admin/endpoints/listExport'
 import { paiseField } from '@/fields/paise'
 import { ensureInventory } from '@/lib/inventory'
 import { revalidateStorefront, revalidateStorefrontOnDelete } from '@/lib/revalidate'
@@ -23,6 +24,7 @@ export const ProductVariants: CollectionConfig = {
     update: allow('product-variants', 'update'),
     delete: allow('product-variants', 'delete'),
   },
+  endpoints: [{ path: '/list-export', method: 'get', handler: exportVariantsCsv }],
   hooks: {
     beforeValidate: [
       ({ data, originalDoc }) => {
