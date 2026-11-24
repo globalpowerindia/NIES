@@ -1,21 +1,12 @@
 import type { ListViewServerProps, Payload } from 'payload'
 
 import { DataList } from '@/admin/components/list/DataList'
-import { combineWhere, readListParams, searchWhere } from '@/admin/components/list/params'
+import { PRODUCT_STOCK_VIEWS as STOCK_VIEWS, productsWhere } from '@/admin/components/list/filters'
+import { readListParams } from '@/admin/components/list/params'
 import type { ListRow, Tone } from '@/admin/components/list/types'
 import { loadProductActivity, type ProductActivity } from '@/lib/product-demand'
 import { loadUnpublishedDrafts } from '@/lib/product-drafts'
 import { isPriced, loadProductStock, type ProductStock } from '@/lib/product-stock'
-
-// `draft` is the URL key from before Hidden was renamed; links to it keep working.
-const VIEWS: Record<string, string> = {
-  active: 'ACTIVE',
-  draft: 'DRAFT',
-  archived: 'ARCHIVED',
-}
-
-/** Sold online or enquiry-only (WhatsApp), the `sellOnline` checkbox. */
-const SALE_VIEWS: Record<string, boolean> = { online: true, enquiry: false }
 
 const STATUS: Record<string, { label: string; tone: Tone }> = {
   ACTIVE: { label: 'Active', tone: 'success' },
@@ -34,13 +25,6 @@ const thumbOf = (images: unknown): string | null => {
     return url ?? null
   }
   return null
-}
-
-/** Views decided by price and stock rather than a stored field. */
-const STOCK_VIEWS: Record<string, (stock: ProductStock) => boolean> = {
-  noprice: (stock) => !isPriced(stock),
-  out: (stock) => isPriced(stock) && stock.level === 'OUT_OF_STOCK',
-  low: (stock) => isPriced(stock) && stock.level === 'LOW_STOCK',
 }
 
 const LEVEL: Record<ProductStock['level'], { label: string; tone: Tone }> = {
@@ -66,25 +50,9 @@ export const ProductsList = async ({ payload, searchParams }: ListViewServerProp
 
   // Price and stock for every product: one query, and what the stock views filter on.
   const [allStock, unpublished] = await Promise.all([loadProductStock(payload), loadUnpublishedDrafts(payload.db.drizzle)])
-  const idsWhere = (test: (stock: ProductStock) => boolean) => ({
-    id: { in: [...allStock].filter(([, stock]) => test(stock)).map(([id]) => id).concat(-1) },
-  })
   const countOf = (test: (stock: ProductStock) => boolean) => [...allStock.values()].filter(test).length
 
-  const where = combineWhere(
-    view === 'unpublished'
-      ? { id: { in: [...unpublished, -1] } }
-      : VIEWS[view]
-      ? { status: { equals: VIEWS[view] } }
-      : STOCK_VIEWS[view]
-        ? idsWhere(STOCK_VIEWS[view])
-        : view in SALE_VIEWS
-          ? SALE_VIEWS[view]
-            ? { sellOnline: { equals: true } }
-            : { sellOnline: { not_equals: true } }
-          : undefined,
-    searchWhere(q, ['name', 'slug', 'hsnCode']),
-  )
+  const where = productsWhere(view, q, allStock, unpublished)
 
   const [result, active, draft, archived, variants, online] = await Promise.all([
     payload.find({ collection: 'products', where, limit, page, sort: '-updatedAt', depth: 1 }),
@@ -162,6 +130,7 @@ export const ProductsList = async ({ payload, searchParams }: ListViewServerProp
       searchPlaceholder="Name, slug, HSN"
       createHref="/admin/collections/products/create"
       createLabel="New product"
+      exportHref="/api/products/list-export"
       kpis={[
         { label: 'Active', value: active.totalDocs },
         { label: 'Hidden', value: draft.totalDocs },

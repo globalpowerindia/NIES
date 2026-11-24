@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { allow, anyone, hiddenUnless, pricesField } from '@/access/roles'
+import { exportCategoriesCsv } from '@/admin/endpoints/listExport'
 import { paiseField } from '@/fields/paise'
 import { slugFrom } from '@/fields/slug'
 import { revalidateStorefront, revalidateStorefrontOnDelete } from '@/lib/revalidate'
@@ -21,6 +22,7 @@ export const Categories: CollectionConfig = {
     update: allow('categories', 'update'),
     delete: allow('categories', 'delete'),
   },
+  endpoints: [{ path: '/list-export', method: 'get', handler: exportCategoriesCsv }],
   hooks: { afterChange: [revalidateStorefront, refreshOnCategoryChange], afterDelete: [revalidateStorefrontOnDelete] },
   fields: [
     { name: 'name', type: 'text', required: true },

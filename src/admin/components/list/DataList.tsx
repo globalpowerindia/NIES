@@ -121,6 +121,7 @@ export const DataList = ({
   bulkActions = [],
   createHref,
   createLabel = 'Create new',
+  exportHref,
   emptyMessage = 'Nothing matches this view.',
 }: DataListProps) => {
   const router = useRouter()
@@ -156,6 +157,15 @@ export const DataList = ({
     },
     [activeFilter, searchValue, page, basePath],
   )
+
+  const exportUrl = useMemo(() => {
+    if (!exportHref) return undefined
+    const sp = new URLSearchParams()
+    if (activeFilter && activeFilter !== 'all') sp.set('view', activeFilter)
+    if (searchValue) sp.set('q', searchValue)
+    const s = sp.toString()
+    return s ? `${exportHref}?${s}` : exportHref
+  }, [exportHref, activeFilter, searchValue])
 
   const runBulk = async (action: (typeof bulkActions)[number]) => {
     if (action.confirm && !window.confirm(action.confirm)) return
@@ -204,6 +214,10 @@ export const DataList = ({
           color:var(--theme-elevation-800); width:180px; }
         .dl__create { background:var(--theme-elevation-800); color:var(--theme-elevation-0); border-radius:var(--style-radius-s);
           padding:7px 14px; font-size:13px; text-decoration:none; white-space:nowrap; }
+        .dl__export { border:1px solid var(--theme-border-color); background:var(--theme-elevation-0);
+          color:var(--theme-elevation-800); border-radius:var(--style-radius-s);
+          padding:6px 14px; font-size:13px; text-decoration:none; white-space:nowrap; }
+        .dl__export:hover { background:var(--theme-elevation-50); }
         .dl__kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1px;
           background:var(--theme-border-color); border:1px solid var(--theme-border-color);
           border-radius:var(--style-radius-m); overflow:hidden; margin:calc(var(--base)*0.8) 0; }
@@ -281,6 +295,20 @@ export const DataList = ({
                 aria-label={`Search ${title}`}
               />
             </form>
+          )}
+          {exportUrl && (
+            <a
+              className="dl__export"
+              href={exportUrl}
+              download
+              title={
+                activeFilter !== 'all' || searchValue
+                  ? 'Download the rows in this view as CSV'
+                  : 'Download every row as CSV'
+              }
+            >
+              Export CSV
+            </a>
           )}
           {createHref && (
             <a className="dl__create" href={createHref}>

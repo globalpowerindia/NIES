@@ -66,5 +66,7 @@ export type DataListProps = {
   bulkActions?: BulkAction[]
   createHref?: string
   createLabel?: string
+  /** A GET endpoint returning this list as CSV; sent the current view and search. */
+  exportHref?: string
   emptyMessage?: string
 }
