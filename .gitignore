@@ -70,3 +70,7 @@ node_modules/
 
 # Internal audit reports
 /audit/
+
+# Product photo zips and the one-off image replacement script stay local
+/public/*.zip
+/src/seed/replace-product-images.ts

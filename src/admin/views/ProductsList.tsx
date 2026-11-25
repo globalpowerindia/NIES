@@ -75,42 +75,32 @@ export const ProductsList = async ({ payload, searchParams }: ListViewServerProp
       id: String(product.id),
       href: `/admin/collections/products/${product.id}`,
       cells: [
-        {
-          t: 'thumb',
-          src: thumbOf(product.images),
-          alt: product.name,
-          v: product.name,
-          sub: product.slug,
-        },
-        { t: 'text', v: nameOf(product.brand) ?? '—' },
-        { t: 'text', v: nameOf(product.category) ?? '—' },
+        // The slug is left out: search still finds it, and it doubled the row's height.
+        { t: 'thumb', src: thumbOf(product.images), alt: product.name, v: product.name },
+        { t: 'text', v: nameOf(product.category) ?? '—', sub: nameOf(product.brand) },
         isPriced(stock) ? { t: 'money', v: stock!.pricePaise! } : { t: 'pill', v: 'No price', tone: 'danger' },
         isPriced(stock)
           ? {
-              t: 'pills',
-              items: [
-                { v: stock!.backorder && stock!.available <= 0 ? 'Backorder' : level.label, tone: level.tone },
-                { v: `${Math.max(0, stock!.available)} avail.`, tone: 'neutral' },
-              ],
+              t: 'pill',
+              v: stock!.backorder && stock!.available <= 0
+                ? 'Backorder'
+                : `${level.label} · ${countFmt.format(Math.max(0, stock!.available))}`,
+              tone: level.tone,
             }
           : { t: 'empty' },
         {
           t: 'text',
-          v: countFmt.format(counts?.views7Days ?? 0),
-          sub: `${countFmt.format(counts?.views30Days ?? 0)} in 30 days`,
+          v: `${countFmt.format(counts?.views7Days ?? 0)} ${counts?.views7Days === 1 ? 'view' : 'views'} · ${countFmt.format(counts?.sold30Days ?? 0)} sold`,
+          sub: `${countFmt.format(counts?.views30Days ?? 0)} views in 30 days · ${countFmt.format((counts?.soldAllTime ?? 0) + pastUnits)} sold all time${pastUnits ? ` (${countFmt.format(pastUnits)} past)` : ''}`,
         },
-        {
-          t: 'text',
-          v: countFmt.format(counts?.sold30Days ?? 0),
-          sub: `${countFmt.format(counts?.sold24Hours ?? 0)} in 24 hours · ${countFmt.format((counts?.soldAllTime ?? 0) + pastUnits)} all time${pastUnits ? ` (${countFmt.format(pastUnits)} past)` : ''}`,
-        },
-        { t: 'text', v: product.hsnCode, sub: `${(product.gstRateBps / 100).toFixed(0)}% GST` },
+        { t: 'text', v: `${product.hsnCode} · ${(product.gstRateBps / 100).toFixed(0)}%` },
         {
           t: 'pills',
           items: [
             { v: status.label, tone: status.tone },
             ...(unpublished.has(product.id) ? [{ v: 'Unpublished changes', tone: 'accent' as Tone }] : []),
-            product.sellOnline ? { v: 'Sold online', tone: 'success' } : { v: 'Enquiry only', tone: 'neutral' },
+            // Enquiry only is nearly every product, so only the exception gets a badge.
+            ...(product.sellOnline ? [{ v: 'Sold online', tone: 'success' as Tone }] : []),
           ],
         },
         { t: 'date', v: product.updatedAt },
@@ -150,16 +140,15 @@ export const ProductsList = async ({ payload, searchParams }: ListViewServerProp
         { key: 'enquiry', label: 'Enquiry only', count: total - online.totalDocs },
       ]}
       columns={[
+        // No fixed widths: cells are one line now, so columns size to what they hold.
         { header: 'Product' },
-        { header: 'Brand', width: 130 },
-        { header: 'Category', width: 150 },
-        { header: 'Price', align: 'right', width: 110 },
-        { header: 'Stock', width: 190 },
-        { header: 'Views (7 days)', width: 120 },
-        { header: 'Sold (30 days)', width: 210 },
-        { header: 'Tax', width: 110 },
-        { header: 'Status', width: 240 },
-        { header: 'Updated', width: 140 },
+        { header: 'Category · Brand' },
+        { header: 'Price', align: 'right' },
+        { header: 'Stock' },
+        { header: 'Views 7d · Sold 30d' },
+        { header: 'HSN · GST' },
+        { header: 'Status' },
+        { header: 'Updated' },
       ]}
       rows={rows}
       emptyMessage="No products match this view."

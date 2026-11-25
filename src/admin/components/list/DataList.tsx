@@ -47,7 +47,9 @@ const CellView = ({ cell, href }: { cell: Cell; href?: string }) => {
     case 'text':
       return (
         <>
-          <RowLink href={href}>{cell.v}</RowLink>
+          <span className="dl__clip">
+            <RowLink href={href}>{cell.v}</RowLink>
+          </span>
           {cell.sub && <span className="dl__sub">{cell.sub}</span>}
         </>
       )
@@ -245,9 +247,17 @@ export const DataList = ({
         .dl__wrap { overflow-x:auto; border:1px solid var(--theme-border-color); border-radius:var(--style-radius-m); }
         .dl table { border-collapse:collapse; width:100%; min-width:760px; font-size:13.5px; }
         .dl th { text-align:left; font-size:11px; letter-spacing:.07em; text-transform:uppercase;
-          color:var(--theme-elevation-500); font-weight:600; padding:10px 14px;
+          color:var(--theme-elevation-500); font-weight:600; padding:9px 12px;
           border-bottom:1px solid var(--theme-border-color); background:var(--theme-elevation-50); white-space:nowrap; }
-        .dl td { padding:11px 14px; border-bottom:1px solid var(--theme-elevation-100); vertical-align:middle; }
+        .dl td { padding:8px 12px; border-bottom:1px solid var(--theme-elevation-100); vertical-align:middle; }
+        /* The first column names the record: it gets the room, and wraps to two lines at most. */
+        .dl__primary .dl__thumbwrap { min-width:260px; }
+        .dl__primary .dl__rowlink { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+        .dl__primary .dl__sub { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:320px; }
+        /* Every other cell is one line, cut with an ellipsis; the cell's title shows the rest. */
+        /* Tables ignore max-width on cells, so the cap sits on the text inside. */
+        .dl td.dl__cell { white-space:nowrap; }
+        .dl td.dl__cell .dl__clip, .dl td.dl__cell .dl__sub { display:block; max-width:220px; overflow:hidden; text-overflow:ellipsis; }
         .dl tbody tr:hover { background:var(--theme-elevation-50); }
         .dl__row { cursor:pointer; }
         .dl__rowlink { color:inherit; text-decoration:none; font-weight:500; }
@@ -260,7 +270,7 @@ export const DataList = ({
         .dl__suffix { color:var(--theme-elevation-500); font-size:12px; margin-left:2px; }
         .dl__strike { text-decoration:line-through; color:var(--theme-elevation-500); }
         .dl__pill { display:inline-block; border-radius:999px; padding:2px 10px; font-size:11.5px; font-weight:600; white-space:nowrap; }
-        .dl__pills { display:inline-flex; gap:4px; flex-wrap:wrap; }
+        .dl__pills { display:inline-flex; gap:4px; flex-wrap:nowrap; }
         .dl__thumbwrap { display:flex; align-items:center; gap:10px; }
         .dl__thumb { width:38px; height:38px; border-radius:var(--style-radius-s); overflow:hidden; flex:none;
           background:var(--theme-elevation-100); display:grid; place-items:center; }
@@ -429,10 +439,14 @@ export const DataList = ({
                   <td
                     key={i}
                     className={
-                      cell.t === 'money' || cell.t === 'num' || cell.t === 'date'
-                        ? 'dl__num'
-                        : undefined
+                      i === 0
+                        ? 'dl__primary'
+                        : cell.t === 'money' || cell.t === 'num' || cell.t === 'date'
+                          ? 'dl__num'
+                          : 'dl__cell'
                     }
+                    // Other cells stay on one line; the hover shows what an ellipsis cut off.
+                    title={i > 0 && (cell.t === 'text' || cell.t === 'link') ? [cell.v, cell.sub].filter(Boolean).join(' · ') : undefined}
                     style={{ textAlign: columns[i]?.align ?? 'left' }}
                   >
                     <CellView cell={cell} href={i === 0 ? row.href : undefined} />

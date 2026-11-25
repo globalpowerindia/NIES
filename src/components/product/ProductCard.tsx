@@ -58,7 +58,7 @@ export const ProductCard = ({
         className,
       )}
     >
-      <div className="relative flex flex-col items-start justify-center gap-1.5 overflow-hidden rounded-lg bg-neutral-200 p-2 md:gap-2.5 md:p-4">
+      <div className="relative flex flex-col items-start justify-center gap-1.5 overflow-hidden rounded-lg bg-white p-2 md:gap-2.5 md:p-4">
         <div className="flex w-full items-start justify-between">
           {badge === 'new' ? (
             <span className="flex items-center justify-center rounded-full border-[0.5px] border-brand-red-400 bg-brand-red-200 px-2 text-[0.6875rem] leading-5 text-brand-red-500 md:text-body3">
