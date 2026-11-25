@@ -2,18 +2,23 @@
 # Starts a release on the VPS: pulls both images, migrates the database, then
 # swaps the app. The deploy workflow runs it over SSH; it also works by hand:
 #
-#   ./release.sh new.toolshypermarket.com ghcr.io/org/nies:<sha> ghcr.io/org/nies-migrate:<sha>
+#   ./release.sh toolshypermarket.com ghcr.io/org/nies:<sha> ghcr.io/org/nies-migrate:<sha> \
+#     'www.toolshypermarket.com new.toolshypermarket.com'
 #
+# The last argument is optional: other names that redirect to the site domain.
 # Run it from the directory holding compose.yaml, Caddyfile and .env.app.local.
 # The previous release's settings are kept in .env.release.previous, so a
-# rollback is: ./release.sh $(sed -n 's/^[A-Z_]*=//p' .env.release.previous | tr '\n' ' ')
-# (check the database schema still suits the older app first).
+# rollback is (check the database schema still suits the older app first):
+#   (set -a; . ./.env.release.previous; ./release.sh "$SITE_DOMAIN" "$APP_IMAGE" "$MIGRATION_IMAGE" "${SITE_ALIASES:-}")
 set -euo pipefail
 
-if [ "$#" -ne 3 ]; then
-  echo "usage: $0 <site-domain> <app-image> <migration-image>" >&2
+if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then
+  echo "usage: $0 <site-domain> <app-image> <migration-image> [site-aliases]" >&2
   exit 64
 fi
+
+# Caddy separates site names with spaces; accept commas too.
+site_aliases="$(echo "${4:-}" | tr ',' ' ' | xargs)"
 
 cd "$(dirname "$0")"
 
@@ -22,7 +27,7 @@ if [ ! -f .env.app.local ]; then
   exit 1
 fi
 
-printf 'SITE_DOMAIN=%s\nAPP_IMAGE=%s\nMIGRATION_IMAGE=%s\n' "$1" "$2" "$3" > .env.release.next
+printf 'SITE_DOMAIN=%s\nAPP_IMAGE=%s\nMIGRATION_IMAGE=%s\nSITE_ALIASES="%s"\n' "$1" "$2" "$3" "$site_aliases" > .env.release.next
 
 compose() { docker compose --env-file .env.release.next "$@"; }
 
