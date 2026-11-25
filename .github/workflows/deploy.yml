@@ -11,7 +11,8 @@ name: Deploy to Hostinger
 # Settings live on the "production" environment (Settings → Environments):
 #   secrets  NEON_API_KEY, VPS_HOST, VPS_USER, VPS_SSH_KEY, VPS_KNOWN_HOSTS
 #   vars     NEON_PROJECT_ID, SITE_URL (https://…, no trailing slash),
-#            R2_PUBLIC_URL, and optionally NEXT_PUBLIC_SENTRY_DSN,
+#            R2_PUBLIC_URL, and optionally SITE_ALIASES (other names that
+#            redirect to SITE_URL, space-separated), NEXT_PUBLIC_SENTRY_DSN,
 #            NEXT_PUBLIC_TURNSTILE_SITE_KEY, NEON_DATABASE, NEON_ROLE
 # The app's runtime secrets stay on the VPS in .env.app.local, not here.
 # See deploy/hostinger/README.md.
@@ -155,7 +156,8 @@ jobs:
           ssh "${ssh_opts[@]}" "$TARGET" "chmod +x ~/nies/release.sh && ~/nies/release.sh \
             '${{ steps.release.outputs.site_domain }}' \
             '${{ steps.release.outputs.app_image }}' \
-            '${{ steps.release.outputs.migration_image }}'" || status=$?
+            '${{ steps.release.outputs.migration_image }}' \
+            '${{ vars.SITE_ALIASES }}'" || status=$?
           ssh "${ssh_opts[@]}" "$TARGET" 'docker logout ghcr.io' || true
           exit $status
 

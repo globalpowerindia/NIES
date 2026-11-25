@@ -1,4 +1,9 @@
-{$SITE_DOMAIN} {
+# SITE_ALIASES: other names for the site, like www. or an old address. They
+# get their own certificates and send visitors to SITE_DOMAIN. Empty is fine.
+{$SITE_DOMAIN} {$SITE_ALIASES} {
+	@alias not host {$SITE_DOMAIN}
+	redir @alias https://{$SITE_DOMAIN}{uri} permanent
+
 	reverse_proxy app:3000 {
 		# Caddy is the public entry point. Replace any copy sent by the visitor.
 		header_up X-Real-IP {remote_host}

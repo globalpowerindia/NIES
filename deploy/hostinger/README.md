@@ -55,6 +55,7 @@ In the repository, open **Settings → Environments → New environment**, name 
 | Secret | `NEON_API_KEY` | Neon → Account settings → API keys |
 | Variable | `NEON_PROJECT_ID` | Neon → Project settings → General |
 | Variable | `SITE_URL` | `https://<hostname>`, no trailing slash |
+| Variable | `SITE_ALIASES` | optional: other hostnames that redirect to `SITE_URL`, space-separated, e.g. `www.toolshypermarket.com new.toolshypermarket.com`. Each needs a DNS record pointing at the VPS. |
 | Variable | `R2_PUBLIC_URL` | same as on the VPS |
 | Variable | `NEXT_PUBLIC_SENTRY_DSN`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | optional, same as on the VPS |
 | Variable | `NEON_DATABASE`, `NEON_ROLE` | only if not `neondb` / `neondb_owner` |
@@ -83,7 +84,7 @@ After the first release, verify the storefront, admin, uploads and a test checko
 
 ```sh
 cd ~/nies
-./release.sh $(sed -n 's/^[A-Z_]*=//p' .env.release.previous | tr '\n' ' ')
+(set -a; . ./.env.release.previous; ./release.sh "$SITE_DOMAIN" "$APP_IMAGE" "$MIGRATION_IMAGE" "${SITE_ALIASES:-}")
 ```
 
 The images must still be on the VPS, or log in to `ghcr.io` first with a token that can read packages.
