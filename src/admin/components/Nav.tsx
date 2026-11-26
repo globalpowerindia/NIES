@@ -102,6 +102,7 @@ export const Nav = async ({ payload, user }: ServerProps) => {
         { label: 'Homepage', href: '/admin/globals/home-page', show: may('home-page') },
         { label: 'Header & footer', href: '/admin/globals/site-settings', show: may('site-settings', 'update') },
         { label: 'Pages', href: '/admin/collections/pages', show: may('pages') },
+        { label: 'Promo banners', href: '/admin/collections/promo-banners', show: may('promo-banners') },
         { label: 'Search synonyms', href: '/admin/collections/search-synonyms', show: may('search-synonyms') },
         { label: 'Newsletter subscribers', href: '/admin/collections/newsletter-subscribers', show: may('newsletter-subscribers') },
       ],
