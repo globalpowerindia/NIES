@@ -2,17 +2,17 @@ import { unstable_cache } from 'next/cache'
 import type { Payload } from 'payload'
 import { cache } from 'react'
 
-import { loadShippingRates } from '@/lib/checkout'
+import { shippingRatesOf } from '@/lib/checkout'
 import { COMPARE_MAX } from '@/lib/compare-rules'
 import { invoiceSeller } from '@/lib/invoice/invoice-data'
 import { summarizeReviewRatings } from '@/lib/review-ratings'
 import { CACHE_VERSION, STOREFRONT_CACHE } from '@/lib/revalidate'
 import { SPIN_MIN_FRAMES } from '@/lib/spin-rules'
 import { fileUrlOf, mediaOf, type MediaInfo } from '@/lib/storefront/content'
-import { getCarouselCards, loadPricing, PLACEHOLDER_IMAGE, relId } from '@/lib/storefront/products'
+import { getCarouselCards, loadPricing, PLACEHOLDER_IMAGE, relId, type ProductPricing } from '@/lib/storefront/products'
 import { getPayloadClient } from '@/lib/storefront/queries'
 import { youTubeId } from '@/lib/video'
-import type { Brand, Category, Media, Product, ProductVariant, SpecDefinition } from '@/payload-types'
+import type { Brand, Category, Media, Product, SpecDefinition } from '@/payload-types'
 
 type SpecEntry = NonNullable<Product['specValues']>[number]
 
@@ -119,16 +119,7 @@ export type BoughtTogetherItem = {
   buyable: boolean
 }
 
-/** Staff's picks, live and priced, in their order. */
-const loadBoughtTogether = async (payload: Payload, product: Product): Promise<BoughtTogetherItem[]> => {
-  const picks = (product.boughtTogether ?? []).filter(
-    (entry): entry is Product =>
-      typeof entry === 'object' && entry.status === 'ACTIVE' && entry._status !== 'draft' && entry.id !== product.id,
-  )
-  const pricing = await loadPricing(
-    payload,
-    picks.map((entry) => entry.id),
-  )
+const boughtTogetherItems = (picks: Product[], pricing: Map<number, ProductPricing>): BoughtTogetherItem[] => {
   return picks.flatMap<BoughtTogetherItem>((entry) => {
     const priced = pricing.get(entry.id)
     if (!priced) return []
@@ -205,13 +196,18 @@ const loadProductPage = async (slug: string, variantSku?: string) => {
   const product = docs[0]
   if (!product) return null
 
-  const [variants, stock, specDefs, reviews, ratings] = await Promise.all([
+  const picks = (product.boughtTogether ?? []).filter(
+    (entry): entry is Product =>
+      typeof entry === 'object' && entry.status === 'ACTIVE' && entry._status !== 'draft' && entry.id !== product.id,
+  )
+  const [variants, stock, specDefs, reviews, ratings, related] = await Promise.all([
     payload.find({
       collection: 'product-variants',
       where: { and: [{ product: { equals: product.id } }, { isActive: { equals: true } }] },
       sort: 'sortOrder',
       pagination: false,
       depth: 1,
+      select: { product: false },
     }),
     payload.find({
       collection: 'inventory',
@@ -227,6 +223,7 @@ const loadProductPage = async (slug: string, variantSku?: string) => {
       sort: '-createdAt',
       limit: 8,
       depth: 1,
+      select: { authorName: true, rating: true, title: true, body: true, verifiedPurchase: true, createdAt: true, photos: true },
     }),
     payload.find({
       collection: 'reviews',
@@ -235,6 +232,7 @@ const loadProductPage = async (slug: string, variantSku?: string) => {
       depth: 0,
       select: { rating: true },
     }),
+    loadRelatedPricing(payload, product, picks),
   ])
   if (variants.docs.length === 0) return null
 
@@ -250,7 +248,7 @@ const loadProductPage = async (slug: string, variantSku?: string) => {
     mrpPaise: variant.mrpPaise,
     inStock: sellableVariants.has(variant.id),
   }))
-  const selected: ProductVariant =
+  const selected =
     variants.docs.find((variant) => variant.sku === variantSku) ??
     variants.docs.find((variant) => variant.isDefault) ??
     variants.docs[0]
@@ -280,11 +278,6 @@ const loadProductPage = async (slug: string, variantSku?: string) => {
   ]
 
   const rating = summarizeReviewRatings(ratings.docs)
-
-  const [compare, boughtTogether] = await Promise.all([
-    buildCompare(payload, product, defs),
-    loadBoughtTogether(payload, product),
-  ])
 
   return {
     product,
@@ -342,8 +335,8 @@ const loadProductPage = async (slug: string, variantSku?: string) => {
     supplierImages: (product.supplierImages ?? []).map(mediaOf).filter((media): media is MediaInfo => media !== null),
     contentSections: contentSectionsOf(product),
     faqs: (product.faqs ?? []).map(({ question, answer }) => ({ question, answer })),
-    compare,
-    boughtTogether,
+    compare: buildCompare(product, related.others, related.pricing, defs),
+    boughtTogether: boughtTogetherItems(picks, related.pricing),
   }
 }
 
@@ -366,8 +359,7 @@ export const getProductPageContext = cache(
   unstable_cache(
     async () => {
       const payload = await getPayloadClient()
-      const [rates, checkout, products, categories, brands, bestSellers] = await Promise.all([
-        loadShippingRates(payload),
+      const [checkout, products, categories, brands, bestSellers] = await Promise.all([
         payload.findGlobal({ slug: 'checkout-settings', depth: 0, overrideAccess: true }),
         payload.count({ collection: 'products', where: { status: { equals: 'ACTIVE' } } }),
         payload.count({ collection: 'categories' }),
@@ -376,7 +368,7 @@ export const getProductPageContext = cache(
         getCarouselCards(payload, { source: 'bestSeller', limit: BEST_SELLER_LIMIT + 1 }),
       ])
       return {
-        rates,
+        rates: shippingRatesOf(checkout),
         hasInvoice: invoiceSeller(checkout) !== null,
         stats: { products: products.totalDocs, categories: categories.totalDocs, brands: brands.totalDocs },
         bestSellers,
@@ -422,17 +414,12 @@ export type Comparison = {
 const CATEGORY_LIMIT = 100
 
 /** Columns and shared rows for these products, in the order given. */
-const comparisonOf = async (
-  payload: Payload,
+const comparisonOf = (
+  pricing: Map<number, ProductPricing>,
   products: Product[],
   currentId: number | null,
   defs: Map<number, SpecDefinition>,
-): Promise<Omit<Comparison, 'categoryName' | 'categoryId' | 'dropped'>> => {
-  const pricing = await loadPricing(
-    payload,
-    products.map((entry) => entry.id),
-  )
-
+): Omit<Comparison, 'categoryName' | 'categoryId' | 'dropped'> => {
   const columns = products.flatMap<CompareColumn>((entry) => {
     const priced = pricing.get(entry.id)
     if (!priced) return []
@@ -487,11 +474,11 @@ const comparisonOf = async (
  * This product plus the ones staff picked as similar, or else others from the
  * same category. Columns share rows only for specs flagged "show in compare".
  */
-const buildCompare = async (
+const loadRelatedPricing = async (
   payload: Payload,
   product: Product,
-  defs: Map<number, SpecDefinition>,
-): Promise<Comparison | null> => {
+  picks: Product[],
+) => {
   let others = (product.similarProducts ?? []).filter(
     (entry): entry is Product => typeof entry === 'object' && entry.status === 'ACTIVE',
   )
@@ -512,9 +499,23 @@ const buildCompare = async (
     others = sameCategory.docs
   }
   others = others.slice(0, COMPARE_MAX - 1)
+  const ids = new Set(picks.map((pick) => pick.id))
+  if (others.length) {
+    ids.add(product.id)
+    for (const other of others) ids.add(other.id)
+  }
+  return { others, pricing: await loadPricing(payload, [...ids]) }
+}
+
+const buildCompare = (
+  product: Product,
+  others: Product[],
+  pricing: Map<number, ProductPricing>,
+  defs: Map<number, SpecDefinition>,
+): Comparison | null => {
   if (others.length === 0) return null
 
-  const { columns, specLabels } = await comparisonOf(payload, [product, ...others], product.id, defs)
+  const { columns, specLabels } = comparisonOf(pricing, [product, ...others], product.id, defs)
   if (columns.length < 2) return null
 
   const category = typeof product.category === 'object' ? product.category : null
@@ -547,7 +548,8 @@ export const loadComparison = async (ids: number[]): Promise<Comparison | null> 
   const sameCategory = products.filter((entry) => relId(entry.category) === categoryId)
   const category = products[0].category
   const defs = new Map(specDefs.docs.map((def) => [def.id, def]))
-  const { columns, specLabels } = await comparisonOf(payload, sameCategory, null, defs)
+  const pricing = await loadPricing(payload, sameCategory.map((entry) => entry.id))
+  const { columns, specLabels } = comparisonOf(pricing, sameCategory, null, defs)
   if (columns.length === 0) return null
 
   return {

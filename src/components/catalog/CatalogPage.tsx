@@ -4,12 +4,19 @@ import type { ReactNode } from 'react'
 
 import { getListing } from '@/lib/storefront/catalog'
 import type { MediaInfo } from '@/lib/storefront/content'
-import { parseListingParams, withParam, type RawParams, type SortKey } from '@/lib/storefront/listing-params'
+import {
+  DEFAULT_PER_PAGE,
+  parseListingParams,
+  withParam,
+  type RawParams,
+  type SortKey,
+} from '@/lib/storefront/listing-params'
 
 import { Breadcrumbs, type Crumb } from './Breadcrumbs'
 import { CatalogFilters, type CategoryFilter } from './CatalogFilters'
 import { CatalogProductCard } from './CatalogProductCard'
 import { Pagination } from './Pagination'
+import { PerPageMenu } from './PerPageMenu'
 import { SortMenu } from './SortMenu'
 
 type Props = {
@@ -105,7 +112,11 @@ export const CatalogPage = async ({
                 Results for <span className="font-semibold text-dark-500">{title}</span>
                 <span className="sr-only md:not-sr-only md:ml-2 md:text-body3 md:font-normal md:text-dark-300"> ({listing.total})</span>
               </p>
-              <SortMenu value={params.sort} options={sortOptions} defaultSort={defaultSort} />
+              <div className="flex items-center gap-3 md:gap-5">
+                {/* Only worth offering once there is more than one default page. */}
+                {listing.total > DEFAULT_PER_PAGE && <PerPageMenu value={params.perPage} />}
+                <SortMenu value={params.sort} options={sortOptions} defaultSort={defaultSort} />
+              </div>
             </div>
 
             {notice}
