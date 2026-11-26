@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import type { BrandFacet, SpecFacet } from '@/lib/storefront/catalog'
+import { parseListingParams, rawParamsOf } from '@/lib/storefront/listing-params'
 import { cn } from '@/lib/utils'
 
 import { PriceRange } from './PriceRange'
@@ -100,7 +101,13 @@ const FilterGroup = ({ title, defaultOpen, children }: { title: string; defaultO
 )
 
 export const CatalogFilters = ({ categories, brands, specs, price, current }: CatalogFiltersProps) => {
-  const { update, toggle, isPending } = useListingUrl()
+  const { params: pendingUrl, update, toggle, toggleRepeated, isPending } = useListingUrl()
+  // What the URL is about to say, so a tick shows before the new results arrive.
+  const live = parseListingParams(rawParamsOf(pendingUrl))
+  const selectedCategories =
+    categories?.mode === 'filter'
+      ? live.sub.filter((slug) => categories.options.some((option) => option.slug === slug))
+      : (categories?.selected ?? [])
   const [showAllCategories, setShowAllCategories] = useState(false)
   const hasExtraFilter = current.inStock || Object.keys(current.specs).length > 0
   const [showMore, setShowMore] = useState(hasExtraFilter)
@@ -132,7 +139,7 @@ export const CatalogFilters = ({ categories, brands, specs, price, current }: Ca
               <div className="flex flex-col">
                 <OptionRow
                   label={categories.allLabel}
-                  checked={categories.selected.length === 0}
+                  checked={selectedCategories.length === 0}
                   href={categories.mode === 'navigate' ? categories.allHref : undefined}
                   onChange={() => update((params) => params.delete('sub'))}
                 />
@@ -140,7 +147,7 @@ export const CatalogFilters = ({ categories, brands, specs, price, current }: Ca
                   <OptionRow
                     key={option.slug}
                     label={option.name}
-                    checked={categories.selected.includes(option.slug)}
+                    checked={selectedCategories.includes(option.slug)}
                     href={categories.mode === 'navigate' ? option.href : undefined}
                     onChange={() => toggle('sub', option.slug)}
                   />
@@ -183,7 +190,7 @@ export const CatalogFilters = ({ categories, brands, specs, price, current }: Ca
                   <OptionRow
                     key={brand.slug}
                     label={`${brand.name} (${brand.count})`}
-                    checked={current.brands.includes(brand.slug)}
+                    checked={live.brands.includes(brand.slug)}
                     onChange={() => toggle('brand', brand.slug)}
                   />
                 ))}
@@ -196,10 +203,10 @@ export const CatalogFilters = ({ categories, brands, specs, price, current }: Ca
               <FilterGroup title="Availability" defaultOpen>
                 <OptionRow
                   label="In stock only"
-                  checked={current.inStock}
+                  checked={live.inStock}
                   onChange={() =>
                     update((params) => {
-                      if (current.inStock) params.delete('stock')
+                      if (params.get('stock') === '1') params.delete('stock')
                       else params.set('stock', '1')
                     })
                   }
@@ -212,8 +219,8 @@ export const CatalogFilters = ({ categories, brands, specs, price, current }: Ca
                       <OptionRow
                         key={value}
                         label={`${value} (${count})`}
-                        checked={current.specs[spec.key]?.includes(value) ?? false}
-                        onChange={() => toggle(`spec.${spec.key}`, value)}
+                        checked={live.specs[spec.key]?.includes(value) ?? false}
+                        onChange={() => toggleRepeated(`spec.${spec.key}`, value)}
                       />
                     ))}
                   </div>

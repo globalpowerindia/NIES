@@ -10,8 +10,6 @@ import { relId, toProductCards } from '@/lib/storefront/products'
 import { getPayloadClient } from '@/lib/storefront/queries'
 import type { Category, Product } from '@/payload-types'
 
-export const PAGE_SIZE = 12
-
 export type CategoryNode = Pick<Category, 'id' | 'name' | 'slug' | 'description'> & {
   parentId?: number
   bannerImage: Category['bannerImage']
@@ -248,12 +246,15 @@ export const getListing = async (options: {
     price: (row: IndexRow) =>
       (minPaise === undefined || row.pricePaise >= minPaise) && (maxPaise === undefined || row.pricePaise <= maxPaise),
     stock: (row: IndexRow) => !params.inStock || row.inStock,
-    specs: (row: IndexRow) =>
-      Object.entries(params.specs).every(([key, values]) => values.includes(row.specs[key] ?? '')),
+    specs: (row: IndexRow, skipKey?: string) =>
+      Object.entries(params.specs).every(([key, values]) => key === skipKey || values.includes(row.specs[key] ?? '')),
   }
   type TestName = keyof typeof tests
-  const passes = (row: IndexRow, skip?: TestName) =>
-    (Object.keys(tests) as TestName[]).every((name) => name === skip || tests[name](row))
+  /** `skipSpec` leaves out one spec group only, so ticking "Power" still narrows the "Voltage" counts. */
+  const passes = (row: IndexRow, skip?: TestName, skipSpec?: string) =>
+    (Object.keys(tests) as TestName[]).every((name) =>
+      name === 'specs' ? tests.specs(row, skipSpec) : name === skip || tests[name](row),
+    )
 
   const matched = priced.filter((row) => passes(row))
 
@@ -271,8 +272,10 @@ export const getListing = async (options: {
     const counts = new Map<string, number>()
     for (const row of priced) {
       const value = row.specs[def.key]
-      if (value && passes(row, 'specs')) counts.set(value, (counts.get(value) ?? 0) + 1)
+      if (value && passes(row, undefined, def.key)) counts.set(value, (counts.get(value) ?? 0) + 1)
     }
+    // A ticked value stays listed at 0 so it can still be unticked.
+    for (const value of params.specs[def.key] ?? []) if (!counts.has(value)) counts.set(value, 0)
     if (counts.size === 0) return []
     return [
       {
@@ -303,9 +306,10 @@ export const getListing = async (options: {
   }
   matched.sort(comparators[params.sort])
 
-  const pageCount = Math.max(1, Math.ceil(matched.length / PAGE_SIZE))
+  const { perPage } = params
+  const pageCount = Math.max(1, Math.ceil(matched.length / perPage))
   const page = Math.min(params.page, pageCount)
-  const pageIds = matched.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((row) => row.id)
+  const pageIds = matched.slice((page - 1) * perPage, page * perPage).map((row) => row.id)
   const cards = pageIds.length ? await getCards(pageIds) : []
 
   return { cards, total: matched.length, page, pageCount, facets: { brands, specs, price } }

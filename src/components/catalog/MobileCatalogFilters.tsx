@@ -96,7 +96,7 @@ export const MobileCatalogFilters = ({
         params.set('max', String(draft.maxRupees))
       if (draft.inStock) params.set('stock', '1')
       for (const [key, values] of Object.entries(draft.specs)) {
-        if (values.length) params.set(`spec.${key}`, values.join(','))
+        for (const value of values) params.append(`spec.${key}`, value)
       }
     }, destination)
     setOpen(false)
