@@ -74,3 +74,7 @@ node_modules/
 # Product photo zips and the one-off image replacement script stay local
 /public/*.zip
 /src/seed/replace-product-images.ts
+
+# One-off storefront perf/QA run output
+/storefront-*-20*.jsonl
+/storefront-*-20*.txt
