@@ -90,7 +90,9 @@ export const CatalogPage = async ({
         <div className="hidden lg:block"><Breadcrumbs items={breadcrumbs} /></div>
 
         <div className="flex flex-col gap-2.5 lg:flex-row lg:items-start lg:gap-7">
-          <aside className="w-full shrink-0 lg:w-[21.625rem]">
+          {/* Desktop: stays beside the products while they scroll, below the sticky header.
+              Taller than the screen (More Filters open), it scrolls on its own. */}
+          <aside className="w-full shrink-0 lg:sticky lg:top-[calc(var(--header-h,0px)+1.5rem)] lg:max-h-[calc(100dvh-var(--header-h,0px)-3rem)] lg:w-[21.625rem] lg:overflow-y-auto lg:overscroll-contain lg:rounded-xl lg:[scrollbar-width:thin]">
             <CatalogFilters
               categories={categoryFilter}
               brands={listing.facets.brands}
