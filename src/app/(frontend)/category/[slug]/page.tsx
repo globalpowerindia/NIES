@@ -70,6 +70,7 @@ export default async function CategoryPage(props: PageProps<'/category/[slug]'>)
   return (
     <CatalogPage
       basePath={href(category)}
+      promo={{ kind: 'category', categoryId: category.id }}
       title={category.name}
       banner={banner}
       breadcrumbs={[...ancestors.map((node): Crumb => ({ label: node.name, href: href(node) })), { label: category.name }]}

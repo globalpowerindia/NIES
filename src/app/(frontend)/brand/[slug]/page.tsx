@@ -48,6 +48,7 @@ export default async function BrandPage(props: PageProps<'/brand/[slug]'>) {
   return (
     <CatalogPage
       basePath={basePath}
+      promo={{ kind: 'brand', brandId: brand.id }}
       title={brand.name}
       banner={null}
       breadcrumbs={[{ label: 'All Products', href: '/products' }, { label: brand.name }]}

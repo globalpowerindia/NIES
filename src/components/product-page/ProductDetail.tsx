@@ -19,6 +19,7 @@ import { RatingBadge } from '@/components/product-page/RatingBadge'
 import { ReviewsSection } from '@/components/product-page/ReviewsSection'
 import styles from '@/components/product-page/product-mobile.module.css'
 import { ProductCarousel } from '@/components/sections/ProductCarousel'
+import { PromoBanner } from '@/components/sections/PromoBanner'
 import { RecentlyViewed } from '@/components/sections/RecentlyViewed'
 import {
   Accordion,
@@ -35,6 +36,7 @@ import {
   type SpecRow,
 } from '@/lib/storefront/product-page'
 import { cn } from '@/lib/utils'
+import type { PromoBannerData } from '@/lib/storefront/promo-banners'
 import type { SiteSetting } from '@/payload-types'
 
 import { BoughtTogether } from './BoughtTogether'
@@ -66,6 +68,8 @@ type Props = {
   /** Live products from this product's category. */
   similarProducts: ProductCardProps[]
   pageSettings?: SiteSetting['productPage']
+  /** Staff-placed banners for this product (Storefront → Promo banners). */
+  promoBanners?: PromoBannerData[]
 }
 
 /** A rich text field with any real text in it; an untouched editor stores an empty paragraph. */
@@ -194,6 +198,7 @@ export const ProductDetail = ({
   bestSellers,
   similarProducts,
   pageSettings,
+  promoBanners = [],
 }: Props) => {
   const { product, variant, options, rating, category, parentCategory, accessories, attributes } =
     data
@@ -677,6 +682,12 @@ export const ProductDetail = ({
           </aside>
         </div>
 
+        {/* Kept to the listing column's width, so a row stays about 250px tall on wide screens too. */}
+        {promoBanners.map((banner) => (
+          <div key={banner.id} className="mx-auto w-full max-w-[1250px]">
+            <PromoBanner banner={banner} width={1250} />
+          </div>
+        ))}
         {data.compare && (
           <Reveal>
             <CompareSection

@@ -61,6 +61,7 @@ export default async function SearchPage(props: PageProps<'/search'>) {
   return (
     <CatalogPage
       basePath={`/search?q=${encodeURIComponent(query)}`}
+      promo={query ? { kind: 'search', query } : null}
       title={query ? `“${query}”` : 'Search'}
       banner={null}
       breadcrumbs={[{ label: 'Search' }]}
