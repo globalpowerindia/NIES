@@ -17,7 +17,7 @@ import { parcelWeightGrams, shippingFeePaise, type ShippingRates } from '@/lib/s
 import { checkCartCoupon, findCart, loadCartView, type CartView } from '@/lib/storefront/cart'
 import { relId } from '@/lib/storefront/products'
 import { inTransaction, transactionDB } from '@/lib/transaction'
-import type { Address, Customer, Order } from '@/payload-types'
+import type { Address, CheckoutSetting, Customer, Order } from '@/payload-types'
 
 /**
  * Checkout: the cart becomes an order, Razorpay takes the payment, and the
@@ -39,6 +39,10 @@ const cartLock = (customerId: number) => `cart:customer:${customerId}`
 
 export const loadShippingRates = async (payload: Payload): Promise<ShippingRates> => {
   const settings = await payload.findGlobal({ slug: 'checkout-settings', depth: 0, overrideAccess: true })
+  return shippingRatesOf(settings)
+}
+
+export const shippingRatesOf = (settings: CheckoutSetting): ShippingRates => {
   return {
     slabs: (settings.shippingSlabs ?? []).map((slab) => ({
       maxWeightGrams: Math.round(Number(slab.maxWeightKg) * 1000),
