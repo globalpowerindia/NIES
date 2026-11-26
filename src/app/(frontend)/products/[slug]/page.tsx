@@ -3,6 +3,8 @@ import { getImageProps } from 'next/image'
 import { notFound } from 'next/navigation'
 
 import { ProductDetail } from '@/components/product-page/ProductDetail'
+import { relId } from '@/lib/relations'
+import { getPromoBanners } from '@/lib/storefront/promo-banners'
 import { TrackRecentlyViewed } from '@/components/sections/RecentlyViewed'
 import { mediaOf } from '@/lib/storefront/content'
 import { getDemandLine } from '@/lib/storefront/demand'
@@ -56,7 +58,7 @@ export default async function ProductPage(props: PageProps<'/products/[slug]'>) 
   if (!data) notFound()
 
   const { product, category } = data
-  const [demand, context, settings, similarProducts] = await Promise.all([
+  const [demand, context, settings, similarProducts, promoBanners] = await Promise.all([
     getDemandLine(
       product.id,
       product.sellOnline === true,
@@ -65,6 +67,12 @@ export default async function ProductPage(props: PageProps<'/products/[slug]'>) 
     getProductPageContext(),
     getSiteSettings(),
     category ? getSimilarProducts(category.id) : Promise.resolve([]),
+    getPromoBanners({
+      kind: 'product',
+      productId: product.id,
+      categoryId: category?.id ?? null,
+      brandId: relId(product.brand) ?? null,
+    }),
   ])
 
   return (
@@ -78,6 +86,7 @@ export default async function ProductPage(props: PageProps<'/products/[slug]'>) 
         stats={context.stats}
         bestSellers={context.bestSellers}
         similarProducts={similarProducts}
+        promoBanners={promoBanners}
         tollFreeNumber={settings.tollFreeNumber}
         siteName={settings.siteName}
         logoUrl={mediaOf(settings.logo)?.url ?? null}

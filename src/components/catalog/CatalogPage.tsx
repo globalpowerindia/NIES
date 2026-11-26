@@ -4,6 +4,8 @@ import type { ReactNode } from 'react'
 
 import { getListing } from '@/lib/storefront/catalog'
 import type { MediaInfo } from '@/lib/storefront/content'
+import { getPromoBanners, type PromoTarget } from '@/lib/storefront/promo-banners'
+import { PromoBanner } from '@/components/sections/PromoBanner'
 import {
   DEFAULT_PER_PAGE,
   parseListingParams,
@@ -38,7 +40,12 @@ type Props = {
   empty?: { heading: string; hint: string } | null
   /** Rendered above the grid — search uses it for the "showing results for" note. */
   notice?: ReactNode
+  /** Which promo banners (Storefront → Promo banners) belong here; none when left out. */
+  promo?: PromoTarget | null
 }
+
+/** The product column's widest, beside the filters: for picking banner image sizes. */
+const PROMO_WIDTH = 1250
 
 export const CatalogPage = async ({
   basePath,
@@ -54,14 +61,24 @@ export const CatalogPage = async ({
   sortOptions,
   empty = null,
   notice = null,
+  promo = null,
 }: Props) => {
   const params = parseListingParams(raw, defaultSort)
   const narrowed = resolveSub && params.sub.length ? resolveSub(params.sub) : null
-  const listing = await getListing({
-    categoryIds: narrowed?.length ? narrowed : scopeIds,
-    params,
-    productIds,
-  })
+  const [listing, promos] = await Promise.all([
+    getListing({
+      categoryIds: narrowed?.length ? narrowed : scopeIds,
+      params,
+      productIds,
+    }),
+    promo ? getPromoBanners(promo) : Promise.resolve([]),
+  ])
+  const topPromos = promos.filter((banner) => banner.position === 'top')
+  // Between products only: one placed after the last card on the page would just trail the grid.
+  const promosAfter = (count: number) =>
+    promos.filter(
+      (banner) => banner.position === 'inline' && banner.afterProducts === count && count < listing.cards.length,
+    )
   const filtersActive =
     params.sub.length > 0 ||
     params.brands.length > 0 ||
@@ -123,13 +140,22 @@ export const CatalogPage = async ({
 
             {notice}
 
+            {topPromos.map((banner) => (
+              <PromoBanner key={banner.id} banner={banner} width={PROMO_WIDTH} />
+            ))}
+
             {listing.cards.length > 0 ? (
               <ul className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-                {listing.cards.map((card) => (
+                {listing.cards.flatMap((card, index) => [
                   <li key={card.href} className="flex min-w-0">
                     <CatalogProductCard {...card} />
-                  </li>
-                ))}
+                  </li>,
+                  ...promosAfter(index + 1).map((banner) => (
+                    <li key={`promo-${banner.id}`} className="col-span-full">
+                      <PromoBanner banner={banner} width={PROMO_WIDTH} />
+                    </li>
+                  )),
+                ])}
               </ul>
             ) : (
               <div className="flex flex-col items-center gap-4 rounded-xl bg-light-100 px-6 py-20 text-center">

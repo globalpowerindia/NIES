@@ -25,6 +25,7 @@ import { Media } from './collections/Media'
 import { NewsletterSubscribers } from './collections/NewsletterSubscribers'
 import { Orders } from './collections/Orders'
 import { Pages } from './collections/Pages'
+import { PromoBanners } from './collections/PromoBanners'
 import { Products } from './collections/Products'
 import { ProductVariants } from './collections/ProductVariants'
 import { ReviewPhotos } from './collections/ReviewPhotos'
@@ -127,6 +128,7 @@ export default buildConfig({
     OtpChallenges,
     CustomerSessions,
     Pages,
+    PromoBanners,
     Roles,
     Users,
   ].map(withAudit).concat(AuditLogs).map(withPublicReadLimits),

@@ -92,6 +92,7 @@ export interface Config {
     'otp-challenges': OtpChallenge;
     'customer-sessions': CustomerSession;
     pages: Page;
+    'promo-banners': PromoBanner;
     roles: Role;
     users: User;
     'audit-logs': AuditLog;
@@ -143,6 +144,7 @@ export interface Config {
     'otp-challenges': OtpChallengesSelect<false> | OtpChallengesSelect<true>;
     'customer-sessions': CustomerSessionsSelect<false> | CustomerSessionsSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
+    'promo-banners': PromoBannersSelect<false> | PromoBannersSelect<true>;
     roles: RolesSelect<false> | RolesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'audit-logs': AuditLogsSelect<false> | AuditLogsSelect<true>;
@@ -1430,6 +1432,80 @@ export interface Page {
   createdAt: string;
 }
 /**
+ * Rows of one to three image banners on category, brand, search and product pages. Several rows can match a page; they show in Order.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "promo-banners".
+ */
+export interface PromoBanner {
+  id: number;
+  /**
+   * For staff only, e.g. "Ingco sander – Diwali".
+   */
+  name: string;
+  /**
+   * Off: hidden everywhere, whatever the dates say.
+   */
+  isActive?: boolean | null;
+  /**
+   * Empty: straight away.
+   */
+  startsAt?: string | null;
+  /**
+   * Empty: until switched off.
+   */
+  endsAt?: string | null;
+  /**
+   * Lower shows first when several rows share a spot.
+   */
+  sortOrder?: number | null;
+  /**
+   * One to three banners, shown side by side in one row about 250px tall (on phones, a row you swipe). Artwork for one banner: 1250 × 250; two: 620 × 250 each; three: 410 × 250 each. Edges may be trimmed to fit, so keep text away from them.
+   */
+  banners: {
+    /**
+     * Its alt text is read out to screen readers.
+     */
+    image: number | Media;
+    /**
+     * Optional phone artwork, 720 × 288. Empty: phones get the desktop image.
+     */
+    mobileImage?: (number | null) | Media;
+    /**
+     * Where a click goes: /products/… or /category/… on this site, or https://… (opens in a new tab). Empty: not clickable.
+     */
+    link?: string | null;
+    id?: string | null;
+  }[];
+  showOn: ('category' | 'brand' | 'search' | 'product')[];
+  /**
+   * Only on these categories (sub-categories included): their category pages, and product pages of products in them. Empty: all categories.
+   */
+  categories?: (number | Category)[] | null;
+  /**
+   * Only on these brands: their brand pages, and product pages of their products. Empty: all brands.
+   */
+  brands?: (number | Brand)[] | null;
+  /**
+   * Only on these product pages. Empty: every product page the limits above allow.
+   */
+  products?: (number | Product)[] | null;
+  /**
+   * Only on searches containing one of these words, comma-separated, e.g. "sander, polisher". Empty: every search.
+   */
+  searchWords?: string | null;
+  /**
+   * On product pages it always shows below the product details.
+   */
+  position?: ('top' | 'inline') | null;
+  /**
+   * On each page of results. 12 always ends a full row (2, 3 or 4 products across).
+   */
+  afterProducts?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Every change staff make in the admin, and every staff sign-in. Read-only.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1586,6 +1662,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'pages';
         value: number | Page;
+      } | null)
+    | ({
+        relationTo: 'promo-banners';
+        value: number | PromoBanner;
       } | null)
     | ({
         relationTo: 'roles';
@@ -2271,6 +2351,34 @@ export interface PagesSelect<T extends boolean = true> {
   isPublished?: T;
   metaDescription?: T;
   content?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "promo-banners_select".
+ */
+export interface PromoBannersSelect<T extends boolean = true> {
+  name?: T;
+  isActive?: T;
+  startsAt?: T;
+  endsAt?: T;
+  sortOrder?: T;
+  banners?:
+    | T
+    | {
+        image?: T;
+        mobileImage?: T;
+        link?: T;
+        id?: T;
+      };
+  showOn?: T;
+  categories?: T;
+  brands?: T;
+  products?: T;
+  searchWords?: T;
+  position?: T;
+  afterProducts?: T;
   updatedAt?: T;
   createdAt?: T;
 }
